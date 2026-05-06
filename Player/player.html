@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Mini Subtitle Player</title>
+<link rel="stylesheet" href="player.css" />
+</head>
+<body>
+<div id="main">
+
+<div class="top-controls">
+  <button id="settingsBtn" data-i18n="settings">Settings</button>
+  <button id="ankiAllBtn" data-i18n="updateCard">Update Card</button>
+  <select id="targetNoteSelect" title="Target Anki card">
+    <option value="" data-i18n="lastAdded">Last added (auto)</option>
+  </select>
+</div>
+
+<div id="settingsMenu" class="hidden">
+  <div style="padding: 10px; display: flex; flex-direction: column; gap: 8px;">
+
+    <details id="detailsSubtitle">
+      <summary data-i18n="ankiSettings">Anki Card Settings</summary>
+      <div style="padding: 5px 0; display: flex; flex-direction: column; gap: 5px;">
+        <label style="font-size: 11px;" data-i18n="offset">Offset (Start/End):</label>
+        <div style="display: flex; gap: 5px;">
+          <input type="number" id="subOffsetStart" value="0" step="0.1" style="width: 50%; background: #333; color: white;">
+          <input type="number" id="subOffsetEnd" value="0" step="0.1" style="width: 50%; background: #333; color: white;">
+        </div>
+        <label style="font-size: 11px;" data-i18n="subDepth">SubDepth:</label>
+        <input type="number" id="subDepth" value="1" min="1" max="5" style="background: #333; color: white; border: 1px solid #555;">
+        <label style="font-size: 11px;" data-i18n="audioVol">Audio Volume:</label>
+        <input type="number" id="audioVol" value="1.0" step="0.1" min="0" max="2.0">
+        <button id="previewAudioBtn" data-i18n="previewAudio" style="background: #444; border:none; color:white; padding:5px; cursor:pointer;">Preview Audio</button>
+        <label style="font-size: 11px;" data-i18n="screenshotMode">Screenshot Mode:</label>
+        <select id="screenshotMode" style="width: 100%; background: #333; color: white; padding: 6px; margin-bottom: 5px;">
+          <option value="subtitle" data-i18n="ssSubtitle">Subtitle Time</option>
+          <option value="current" data-i18n="ssCurrent">Current Frame</option>
+        </select>
+      </div>
+    </details>
+
+    <details id="detailsVisuals">
+      <summary data-i18n="visuals">Visuals</summary>
+      <div style="padding: 5px 0;">
+        <button id="toggleSubs" data-i18n="hideSubs" style="width: 100%; background: #444; border:none; color:white; padding:6px; cursor:pointer; text-align: center;">Hide Subs</button>
+        <label style="font-size: 11px;" data-i18n="fontSize">Font size:</label>
+        <input type="range" id="fontSizeRange" class="slider" min="20" max="80" step="1" value="40" style="width: 100%;">
+		
+	<label style="font-size: 11px;" data-i18n="globalSubDelay">Global Sub Delay (s):</label>
+	<div style="display: flex; gap: 5px; align-items: center;">
+	  <input type="number" id="globalSubDelay" value="0" step="0.1" style="width: 100%; background: #333; color: white; border: 1px solid #555;">
+	</div>
+		
+		<label style="font-size: 11px;" data-i18n="interfaceLang">Interface Language:</label>
+		<select id="interfaceLangSelect" style="width: 100%; background: #333; color: white; padding: 6px; margin-bottom: 5px;">
+    </select>
+      </div>
+    </details>
+
+    <details id="detailsAnki">
+      <summary data-i18n="ankiIntegration">Anki Integration</summary>
+      <div style="padding: 5px 0;">
+        <label style="font-size: 11px;" data-i18n="ankiURL">Anki URL:</label>
+        <input type="text" id="ankiUrl" value="http://localhost:8765" style="width: 100%; background: #333; color: white; border: 1px solid #555; margin-bottom: 5px;">
+        <label style="font-size: 11px;" data-i18n="deckName">Deck Name:</label>
+        <input type="text" id="deckName" value="Mining Deck" style="width: 100%; background: #333; color: white; border: 1px solid #555; margin-bottom: 5px;">
+      </div>
+    </details>
+
+    <button id="saveSettingsBtn" data-i18n="saveSettings" style="background: #2d0659; color:#a97ce6; padding:5px; border: 1px solid #a97ce6; cursor:pointer; margin-top: 5px;">Save Settings</button>
+    <button id="deleteVideoBtn" data-i18n="clear" style="color: #ff4444; background: #4a0a0a; border: 1px solid #ff4444; cursor: pointer; padding: 5px;">Clear</button>
+
+  </div>
+</div>
+
+<div id="dropzone">
+  <h2 data-i18n="dropText">Drop video and subtitles (.srt .ass) here</h2>
+  <p><span data-i18n="orText">or</span><span id="clickToUpload" data-i18n="chooseFiles" style="color: #8800ff; cursor: pointer; text-decoration: underline;">choose files</span></p>
+  
+  <input type="file" id="multiInput" class="hidden-input" multiple accept="video/*,.srt">
+</div>
+
+  <div id="videoContainer">
+    <video id="video"></video>
+
+<div id="controls">
+  <div class="controls-row" style="margin-bottom: 5px;">
+    <input type="range" id="progress" class="slider" value="0" min="0" max="100">
+  </div>
+  
+  <div class="controls-row" style="justify-content: space-between;">
+    <div style="display: flex; gap: 10px; align-items: center;">
+      <button id="playPause" type="button">▶</button>
+      <input type="range" id="volume" class="slider" min="0" max="1" step="0.01" value="1" style="width: 60px;">
+      <span id="time" style="font-size: 12px;">0:00 / 0:00</span>
+    </div>
+    
+    <div style="display: flex; gap: 5px; align-items: center;">
+      <button id="prevSubBtn">◀</button>
+      <button id="nextSubBtn">▶</button>
+		<select id="audioTrackSelect">
+		  <option value="default" data-i18n="defaultAudio">DEFAULT</option>
+		</select>
+      <button id="fullscreenBtn" type="button" data-i18n="fullscreen">Fullscreen</button>
+    </div>
+  </div>
+</div>
+
+    <div id="subtitleOverlay"></div>
+    <img id="screenshotPreview" src="" alt="" hidden>
+  </div>
+</div>
+
+<div id="resizer"></div>
+<div id="sidebar"></div>
+
+<script src="player.i18n.js" defer></script>
+<script src="player.api.js" defer></script>
+<script src="player.subtitles.js" defer></script>
+<script src="player.js" defer></script>
+<script src="player.audio.js" defer></script>
+<script src="player.settings.js" defer></script>
+</body>
+</html>

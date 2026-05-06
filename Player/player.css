@@ -1,0 +1,319 @@
+/* Основные настройки */
+body {
+  margin: 0;
+  font-family: sans-serif;
+  background: #111;
+  color: white;
+  overflow: hidden;
+  display: flex;
+  height: 100vh;
+}
+
+#main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: #0b030d;
+}
+
+#videoContainer {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
+video { width: 100%; height: 100%; object-fit: contain; }
+
+/* Верхние контролы */
+.top-controls {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  flex-direction: row-reverse;
+  gap: 10px;
+  z-index: 20;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+
+.top-controls.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.top-controls button {
+  padding: 6px 12px;
+  background: #333;
+  border: none;
+  color: white;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.top-controls select {
+  padding: 6px 8px;
+  background: #333;
+  border: 1px solid #555;
+  color: white;
+  max-width: 260px;
+  min-width: 180px;
+  font-size: 12px;
+  border-radius: 4px;
+}
+
+.top-controls button:hover { background: #444; }
+
+/* Настройки меню */
+#settingsMenu {
+  position: absolute;
+  top: 45px;
+  right: 10px;
+  background: #222;
+  border: 1px solid #444;
+  z-index: 999;
+  width: 220px;
+  border-radius: 4px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+  padding: 15px;
+}
+#settingsMenu.hidden { display: none; }
+
+button, select {
+  transition: background 0.2s ease;
+}
+
+button:hover,
+select:hover {
+  background: #555 !important;
+  cursor: pointer;
+}
+
+#settingsMenu label {
+  display: block;
+  font-size: 11px;
+  color: #aaa;
+  margin-bottom: 3px;
+  margin-top: 8px;
+  text-transform: uppercase;
+}
+
+#settingsMenu input[type="text"],
+#settingsMenu input[type="number"],
+#settingsMenu select {
+  width: 100%;
+  background: #333;
+  color: white;
+  border: 1px solid #555;
+  padding: 6px;
+  border-radius: 4px;
+  box-sizing: border-box;
+  margin-bottom: 5px;
+}
+
+#settingsMenu hr {
+  width: 100%;
+  border: 0;
+  border-top: 1px solid #444;
+  margin: 15px 0;
+}
+
+#settingsMenu button {
+  width: 100%;
+  margin-top: 5px;
+  padding: 6px;
+  cursor: pointer;
+}
+
+#subtitleOverlay {
+  position: absolute;
+  bottom: 70px;
+  left: 0;
+  width: 100%;
+  padding: 0 20px;
+  box-sizing: border-box;
+  font-family: "NotoSansJP", sans-serif;
+  font-weight: bold;
+  font-size: clamp(24px, 4vw, 60px);
+  text-align: center;
+  color: white;
+  -webkit-text-stroke: 8px black;
+  paint-order: stroke fill;
+  pointer-events: auto;
+  user-select: auto;
+  transition: bottom 0.3s ease;
+}
+
+#controls {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  padding: 10px 15px;
+  background: linear-gradient(transparent, rgba(0,0,0,0.8));
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.controls-row {
+  display: flex;
+  width: 100%;
+  align-items: center;
+}
+
+#controls button, #audioTrackSelect {
+  height: 28px;
+  padding: 0 10px;
+  background: #333;
+  border: none;
+  color: white;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+#progress { width: 100%; cursor: pointer; }
+
+.buttons-row button {
+  height: 32px;
+  background: #333;
+  border: none;
+  color: white;
+  padding: 0 12px;
+  cursor: pointer;
+  border-radius: 4px;
+  gap: 5px;
+}
+
+#controls #nextSubBtn,
+#controls #prevSubBtn,
+#controls #audioTrackSelect,
+#controls #fullscreenBtn {
+  height: 32px;
+  padding: 0 12px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  margin: 0;
+  line-height: 1;
+}
+
+#controls button {
+  background: #333;
+  border: none;
+  color: white;
+  padding: 6px 12px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+#controls button:hover {
+  background: #444;
+}
+
+#progress { flex: 1; cursor: pointer; }
+#audioTrackSelect { flex-shrink: 0; }
+
+#sidebar {
+  width: 260px;
+  min-width: 150px;
+  max-width: 50vw;
+  overflow-y: auto;
+  border-left: 1px solid #333;
+  background: #0b030d;
+  scrollbar-width: none;
+}
+
+#resizer {
+  width: 4px;
+  cursor: col-resize;
+  background: #222;
+  transition: background 0.2s;
+  z-index: 100;
+}
+
+#resizer.hidden {
+  display: none;
+}
+
+#resizer:hover, #resizer:active {
+  background: #8800ff;
+}
+#sidebar.hidden { width: 0 !important; min-width: 0 !important; border-left: none; overflow: hidden; }
+#sidebar::-webkit-scrollbar { display: none; }
+
+.subtitle { padding: 8px 12px; border-bottom: 1px solid #222; cursor: pointer; }
+.subtitle:hover { background: #28222b; }
+.subtitle.active { background: #2f2633; }
+
+#dropzone { border: 4px dashed #8800ff; padding: 300px; text-align: center; }
+#dropzone.hidden { display: none; }
+.hidden-input { display: none !important; }
+#screenshotPreview { position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); max-width: 200px; border: 2px solid #555; border-radius: 6px; }
+
+#dropzone:not(.hidden) ~ #videoContainer,
+#dropzone:not(.hidden) ~ .top-controls,
+#dropzone:not(.hidden) ~ #controls { display: none !important; }
+
+.slider {
+  -webkit-appearance: none;
+  background: transparent;
+}
+
+.slider::-webkit-slider-runnable-track {
+  height: 6px;
+  background: #33204d;
+  border-radius: 3px;
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 16px;
+  width: 16px;
+  border-radius: 50%;
+  background: #9b51e0;
+  cursor: pointer;
+  margin-top: -5px;
+  border: 2px solid #a97ce6;
+}
+
+details {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid #444;
+  padding-bottom: 5px;
+  margin-bottom: 5px;
+}
+
+summary {
+  cursor: pointer;
+  padding: 8px 0;
+  font-size: 12px;
+  color: #a97ce6;
+  font-weight: bold;
+  outline: none;
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+summary::-webkit-details-marker { display: none; }
+
+summary::after {
+  content: "▼";
+  font-size: 9px;
+  color: #777;
+}
+
+details[open] summary::after {
+  content: "▲";
+}
