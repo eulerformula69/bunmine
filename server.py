@@ -34,11 +34,16 @@ DEFAULT_BASE_DIR = Path(__file__).resolve().parent
 BASE_DIR = Path(os.getenv("PLAYER_SERVER_BASE_DIR", str(DEFAULT_BASE_DIR))).resolve()
 PLAYER_DIR = BASE_DIR / "Player"
 VIDEO_DIR = BASE_DIR / "UploadedVideos"
-ANKI_MEDIA_DIR = Path(
-    os.getenv(
-        "ANKI_MEDIA_DIR"
-        )
-).resolve()
+
+anki_media_dir_raw = os.getenv("ANKI_MEDIA_DIR")
+
+if not anki_media_dir_raw:
+    raise RuntimeError(
+        "ANKI_MEDIA_DIR is not set. Create .env from .env.example and set your Anki collection.media path."
+    )
+
+ANKI_MEDIA_DIR = Path(anki_media_dir_raw).expanduser().resolve()
+
 SCREENSHOT_DIR = ANKI_MEDIA_DIR
 AUDIO_DIR = ANKI_MEDIA_DIR
 ALLOWED_ORIGIN = os.getenv("ALLOWED_ORIGIN")
@@ -91,6 +96,21 @@ def _to_float(value, fallback=0.0) -> float:
     except (TypeError, ValueError):
         return fallback
 
+def _run_subprocess(cmd: list[str]) -> subprocess.CompletedProcess:
+    try:
+        return subprocess.run(
+            cmd,
+            check=True,
+            capture_output=True,
+            text=True
+        )
+    except FileNotFoundError:
+        raise RuntimeError(
+            "FFmpeg/FFprobe is not installed or not available in PATH."
+        )
+    except subprocess.CalledProcessError as err:
+        details = err.stderr.strip() if err.stderr else str(err)
+        raise RuntimeError(details)
 
 def _load_dedupe_index() -> dict:
     if not DEDUPE_INDEX_PATH.exists():
@@ -231,7 +251,10 @@ def screenshot():
     
     # 1. Создаем скриншот через FFmpeg
     cmd = ["ffmpeg", "-y", "-ss", str(t_val), "-i", video_path, "-vframes", "1", "-q:v", "2", raw_screenshot]
-    subprocess.run(cmd, check=True)
+    try:
+        _run_subprocess(cmd)
+    except RuntimeError as err:
+        return jsonify({"error": f"FFmpeg screenshot error: {str(err)}"}), 500
 
     # 2. Обработка через Pillow
     img = Image.open(raw_screenshot)
@@ -338,15 +361,15 @@ def audio():
         ]
     
     try:
-        subprocess.run(cmd, check=True)
+        _run_subprocess(cmd)
         _save_cached_media("audio", audio_key, audio_filename)
         return jsonify({
             "filename": audio_filename,
             "url": f"/get-temp-audio?filename={audio_filename}",
             "reused": False,
         })
-    except subprocess.CalledProcessError as e:
-        return jsonify({"error": f"FFmpeg error: {str(e)}"}), 500
+    except RuntimeError as err:
+        return jsonify({"error": f"FFmpeg audio error: {str(err)}"}), 500
 
 @app.route('/get-temp-audio')
 def get_temp_audio():
@@ -385,7 +408,7 @@ def get_audio_tracks():
     ]
     
     try:
-        result = subprocess.run(cmd, check=True, capture_output=True, text=True)
+        result = _run_subprocess(cmd)
         # Если ffprobe ничего не нашел, result.stdout может быть пустым
         data = json.loads(result.stdout)
         tracks = data.get("streams", [])
@@ -415,7 +438,10 @@ def get_track_url():
             "ffmpeg", "-y", "-i", video_path,
             "-map", f"0:{track_index}", "-c", "copy", temp_audio_path
         ]
-        subprocess.run(cmd, check=True)
+        try:
+            _run_subprocess(cmd)
+        except RuntimeError as err:
+            return jsonify({"error": f"FFmpeg track extraction error: {str(err)}"}), 500
 
     # Возвращаем путь, по которому клиент сможет забрать файл
     return jsonify({"url": f"/download-audio?name={temp_audio_name}"})

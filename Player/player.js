@@ -42,15 +42,34 @@ function renderSubtitles() {
     sidebar.innerHTML = "";
     subtitleElements = [];
     subtitles.forEach((sub, idx) => {
-        const div = document.createElement("div");
-        div.className = "subtitle";
-        div.innerHTML = `
-            <div class="time-container" style="display: flex; justify-content: space-between; font-size: 14px; color: #888; margin-bottom: 10px;">
-				<span>${formatTime(sub.start + globalSubDelay)}</span>
-				<span>${formatTime(sub.end + globalSubDelay)}</span>
-            </div>
-            <div class="text-content">${sub.text}</div>
-        `;
+		
+		const div = document.createElement("div");
+		div.className = "subtitle";
+
+		const timeContainer = document.createElement("div");
+		timeContainer.className = "time-container";
+		timeContainer.style.display = "flex";
+		timeContainer.style.justifyContent = "space-between";
+		timeContainer.style.fontSize = "14px";
+		timeContainer.style.color = "#888";
+		timeContainer.style.marginBottom = "10px";
+
+		const startTime = document.createElement("span");
+		startTime.textContent = formatTime(sub.start + globalSubDelay);
+
+		const endTime = document.createElement("span");
+		endTime.textContent = formatTime(sub.end + globalSubDelay);
+
+		timeContainer.appendChild(startTime);
+		timeContainer.appendChild(endTime);
+
+		const textContent = document.createElement("div");
+		textContent.className = "text-content";
+		textContent.textContent = sub.text;
+
+		div.appendChild(timeContainer);
+		div.appendChild(textContent);
+		
         div.onclick = () => {
             if (lastClickedSubtitleIdx === idx) {
                 if (video.paused) video.play();
