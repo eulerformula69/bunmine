@@ -259,20 +259,13 @@ progress.oninput = () => {
     audioManager.sync();
 };
 
-const topControls = document.querySelector(".top-controls");
 videoContainer.addEventListener("mousemove", (e) => {
     const rect = videoContainer.getBoundingClientRect();
     const relativeY = e.clientY - rect.top;
-    const isBottom = relativeY >= rect.height - 80;
-    const isTop = relativeY <= 120;
+    const isBottom = relativeY >= rect.height - 120;
 
     controls.style.opacity = isBottom ? "1" : "0";
     controls.style.pointerEvents = isBottom ? "auto" : "none";
-    [ankiAllBtn, settingsBtn].forEach((b) => {
-        b.style.opacity = isTop ? "1" : "0";
-        b.style.pointerEvents = isTop ? "auto" : "none";
-    });
-    topControls.classList.toggle("visible", isTop);
 });
 
 function seekBySubtitle(offset) {
@@ -296,9 +289,25 @@ const FRAME_STEP_SECONDS = 1 / 30;
 
 function updateFullscreenButtonText() {
     if (!fullscreenBtn) return;
+
     const isFullscreen = !!document.fullscreenElement;
     const key = isFullscreen ? "exitFullscreen" : "fullscreen";
-    fullscreenBtn.textContent = i18n[currentLang].dict[key] || (isFullscreen ? "Exit Fullscreen" : "Fullscreen");
+    const label = i18n[currentLang].dict[key] || (isFullscreen ? "Exit Fullscreen" : "Fullscreen");
+
+    fullscreenBtn.textContent = "⛶";
+    fullscreenBtn.title = label;
+    fullscreenBtn.setAttribute("aria-label", label);
+}
+
+function updateIconButtons() {
+    if (settingsBtn) {
+        const settingsLabel = i18n[currentLang].dict.settings || "Settings";
+        settingsBtn.textContent = "⚙";
+        settingsBtn.title = settingsLabel;
+        settingsBtn.setAttribute("aria-label", settingsLabel);
+    }
+
+    updateFullscreenButtonText();
 }
 
 async function toggleFullscreenMode() {
@@ -390,12 +399,16 @@ async function refreshTargetNoteList({ preserveSelection = true } = {}) {
     const previousValue = preserveSelection ? targetNoteSelect.value : "";
 
     targetNoteSelect.innerHTML = "";
-    const autoOption = document.createElement("option");
-    autoOption.value = "";
-    autoOption.textContent = i18n[currentLang].dict.lastAdded || "Last added (auto)";
-    targetNoteSelect.appendChild(autoOption);
+	const autoOption = document.createElement("option");
+	autoOption.value = "";
+	autoOption.textContent = i18n[currentLang].dict.lastAdded || "🕘";
+	autoOption.title = i18n[currentLang].dict.lastAddedTitle || "Last added card";
 
-    if (!ankiUrl || !deckName) return;
+	targetNoteSelect.appendChild(autoOption);
+
+	targetNoteSelect.title = i18n[currentLang].dict.lastAddedTitle || "Last added card";
+
+	if (!ankiUrl || !deckName) return;
 
     try {
         const ids = await fetchDeckNoteIds(ankiUrl, deckName);

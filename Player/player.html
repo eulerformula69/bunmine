@@ -8,14 +8,6 @@
 <body>
 <div id="main">
 
-<div class="top-controls">
-  <button id="settingsBtn" data-i18n="settings">Settings</button>
-  <button id="ankiAllBtn" data-i18n="updateCard">Update Card</button>
-  <select id="targetNoteSelect" title="Target Anki card">
-    <option value="" data-i18n="lastAdded">Last added (auto)</option>
-  </select>
-</div>
-
 <div id="settingsModal" class="hidden">
   <div class="settings-window">
     
@@ -149,16 +141,36 @@
       <input type="range" id="volume" class="slider" min="0" max="1" step="0.01" value="1" style="width: 60px;">
       <span id="time" style="font-size: 12px;">0:00 / 0:00</span>
     </div>
-    
+ 
+<div class="mining-row">
+  <select id="targetNoteSelect" title="Target Anki card">
+    <option value="" data-i18n="lastAdded" title="Last added card">🕘</option>
+  </select>
+
+  <button id="ankiAllBtn" class="primary-action" data-i18n="updateCard">
+    Update Card
+  </button>
+
+</div>
+
     <div style="display: flex; gap: 5px; align-items: center;">
       <button id="prevSubBtn">◀</button>
       <button id="nextSubBtn">▶</button>
 		<select id="audioTrackSelect">
 		  <option value="default" data-i18n="defaultAudio">DEFAULT</option>
 		</select>
-      <button id="fullscreenBtn" type="button" data-i18n="fullscreen">Fullscreen</button>
+		
+	<button id="fullscreenBtn" type="button" class="icon-btn" title="Fullscreen" aria-label="Fullscreen">
+	  ⛶
+	</button>
+
+	<button id="settingsBtn" class="icon-btn" title="Settings" aria-label="Settings">
+	  ⚙
+	</button>
+	  
     </div>
   </div>
+  
 </div>
 
     <div id="subtitleOverlay"></div>
