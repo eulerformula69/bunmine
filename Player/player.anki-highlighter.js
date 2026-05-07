@@ -507,7 +507,38 @@ function rerenderCurrentSubtitleWithAnkiHighlighter() {
 
 function findAnkiMatchesInText(text) {
     const source = String(text || "");
+    const tokens = tokenizeJapaneseTextSync?.(source);
+
+    if (!tokens) {
+        return [];
+    }
+
+    const boundaries = new Set([0, source.length]);
     const matches = [];
+
+    for (const token of tokens) {
+        const start = Math.max(0, Number(token.word_position || 1) - 1);
+        const end = start + String(token.surface_form || "").length;
+
+        boundaries.add(start);
+        boundaries.add(end);
+
+        const surface = token.surface_form;
+        const basic = token.basic_form;
+
+        for (const candidate of [surface, basic]) {
+            if (!candidate || candidate === "*") continue;
+
+            const info = ankiWordStatusMap.get(candidate);
+            if (!info) continue;
+
+            matches.push({
+                start,
+                end,
+                status: info.status
+            });
+        }
+    }
 
     const entries = [...ankiWordStatusMap.entries()]
         .filter(([word]) => word.length > 0)
@@ -517,17 +548,25 @@ function findAnkiMatchesInText(text) {
         let index = source.indexOf(word);
 
         while (index !== -1) {
-            matches.push({
-                start: index,
-                end: index + word.length,
-                status: info.status
-            });
+            const end = index + word.length;
+
+            if (boundaries.has(index) && boundaries.has(end)) {
+                matches.push({
+                    start: index,
+                    end,
+                    status: info.status
+                });
+            }
 
             index = source.indexOf(word, index + word.length);
         }
     }
 
-    return matches.sort((a, b) => a.start - b.start || b.end - a.end);
+    return matches
+        .sort((a, b) => a.start - b.start || b.end - a.end)
+        .filter((match, index, arr) => {
+            return index === 0 || match.start >= arr[index - 1].end;
+        });
 }
 
 const ankiSubtitleHighlighter = {

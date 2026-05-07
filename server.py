@@ -198,6 +198,30 @@ cleanup_on_startup()
 def index():
     return send_from_directory(str(PLAYER_DIR), 'player.html')
 
+@app.route('/libs/kuromoji/dict/<path:filename>')
+def serve_kuromoji_dict(filename):
+    if not filename.endswith(".dat.gz"):
+        return jsonify({"error": "Invalid dictionary file"}), 400
+
+    dict_dir = PLAYER_DIR / "libs" / "kuromoji" / "dict"
+    file_path = dict_dir / filename
+
+    if not file_path.exists() or not _is_within(dict_dir, file_path):
+        return jsonify({"error": "Dictionary file not found"}), 404
+
+    data = file_path.read_bytes()
+
+    response = app.response_class(
+        data,
+        mimetype="application/octet-stream"
+    )
+
+    response.headers["Content-Type"] = "application/octet-stream"
+    response.headers["Cache-Control"] = "no-store"
+    response.headers.pop("Content-Encoding", None)
+
+    return response
+
 @app.route('/<path:path>')
 def serve_file(path):
     return send_from_directory(str(PLAYER_DIR), path)

@@ -775,6 +775,11 @@ window.addEventListener("load", () => {
             console.error("Anki highlighter load failed:", err);
         });
     }, 300);
+	
+	getJapaneseTokenizer?.().catch((err) => {
+		console.warn("Japanese tokenizer load failed:", err);
+	});	
+	
 });
 
 document.getElementById("refreshAnkiHighlighterBtn")?.addEventListener("click", () => {
