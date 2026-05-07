@@ -677,5 +677,25 @@ def save_anki_highlight_cache(cache_key):
 
     return jsonify({"success": True})
 
+@app.route("/known-basic-words", methods=["GET"])
+def get_known_basic_words():
+    words_path = BASE_DIR / "known-basic-words.json"
+
+    if not words_path.exists():
+        return jsonify({"words": []})
+
+    try:
+        data = json.loads(words_path.read_text(encoding="utf-8"))
+
+        if isinstance(data, list):
+            return jsonify({"words": data})
+
+        if isinstance(data, dict) and isinstance(data.get("words"), list):
+            return jsonify({"words": data["words"]})
+
+        return jsonify({"error": "Invalid known-basic-words.json format"}), 400
+    except Exception as err:
+        return jsonify({"error": str(err)}), 500
+
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=int(os.getenv("PORT", "5000")))

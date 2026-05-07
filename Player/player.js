@@ -32,6 +32,9 @@ let subtitleElements = [];
 let currentVideoFile = null;
 let lastClickedSubtitleIdx = null;
 let lastSidebarWidth = "";
+let lastRuntimeSubtitleText = "";
+let runtimePrefetchAllRunId = 0;
+let runtimePrefetchAllInProgress = false;
 
 prevSubBtn.onclick = () => seekBySubtitle(-1);
 nextSubBtn.onclick = () => seekBySubtitle(1);
@@ -42,11 +45,19 @@ video.volume = volume.value;
 video.addEventListener("timeupdate", () => {
     const sub = getCurrentSubtitle();
 
-	renderSubtitleOverlay({
-		overlay,
-		text: sub ? sub.text : "",
-		highlighter: ankiSubtitleHighlighter
-	});
+    if (sub?.text && sub.text !== lastRuntimeSubtitleText) {
+        lastRuntimeSubtitleText = sub.text;
+
+        ensureStatusesForSubtitleText(sub.text).catch((err) => {
+            console.warn("Runtime subtitle status lookup failed:", err);
+        });
+    }
+
+    renderSubtitleOverlay({
+        overlay,
+        text: sub ? sub.text : "",
+        highlighter: ankiSubtitleHighlighter
+    });
 
     progress.value = (video.currentTime / video.duration) * 100 || 0;
     timeLabel.textContent = `${formatTime(video.currentTime)} / ${formatTime(video.duration)}`;
@@ -60,6 +71,7 @@ video.addEventListener("timeupdate", () => {
 async function handleFiles(files) {
     let videoFile = null;
     let hasSubtitles = false;
+
     for (const file of files) {
         if (file.name.endsWith(".srt")) {
             subtitles = parseSRT(await file.text());
@@ -72,22 +84,85 @@ async function handleFiles(files) {
         }
     }
 
-	if (videoFile) {
-		if (!hasSubtitles) {
-			subtitles = [];
+    if (videoFile) {
+        if (!hasSubtitles) {
+            subtitles = [];
+            lastRuntimeSubtitleText = "";
 
-			renderSubtitleOverlay({
-				overlay,
-				text: ""
-			});
-		}
+            renderSubtitleOverlay({
+                overlay,
+                text: ""
+            });
+        }
 
-		video.src = URL.createObjectURL(videoFile);
-		dropzone.classList.add("hidden");
-		uploadVideoInBackground(videoFile);
-	}
+        video.src = URL.createObjectURL(videoFile);
+        dropzone.classList.add("hidden");
+        uploadVideoInBackground(videoFile);
+    }
+
+    lastRuntimeSubtitleText = "";
+    runtimePrefetchAllRunId += 1;
+
+    clearRuntimeWordStatuses?.();
 
     renderSubtitles();
+
+    requestAnimationFrame(() => {
+        prefetchRuntimeStatusesForAllSubtitles({ silent: true });
+    });
+}
+
+async function prefetchRuntimeStatusesForAllSubtitles({ silent = true } = {}) {
+    if (!Array.isArray(subtitles) || !subtitles.length) return;
+
+    const runId = ++runtimePrefetchAllRunId;
+    runtimePrefetchAllInProgress = true;
+
+    try {
+        await loadKnownBasicWords?.();
+
+        if (typeof getJapaneseTokenizer === "function") {
+            await getJapaneseTokenizer();
+        }
+
+        const uniqueTexts = [...new Set(
+            subtitles
+                .map((sub) => sub?.text)
+                .filter(Boolean)
+        )];
+
+        const currentSub = getCurrentSubtitle?.();
+        const currentText = currentSub?.text || "";
+
+        if (currentText) {
+            await ensureStatusesForSubtitleText(currentText, {
+                rerender: true,
+                silent
+            });
+        }
+
+        for (const text of uniqueTexts) {
+            if (runId !== runtimePrefetchAllRunId) return;
+            if (text === currentText) continue;
+
+            await ensureStatusesForSubtitleText(text, {
+                rerender: false,
+                silent: true
+            });
+
+            await new Promise((resolve) => setTimeout(resolve, 10));
+        }
+
+        if (runId === runtimePrefetchAllRunId) {
+            rerenderCurrentSubtitleWithAnkiHighlighter?.();
+        }
+    } catch (err) {
+        console.warn("Runtime full subtitle prefetch failed:", err);
+    } finally {
+        if (runId === runtimePrefetchAllRunId) {
+            runtimePrefetchAllInProgress = false;
+        }
+    }
 }
 
 [dropzone, videoContainer].forEach((zone) => {
@@ -105,8 +180,13 @@ async function handleFiles(files) {
 async function uploadVideoInBackground(file) {
     const form = new FormData();
     form.append("videoFile", file);
+
     try {
-        const { data } = await apiJson("/upload-video", { method: "POST", body: form });
+        const { data } = await apiJson("/upload-video", {
+            method: "POST",
+            body: form
+        });
+
         if (data.error) {
             console.error("Server upload error:", data.error);
         } else {
@@ -131,15 +211,18 @@ toggleBtn.onclick = (e) => {
     e.stopPropagation();
 
     const isHidden = sidebar.classList.contains("hidden");
+
     if (!isHidden) {
         const currentWidth = sidebar.style.width || `${Math.round(sidebar.getBoundingClientRect().width)}px`;
         if (currentWidth && currentWidth !== "0px") lastSidebarWidth = currentWidth;
+
         sidebar.classList.add("hidden");
         resizer.classList.add("hidden");
         sidebar.style.width = "0px";
     } else {
         sidebar.classList.remove("hidden");
         resizer.classList.remove("hidden");
+
         const saved = JSON.parse(localStorage.getItem("subtitlePlayerSettings") || "{}").sidebarWidth;
         sidebar.style.width = lastSidebarWidth || saved || "260px";
     }
@@ -154,6 +237,7 @@ function updatePlayButton() {
 
 playPause.onclick = (e) => {
     e.stopPropagation();
+
     if (video.paused) video.play();
     else video.pause();
 };
@@ -249,15 +333,23 @@ async function toggleFullscreenMode() {
 
 function isTypingTarget(target) {
     if (!target) return false;
+
     const tag = target.tagName;
     return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || target.isContentEditable;
 }
 
 function stepFrame(direction) {
     if (!video.duration || Number.isNaN(video.duration)) return;
+
     video.pause();
-    const nextTime = Math.max(0, Math.min(video.duration, video.currentTime + (FRAME_STEP_SECONDS * direction)));
+
+    const nextTime = Math.max(
+        0,
+        Math.min(video.duration, video.currentTime + (FRAME_STEP_SECONDS * direction))
+    );
+
     video.currentTime = nextTime;
+
     if (typeof audioManager !== "undefined" && audioManager) {
         audioManager.sync();
         audioManager.pause();
@@ -270,10 +362,19 @@ async function fetchDeckNoteIds(ankiUrl, deckName) {
     const findRes = await fetch(ankiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "findNotes", version: 6, params: { query: `deck:"${deckName}"` } })
+        body: JSON.stringify({
+            action: "findNotes",
+            version: 6,
+            params: {
+                query: `deck:"${deckName}"`
+            }
+        })
     });
+
     const findData = await findRes.json();
+
     if (findData.error) throw new Error(findData.error);
+
     return Array.isArray(findData.result) ? findData.result : [];
 }
 
@@ -299,6 +400,7 @@ function pickNotePreviewText(noteInfo) {
         const value = stripHtml(field?.value);
         if (value) return value;
     }
+
     return "";
 }
 
@@ -309,43 +411,50 @@ async function fetchNotesInfo(ankiUrl, noteIds) {
         body: JSON.stringify({
             action: "notesInfo",
             version: 6,
-            params: { notes: noteIds }
+            params: {
+                notes: noteIds
+            }
         })
     });
+
     const data = await res.json();
+
     if (data.error) throw new Error(data.error);
+
     return Array.isArray(data.result) ? data.result : [];
 }
 
 async function refreshTargetNoteList({ preserveSelection = true } = {}) {
     if (!targetNoteSelect) return;
+
     const ankiUrl = document.getElementById("ankiUrl").value;
     const deckName = document.getElementById("deckName").value;
     const previousValue = preserveSelection ? targetNoteSelect.value : "";
 
     targetNoteSelect.innerHTML = "";
-	const autoOption = document.createElement("option");
-	autoOption.value = "";
-	autoOption.textContent = i18n[currentLang].dict.lastAdded || "🕘";
-	autoOption.title = i18n[currentLang].dict.lastAddedTitle || "Last added card";
 
-	targetNoteSelect.appendChild(autoOption);
+    const autoOption = document.createElement("option");
+    autoOption.value = "";
+    autoOption.textContent = i18n[currentLang].dict.lastAdded || "🕘";
+    autoOption.title = i18n[currentLang].dict.lastAddedTitle || "Last added card";
 
-	targetNoteSelect.title = i18n[currentLang].dict.lastAddedTitle || "Last added card";
+    targetNoteSelect.appendChild(autoOption);
+    targetNoteSelect.title = i18n[currentLang].dict.lastAddedTitle || "Last added card";
 
-	if (!ankiUrl || !deckName) {
-		updateTargetNoteButtonText();
-		rebuildTargetNoteMenu();
-		return;
-	}
+    if (!ankiUrl || !deckName) {
+        updateTargetNoteButtonText();
+        rebuildTargetNoteMenu();
+        return;
+    }
 
     try {
         const ids = await fetchDeckNoteIds(ankiUrl, deckName);
-		if (!ids.length) {
-			updateTargetNoteButtonText();
-			rebuildTargetNoteMenu();
-			return;
-		}
+
+        if (!ids.length) {
+            updateTargetNoteButtonText();
+            rebuildTargetNoteMenu();
+            return;
+        }
 
         const recentIds = ids.slice(-50).reverse();
         const infoList = await fetchNotesInfo(ankiUrl, recentIds);
@@ -354,10 +463,13 @@ async function refreshTargetNoteList({ preserveSelection = true } = {}) {
         recentIds.forEach((id) => {
             const opt = document.createElement("option");
             opt.value = String(id);
+
             const preview = pickNotePreviewText(infoById.get(Number(id)));
             const shortPreview = preview.length > 70 ? `${preview.slice(0, 67)}...` : preview;
-            opt.textContent = shortPreview ? `${shortPreview}` : `#${id}`;
+
+            opt.textContent = shortPreview || `#${id}`;
             opt.title = preview || `#${id}`;
+
             targetNoteSelect.appendChild(opt);
         });
 
@@ -387,6 +499,7 @@ function getTargetNoteDropdownEls() {
 
 function updateTargetNoteButtonText() {
     const { dropdown, button, buttonText } = getTargetNoteDropdownEls();
+
     if (!button || !buttonText || !targetNoteSelect) return;
 
     const selectedOption = targetNoteSelect.selectedOptions[0];
@@ -399,7 +512,6 @@ function updateTargetNoteButtonText() {
 
     requestAnimationFrame(() => {
         const availableWidth = 42;
-
         const textWidth = buttonText.scrollWidth;
         const overflow = textWidth > availableWidth;
 
@@ -416,6 +528,7 @@ function updateTargetNoteButtonText() {
 
 function updateTargetNoteMenuWidth() {
     const { dropdown } = getTargetNoteDropdownEls();
+
     if (!dropdown || !targetNoteSelect) return;
 
     const canvas = updateTargetNoteMenuWidth.canvas || document.createElement("canvas");
@@ -427,7 +540,6 @@ function updateTargetNoteMenuWidth() {
     const getWords = (text) => {
         const normalized = String(text || "").trim();
 
-        // Если пробелов нет, например японский текст, считаем всю строку одним словом
         if (!/\s/.test(normalized)) return [normalized];
 
         return normalized
@@ -437,8 +549,8 @@ function updateTargetNoteMenuWidth() {
     };
 
     const longestWordWidth = Array.from(targetNoteSelect.options).reduce((max, option) => {
-        // Берём именно текст пункта меню, а не title
         const words = getWords(option.textContent || "");
+
         const localMax = words.reduce((wordMax, word) => {
             return Math.max(wordMax, ctx.measureText(word).width);
         }, 0);
@@ -452,12 +564,14 @@ function updateTargetNoteMenuWidth() {
 
 function rebuildTargetNoteMenu() {
     const { menu } = getTargetNoteDropdownEls();
+
     if (!menu || !targetNoteSelect) return;
 
     menu.innerHTML = "";
 
     Array.from(targetNoteSelect.options).forEach((option) => {
         const item = document.createElement("div");
+
         item.className = "note-dropdown-item";
         item.textContent = option.textContent;
         item.title = option.title || option.textContent;
@@ -477,14 +591,14 @@ function rebuildTargetNoteMenu() {
         });
 
         menu.appendChild(item);
-		
     });
-	
-	updateTargetNoteMenuWidth();
+
+    updateTargetNoteMenuWidth();
 }
 
 function initTargetNoteDropdown() {
     const { button, menu } = getTargetNoteDropdownEls();
+
     if (!button || !menu) return;
 
     button.addEventListener("click", (e) => {
@@ -498,6 +612,7 @@ function initTargetNoteDropdown() {
 
     document.addEventListener("click", (e) => {
         const { dropdown, menu } = getTargetNoteDropdownEls();
+
         if (!dropdown || !menu) return;
 
         if (!dropdown.contains(e.target)) {
@@ -516,10 +631,12 @@ function initTargetNoteDropdown() {
 
 document.addEventListener("keydown", (e) => {
     if (e.target.tagName === "INPUT") return;
+
     if (e.code === "ArrowLeft") {
         e.preventDefault();
         seekBySubtitle(-1);
     }
+
     if (e.code === "ArrowRight") {
         e.preventDefault();
         seekBySubtitle(1);
@@ -547,6 +664,18 @@ document.addEventListener("keydown", (e) => {
         return;
     }
 
+    if (e.code === "Space") {
+        e.preventDefault();
+
+        if (video.paused) {
+            video.play();
+        } else {
+            video.pause();
+        }
+
+        return;
+    }
+
     if (e.code === "KeyS") {
         e.preventDefault();
         toggleBtn.click();
@@ -563,80 +692,100 @@ ankiAllBtn.onclick = async () => {
     const ankiUrl = document.getElementById("ankiUrl").value;
     const deckName = document.getElementById("deckName").value;
     const screenshotMode = document.getElementById("screenshotMode").value;
-	
-	const sentenceField = document.getElementById("sentenceField").value.trim();
-	const pictureField = document.getElementById("pictureField").value.trim();
-	const audioField = document.getElementById("audioField").value.trim();
 
-	if (!pictureField || !audioField) {
-		return alert("Picture Field and Audio Field are required!");
-	}
+    const sentenceField = document.getElementById("sentenceField").value.trim();
+    const pictureField = document.getElementById("pictureField").value.trim();
+    const audioField = document.getElementById("audioField").value.trim();
 
-	let currentIdx = subtitles.findIndex((s) => (video.currentTime - globalSubDelay) >= s.start && (video.currentTime - globalSubDelay) <= s.end);
-	if (currentIdx === -1) return alert("There is no active subtitle!");
+    if (!pictureField || !audioField) {
+        return alert("Picture Field and Audio Field are required!");
+    }
+
+    const currentIdx = subtitles.findIndex((s) => {
+        return (video.currentTime - globalSubDelay) >= s.start &&
+            (video.currentTime - globalSubDelay) <= s.end;
+    });
+
+    if (currentIdx === -1) return alert("There is no active subtitle!");
 
     let targetTime;
-    if (screenshotMode === "current") targetTime = video.currentTime;
-    else targetTime = Math.max(0, subtitles[currentIdx].start + offsetStart);
+
+    if (screenshotMode === "current") {
+        targetTime = video.currentTime;
+    } else {
+        targetTime = Math.max(0, subtitles[currentIdx].start + offsetStart);
+    }
 
     const endIdx = Math.min(currentIdx + depth - 1, subtitles.length - 1);
-	const audioStart = Math.max(0, subtitles[currentIdx].start + globalSubDelay + offsetStart);
-	let audioEnd = subtitles[endIdx].end + globalSubDelay + offsetEnd;
-	if (audioEnd <= audioStart) audioEnd = audioStart + 0.5;
+    const audioStart = Math.max(0, subtitles[currentIdx].start + globalSubDelay + offsetStart);
 
-    const combinedText = subtitles.slice(currentIdx, endIdx + 1).map((s) => s.text).join(" ");
+    let audioEnd = subtitles[endIdx].end + globalSubDelay + offsetEnd;
 
-	const includeImageSubtitle = document.getElementById("includeImageSubtitle")?.checked !== false;
-	const imageSubtitleText = includeImageSubtitle ? combinedText : "";
+    if (audioEnd <= audioStart) audioEnd = audioStart + 0.5;
+
+    const combinedText = subtitles
+        .slice(currentIdx, endIdx + 1)
+        .map((s) => s.text)
+        .join(" ");
+
+    const includeImageSubtitle = document.getElementById("includeImageSubtitle")?.checked !== false;
+    const imageSubtitleText = includeImageSubtitle ? combinedText : "";
 
     try {
-		const pictureEndpoint = screenshotMode === "webp"
-			? "/animated-webp"
-			: "/screenshot";
+        const pictureEndpoint = screenshotMode === "webp"
+            ? "/animated-webp"
+            : "/screenshot";
 
-		const picturePayload = screenshotMode === "webp"
-			? {
-				filename: currentVideoFile,
-				start: audioStart,
-				end: audioEnd,
-				text: imageSubtitleText,
-				fontSize: document.getElementById("fontSizeRange").value
-			}
-			: {
-				filename: currentVideoFile,
-				time: targetTime,
-				text: imageSubtitleText,
-				fontSize: document.getElementById("fontSizeRange").value
-			};
+        const picturePayload = screenshotMode === "webp"
+            ? {
+                filename: currentVideoFile,
+                start: audioStart,
+                end: audioEnd,
+                text: imageSubtitleText,
+                fontSize: document.getElementById("fontSizeRange").value
+            }
+            : {
+                filename: currentVideoFile,
+                time: targetTime,
+                text: imageSubtitleText,
+                fontSize: document.getElementById("fontSizeRange").value
+            };
 
-		const [sRes, aRes] = await Promise.all([
-			fetch(buildApiUrl(pictureEndpoint), {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(picturePayload)
-			}),
-			fetch(buildApiUrl("/audio-to-anki"), {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({
-					filename: currentVideoFile,
-					start: audioStart,
-					end: audioEnd,
-					trackIndex: audioTrackSelect.value === "default" ? "a:0" : audioTrackSelect.value,
-					volume: volumeLevel
-				})
-			})
-		]);
+        const [sRes, aRes] = await Promise.all([
+            fetch(buildApiUrl(pictureEndpoint), {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(picturePayload)
+            }),
+            fetch(buildApiUrl("/audio-to-anki"), {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    filename: currentVideoFile,
+                    start: audioStart,
+                    end: audioEnd,
+                    trackIndex: audioTrackSelect.value === "default" ? "a:0" : audioTrackSelect.value,
+                    volume: volumeLevel
+                })
+            })
+        ]);
 
         const sData = await sRes.json();
         const aData = await aRes.json();
-        if (!sRes.ok || !aRes.ok) throw new Error(sData.error || aData.error || "Media server error");
+
+        if (!sRes.ok || !aRes.ok) {
+            throw new Error(sData.error || aData.error || "Media server error");
+        }
 
         const sName = sData.filename;
         const aName = aData.filename;
 
         const noteIds = await fetchDeckNoteIds(ankiUrl, deckName);
-        if (!noteIds.length) throw new Error(`Error: There are no cards in "${deckName}"!`);
+
+        if (!noteIds.length) {
+            throw new Error(`Error: There are no cards in "${deckName}"!`);
+        }
+
         const selectedId = Number(targetNoteSelect?.value || 0);
         const targetNoteId = selectedId > 0 ? selectedId : noteIds[noteIds.length - 1];
 
@@ -649,30 +798,36 @@ ankiAllBtn.onclick = async () => {
                 params: {
                     note: {
                         id: targetNoteId,
-						fields: (() => {
-							const fieldsToUpdate = {};
+                        fields: (() => {
+                            const fieldsToUpdate = {};
 
-							if (sentenceField) {
-								fieldsToUpdate[sentenceField] = combinedText;
-							}
+                            if (sentenceField) {
+                                fieldsToUpdate[sentenceField] = combinedText;
+                            }
 
-							fieldsToUpdate[pictureField] = `<img src="${sName}">`;
-							fieldsToUpdate[audioField] = `[sound:${aName}]`;
+                            fieldsToUpdate[pictureField] = `<img src="${sName}">`;
+                            fieldsToUpdate[audioField] = `[sound:${aName}]`;
 
-							return fieldsToUpdate;
-						})()
+                            return fieldsToUpdate;
+                        })()
                     }
                 }
             })
         });
-		
-	await addNoteToAnkiHighlightCache(targetNoteId).catch((err) => {
-		console.warn("Could not update highlight cache for note:", err);
-	});
 
-	alert("Successfully updated card!");
-	if (targetNoteSelect) targetNoteSelect.value = "";
-	refreshTargetNoteList({ preserveSelection: false });
+        clearRuntimeWordStatuses?.();
+
+        await ensureStatusesForSubtitleText(combinedText).catch((err) => {
+            console.warn("Could not update runtime highlight status:", err);
+        });
+
+        prefetchRuntimeStatusesForAllSubtitles({ silent: true });
+
+        alert("Successfully updated card!");
+
+        if (targetNoteSelect) targetNoteSelect.value = "";
+
+        refreshTargetNoteList({ preserveSelection: false });
     } catch (err) {
         console.error("Update error:", err);
         alert("Error: " + err.message);
@@ -680,17 +835,24 @@ ankiAllBtn.onclick = async () => {
 };
 
 deleteVideoBtn.onclick = async () => {
-    await fetch(buildApiUrl(`/delete-video?filename=${encodeURIComponent(currentVideoFile)}`), { method: "DELETE" });
+    await fetch(buildApiUrl(`/delete-video?filename=${encodeURIComponent(currentVideoFile)}`), {
+        method: "DELETE"
+    });
+
     location.reload();
 };
 
 videoContainer.addEventListener("wheel", (e) => {
     e.preventDefault();
+
     const direction = e.deltaY > 0 ? -0.05 : 0.05;
+
     let newVolume = video.volume + direction;
     newVolume = Math.max(0, Math.min(1, newVolume));
+
     video.volume = newVolume;
     volume.value = newVolume;
+
     if (audioManager.externalAudio) audioManager.externalAudio.volume = newVolume;
 }, { passive: false });
 
@@ -731,12 +893,17 @@ fontSizeRange.addEventListener("input", (e) => {
 
 const globalSubDelayInput = document.getElementById("globalSubDelay");
 
-
 globalSubDelayInput.addEventListener("input", (e) => {
     globalSubDelay = parseFloat(e.target.value) || 0;
-    renderSubtitles();
-});
+    lastRuntimeSubtitleText = "";
+    runtimePrefetchAllRunId += 1;
 
+    renderSubtitles();
+
+    requestAnimationFrame(() => {
+        prefetchRuntimeStatusesForAllSubtitles({ silent: true });
+    });
+});
 
 const ankiUrlInput = document.getElementById("ankiUrl");
 const deckNameInput = document.getElementById("deckName");
@@ -750,6 +917,25 @@ const highlightDeckNamesInput = document.getElementById("highlightDeckNames");
         deckNoteRefreshTimer = setTimeout(() => {
             refreshTargetNoteList({ preserveSelection: true });
         }, 500);
+    });
+});
+
+[ankiUrlInput, highlightWordFieldInput, highlightDeckNamesInput].forEach((input) => {
+    input?.addEventListener("change", () => {
+        lastRuntimeSubtitleText = "";
+        runtimePrefetchAllRunId += 1;
+
+        clearRuntimeWordStatuses?.();
+
+        const sub = getCurrentSubtitle();
+
+        if (sub?.text) {
+            ensureStatusesForSubtitleText(sub.text).catch((err) => {
+                console.warn("Runtime subtitle status lookup failed:", err);
+            });
+        }
+
+        prefetchRuntimeStatusesForAllSubtitles({ silent: true });
     });
 });
 
@@ -770,29 +956,51 @@ window.addEventListener("load", () => {
     refreshTargetNoteList({ preserveSelection: true });
     updateIconButtons();
 
-    setTimeout(() => {
-        refreshAnkiWordStatuses().catch((err) => {
-            console.error("Anki highlighter load failed:", err);
+    getJapaneseTokenizer?.()
+        .then(() => loadKnownBasicWords?.())
+        .then(() => {
+            const sub = getCurrentSubtitle?.();
+
+            renderSubtitleOverlay({
+                overlay,
+                text: sub ? sub.text : "",
+                highlighter: ankiSubtitleHighlighter
+            });
+
+            if (sub?.text) {
+                ensureStatusesForSubtitleText(sub.text).catch((err) => {
+                    console.warn("Runtime subtitle status lookup failed:", err);
+                });
+            }
+        })
+        .catch((err) => {
+            console.warn("Japanese tokenizer/known words load failed:", err);
         });
-    }, 300);
-	
-	getJapaneseTokenizer?.().catch((err) => {
-		console.warn("Japanese tokenizer load failed:", err);
-	});	
-	
 });
 
 document.getElementById("refreshAnkiHighlighterBtn")?.addEventListener("click", () => {
-    refreshAnkiWordStatuses({ force: true }).catch((err) => {
-        console.error("Anki highlighter refresh failed:", err);
-        alert("Anki highlighter refresh failed: " + err.message);
-    });
+    runtimePrefetchAllRunId += 1;
+    clearRuntimeWordStatuses?.();
+
+    const sub = getCurrentSubtitle?.();
+
+    if (sub?.text) {
+        ensureStatusesForSubtitleText(sub.text).catch((err) => {
+            console.error("Runtime Anki highlighter failed:", err);
+            alert("Runtime Anki highlighter failed: " + err.message);
+        });
+    }
+
+    prefetchRuntimeStatusesForAllSubtitles({ silent: true });
 });
 
 document.addEventListener("visibilitychange", () => {
     if (document.hidden && !video.paused) {
         video.play().catch(() => {});
-        if (audioManager.externalAudio) audioManager.externalAudio.play().catch(() => {});
+
+        if (audioManager.externalAudio) {
+            audioManager.externalAudio.play().catch(() => {});
+        }
     }
 });
 
@@ -804,7 +1012,9 @@ resizer.addEventListener("mousedown", () => {
 
 document.addEventListener("mousemove", (e) => {
     if (!isResizing) return;
+
     const newWidth = window.innerWidth - e.clientX;
+
     if (newWidth > 150 && newWidth < window.innerWidth * 0.5) {
         sidebar.style.width = `${newWidth}px`;
     }
@@ -812,9 +1022,11 @@ document.addEventListener("mousemove", (e) => {
 
 document.addEventListener("mouseup", () => {
     if (!isResizing) return;
+
     isResizing = false;
     document.body.style.cursor = "default";
     document.body.style.userSelect = "auto";
+
     const settings = JSON.parse(localStorage.getItem("subtitlePlayerSettings") || "{}");
     settings.sidebarWidth = sidebar.style.width;
     localStorage.setItem("subtitlePlayerSettings", JSON.stringify(settings));

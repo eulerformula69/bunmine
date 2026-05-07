@@ -1,52 +1,3 @@
-const testSubtitleHighlighter = {
-    get enabled() {
-        return getSubtitleHighlightSettings().enabled;
-    },
-
-    get statusSettings() {
-        return getSubtitleHighlightSettings().statusSettings;
-    },
-
-    getStatusForTextToken(token) {
-        const clean = String(token || "")
-            .trim()
-            .replace(/[.,!?;:()[\]'"「」『』。、！？]/g, "");
-
-        if (clean === "まるで") return "new";
-        if (clean === "達人") return "mature";
-        if (clean === "所作") return "learning";
-
-        return "unknown";
-    },
-
-    findMatchesInText(text) {
-        const known = [
-            { text: "まるで", status: "new" },
-            { text: "達人", status: "mature" },
-            { text: "所作", status: "learning" }
-        ];
-
-        const source = String(text || "");
-        const matches = [];
-
-        for (const item of known) {
-            let index = source.indexOf(item.text);
-
-            while (index !== -1) {
-                matches.push({
-                    start: index,
-                    end: index + item.text.length,
-                    status: item.status
-                });
-
-                index = source.indexOf(item.text, index + item.text.length);
-            }
-        }
-
-        return matches.sort((a, b) => a.start - b.start || b.end - a.end);
-    }
-};
-
 function getSubtitleHighlightSettings() {
     return {
         enabled: document.getElementById("subtitleHighlightEnabled")?.checked === true,
@@ -79,4 +30,3 @@ function getSubtitleHighlightSettings() {
         }
     };
 }
-
