@@ -466,20 +466,25 @@ function updateTargetNoteButtonText() {
 
     const selectedOption = targetNoteSelect.selectedOptions[0];
 
-    const text = selectedOption?.title || selectedOption?.textContent || "🕘";
+    const text = selectedOption?.textContent || "🕘";
     const title = selectedOption?.title || text;
 
     buttonText.textContent = text;
     button.title = title;
 
     requestAnimationFrame(() => {
-        const textWidth = buttonText.scrollWidth;
-        const visibleWidth = 42;
+        const availableWidth = 42;
 
-        buttonText.classList.toggle("is-overflowing", textWidth > visibleWidth);
+        const textWidth = buttonText.scrollWidth;
+        const overflow = textWidth > availableWidth;
+
+        buttonText.classList.toggle("is-overflowing", overflow);
 
         if (dropdown) {
-            dropdown.style.setProperty("--note-text-width", `${visibleWidth}px`);
+            dropdown.style.setProperty("--note-text-width", `${availableWidth}px`);
+
+            const distance = overflow ? -(textWidth - availableWidth) : 0;
+            dropdown.style.setProperty("--note-scroll-distance", `${distance}px`);
         }
     });
 }
@@ -494,12 +499,29 @@ function updateTargetNoteMenuWidth() {
     const ctx = canvas.getContext("2d");
     ctx.font = "12px sans-serif";
 
-    const longest = Array.from(targetNoteSelect.options).reduce((max, option) => {
-        const text = option.title || option.textContent || "";
-        return Math.max(max, ctx.measureText(text).width);
+    const getWords = (text) => {
+        const normalized = String(text || "").trim();
+
+        // Если пробелов нет, например японский текст, считаем всю строку одним словом
+        if (!/\s/.test(normalized)) return [normalized];
+
+        return normalized
+            .split(/\s+/)
+            .map((word) => word.trim())
+            .filter(Boolean);
+    };
+
+    const longestWordWidth = Array.from(targetNoteSelect.options).reduce((max, option) => {
+        // Берём именно текст пункта меню, а не title
+        const words = getWords(option.textContent || "");
+        const localMax = words.reduce((wordMax, word) => {
+            return Math.max(wordMax, ctx.measureText(word).width);
+        }, 0);
+
+        return Math.max(max, localMax);
     }, 0);
 
-    const width = Math.ceil(Math.min(Math.max(longest + 36, 90), 420));
+    const width = Math.ceil(Math.min(Math.max(longestWordWidth + 14, 64), 260));
     dropdown.style.setProperty("--note-menu-width", `${width}px`);
 }
 
