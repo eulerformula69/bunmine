@@ -93,27 +93,27 @@ function loadSettings() {
 
 	const highlightColorNew = document.getElementById("highlightColorNew");
 	if (highlightColorNew) {
-		highlightColorNew.value = settings.highlightColorNew || "#ffcc66";
+		highlightColorNew.value = settings.highlightColorNew || "#77b7d8";
 	}
 
 	const highlightColorLearning = document.getElementById("highlightColorLearning");
 	if (highlightColorLearning) {
-		highlightColorLearning.value = settings.highlightColorLearning || "#66ccff";
+		highlightColorLearning.value = settings.highlightColorLearning || "#ff8a3d";
 	}
 
 	const highlightColorYoung = document.getElementById("highlightColorYoung");
 	if (highlightColorYoung) {
-		highlightColorYoung.value = settings.highlightColorYoung || "#66ccff";
+		highlightColorYoung.value = settings.highlightColorYoung || "#7ec77a";
 	}
 
 	const highlightColorMature = document.getElementById("highlightColorMature");
 	if (highlightColorMature) {
-		highlightColorMature.value = settings.highlightColorMature || "#88ff88";
+		highlightColorMature.value = settings.highlightColorMature || "#2f9d4f";
 	}
 
 	const highlightColorSuspended = document.getElementById("highlightColorSuspended");
 	if (highlightColorSuspended) {
-		highlightColorSuspended.value = settings.highlightColorSuspended || "#999999";
+		highlightColorSuspended.value = settings.highlightColorSuspended || "#ffde4a";
 	}
 
 	const highlightColorUnknown = document.getElementById("highlightColorUnknown");

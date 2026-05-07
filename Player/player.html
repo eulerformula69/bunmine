@@ -83,40 +83,45 @@
         <select id="interfaceLangSelect"></select>
 		
 <div class="settings-checkbox-row">
-  <label for="subtitleHighlightEnabled">Highlight subtitle words</label>
+  <label for="subtitleHighlightEnabled" data-i18n="subtitleHighlightEnabled">
+    Highlight subtitle words
+  </label>
   <input type="checkbox" id="subtitleHighlightEnabled" checked>
 </div>
 
-<label>Highlight colors:</label>
+<label data-i18n="highlightColors">Highlight colors:</label>
 
-<div class="highlight-color-item">
-    <label for="highlightColorNew">NEW</label>
-    <input type="color" id="highlightColorNew" value="#ffcc66">
+<div class="settings-row">
+  <label>
+    <span data-i18n="highlightStatusNew">New</span>
+    <input type="color" id="highlightColorNew" value="#77b7d8">
+  </label>
+  <label>
+    <span data-i18n="highlightStatusLearning">Learning</span>
+    <input type="color" id="highlightColorLearning" value="#ff8a3d">
+  </label>
 </div>
 
-<div class="highlight-color-item">
-    <label for="highlightColorLearning">LEARNING</label>
-    <input type="color" id="highlightColorLearning" value="#66ccff">
+<div class="settings-row">
+  <label>
+    <span data-i18n="highlightStatusYoung">Young</span>
+    <input type="color" id="highlightColorYoung" value="#7ec77a">
+  </label>
+  <label>
+    <span data-i18n="highlightStatusMature">Mature</span>
+    <input type="color" id="highlightColorMature" value="#2f9d4f">
+  </label>
 </div>
 
-<div class="highlight-color-item">
-    <label for="highlightColorYoung">YOUNG</label>
-    <input type="color" id="highlightColorYoung" value="#66ccff">
-</div>
-
-<div class="highlight-color-item">
-    <label for="highlightColorMature">MATURE</label>
-    <input type="color" id="highlightColorMature" value="#88ff88">
-</div>
-
-<div class="highlight-color-item">
-    <label for="highlightColorSuspended">SUSPENDED</label>
-    <input type="color" id="highlightColorSuspended" value="#999999">
-</div>
-
-<div class="highlight-color-item">
-    <label for="highlightColorUnknown">UNKNOWN</label>
+<div class="settings-row">
+  <label>
+    <span data-i18n="highlightStatusSuspended">Suspended</span>
+    <input type="color" id="highlightColorSuspended" value="#ffde4a">
+  </label>
+  <label>
+    <span data-i18n="highlightStatusUnknown">Unknown</span>
     <input type="color" id="highlightColorUnknown" value="#ffffff">
+  </label>
 </div>
 		
       </div>
@@ -140,17 +145,16 @@
         <input type="text" id="audioField" value="SentenceAudio">
 		
 		<!-- тут сделать нормальный ввод для колоды подсветки и полей -->
-
-		<label data-i18n="HighlightDecks">Highlight Decks:</label>
+		<label data-i18n="highlightDecks">Highlight Decks:</label>
 		<input type="text" id="highlightDeckNames" value="" placeholder="新語帳, Mining Deck, Japanese::Known">
-		
-		<label data-i18n="HighlightWordField">Highlight Word Field:</label>
-		<input type="text" id="highlightWordField" value="Word">		
 
-		<button id="refreshAnkiHighlighterBtn" class="settings-action-btn" data-i18n="refreshAnkiHighlighterBtn">
+		<label data-i18n="highlightWordField">Highlight Word Field:</label>
+		<input type="text" id="highlightWordField" value="Word">
+
+		<button id="refreshAnkiHighlighterBtn" class="settings-action-btn" data-i18n="refreshHighlightWords">
 		  Refresh Highlight Words
-		</button>
-		
+		</button>		
+
       </div>
 
       <div class="settings-footer">

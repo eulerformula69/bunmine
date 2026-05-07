@@ -37,10 +37,18 @@ const i18n = {
 			audioField: "Поле предложения аудио",
 			ssWebp: "Анимированный WebP",
 			closeSettings: "Закрыть",
-			includeImageSubtitle: "Добавлять субтитр на картинку",
-			HighlightDecks: "Названия колод подсветки",
-			HighlightWordField: "Поле подсветки",
-			refreshAnkiHighlighterBtn: "Обновить подсвеченные слова"
+			subtitleHighlightEnabled: "Подсвечивать слова в субтитрах",
+			highlightColors: "Цвета подсветки:",
+			highlightStatusNew: "Новые",
+			highlightStatusLearning: "В изучении",
+			highlightStatusYoung: "Молодые",
+			highlightStatusMature: "Зрелые",
+			highlightStatusSuspended: "Приостановленные",
+			highlightStatusUnknown: "Неизвестные",
+			highlightDecks: "Колоды для подсветки:",
+			highlightWordField: "Поле слова для подсветки:",
+			refreshHighlightWords: "Обновить слова подсветки",
+			includeImageSubtitle: "Добавить cубтитр к изображению"
         }
     },
     en: {
@@ -81,10 +89,18 @@ const i18n = {
 			audioField: "Audio sentence Field:",
 			ssWebp: "Animated WebP",
 			closeSettings: "Close",
-			includeImageSubtitle: "Add subtitle to image",
-			HighlightDecks: "Highlight Decks name",
-			HighlightWordField: "Highlight Word Field",
-			refreshAnkiHighlighterBtn: "Refresh Highlight Words"
+			subtitleHighlightEnabled: "Highlight subtitle words",
+			highlightColors: "Highlight colors:",
+			highlightStatusNew: "New",
+			highlightStatusLearning: "Learning",
+			highlightStatusYoung: "Young",
+			highlightStatusMature: "Mature",
+			highlightStatusSuspended: "Suspended",
+			highlightStatusUnknown: "Unknown",
+			highlightDecks: "Highlight Decks:",
+			highlightWordField: "Highlight Word Field:",
+			refreshHighlightWords: "Refresh Highlight Words",
+			includeImageSubtitle: "Add subtitle to image"
         }
     },
     ja: {
@@ -125,10 +141,18 @@ const i18n = {
 			audioField: "音声文フィールド:",
 			ssWebp: "アニメーションWebP",	
 			closeSettings: "閉じる",
-			includeImageSubtitle: "画像に字幕を追加",
-			HighlightDecks: "ハイライトデッキ名",
-			HighlightWordField: "ハイライトワードフィールド",
-			refreshAnkiHighlighterBtn: "更新 強調表示された単語"
+			subtitleHighlightEnabled: "字幕の単語をハイライト",
+			highlightColors: "ハイライト色:",
+			highlightStatusNew: "新規",
+			highlightStatusLearning: "学習中",
+			highlightStatusYoung: "若い",
+			highlightStatusMature: "成熟",
+			highlightStatusSuspended: "停止中",
+			highlightStatusUnknown: "不明",
+			highlightDecks: "ハイライト対象デッキ:",
+			highlightWordField: "ハイライト単語フィールド:",
+			refreshHighlightWords: "ハイライト単語を更新",
+			includeImageSubtitle: "画像に字幕を追加する"
 			
         }
     }

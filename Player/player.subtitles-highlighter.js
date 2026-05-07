@@ -54,23 +54,23 @@ function getSubtitleHighlightSettings() {
         statusSettings: {
             new: {
                 enabled: true,
-                color: document.getElementById("highlightColorNew")?.value || "#ffcc66"
+                color: document.getElementById("highlightColorNew")?.value || "#77b7d8"
             },
             learning: {
                 enabled: true,
-                color: document.getElementById("highlightColorLearning")?.value || "#66ccff"
+                color: document.getElementById("highlightColorLearning")?.value || "#ff8a3d"
             },
             young: {
                 enabled: true,
-                color: document.getElementById("highlightColorYoung")?.value || "#66ccff"
+                color: document.getElementById("highlightColorYoung")?.value || "#7ec77a"
             },
             mature: {
                 enabled: true,
-                color: document.getElementById("highlightColorMature")?.value || "#88ff88"
+                color: document.getElementById("highlightColorMature")?.value || "#2f9d4f"
             },
             suspended: {
                 enabled: true,
-                color: document.getElementById("highlightColorSuspended")?.value || "#999999"
+                color: document.getElementById("highlightColorSuspended")?.value || "#ffde4a"
             },
             unknown: {
                 enabled: false,
