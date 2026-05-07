@@ -108,7 +108,8 @@ function renderSubtitles() {
 				video.currentTime = sub.start + globalSubDelay + 0.05;
 				renderSubtitleOverlay({
 					overlay,
-					text: sub.text
+					text: sub.text,
+					highlighter: ankiSubtitleHighlighter
 				});
             }
             updatePlayButton();
@@ -135,7 +136,8 @@ function seekBySubtitle(offset) {
     video.currentTime = targetSub.start + 0.05;
 	renderSubtitleOverlay({
 		overlay,
-		text: targetSub.text
+		text: targetSub.text,
+		highlighter: ankiSubtitleHighlighter
 	});
     syncSubtitleStyle(currentIdx);
 }
@@ -187,6 +189,11 @@ function tokenizeSubtitleForHighlighting(text) {
 }
 
 function renderHighlightedSubtitleOverlay(overlayEl, text, highlighter) {
+    if (typeof highlighter.findMatchesInText === "function") {
+        renderMatchedSubtitleOverlay(overlayEl, text, highlighter);
+        return;
+    }
+
     const tokens = tokenizeSubtitleForHighlighting(text);
 
     for (const token of tokens) {
@@ -206,6 +213,47 @@ function renderHighlightedSubtitleOverlay(overlayEl, text, highlighter) {
         }
 
         appendHighlightedToken(overlayEl, token, status, settings);
+    }
+}
+
+function renderMatchedSubtitleOverlay(overlayEl, text, highlighter) {
+    const matches = highlighter.findMatchesInText(text) || [];
+
+    if (!matches.length) {
+        appendPlainSubtitleText(overlayEl, text);
+        return;
+    }
+
+    let cursor = 0;
+
+    for (const match of matches) {
+        if (match.start < cursor) continue;
+
+        if (match.start > cursor) {
+            overlayEl.appendChild(
+                document.createTextNode(text.slice(cursor, match.start))
+            );
+        }
+
+        const matchedText = text.slice(match.start, match.end);
+        const settings = getSubtitleStatusSettings(highlighter, match.status);
+
+        if (!settings || settings.enabled === false) {
+            overlayEl.appendChild(document.createTextNode(matchedText));
+        } else {
+            appendHighlightedToken(
+                overlayEl,
+                matchedText,
+                match.status,
+                settings
+            );
+        }
+
+        cursor = match.end;
+    }
+
+    if (cursor < text.length) {
+        overlayEl.appendChild(document.createTextNode(text.slice(cursor)));
     }
 }
 

@@ -42,10 +42,11 @@ video.volume = volume.value;
 video.addEventListener("timeupdate", () => {
     const sub = getCurrentSubtitle();
 
-    renderSubtitleOverlay({
-        overlay,
-        text: sub ? sub.text : ""
-    });
+	renderSubtitleOverlay({
+		overlay,
+		text: sub ? sub.text : "",
+		highlighter: ankiSubtitleHighlighter
+	});
 
     progress.value = (video.currentTime / video.duration) * 100 || 0;
     timeLabel.textContent = `${formatTime(video.currentTime)} / ${formatTime(video.duration)}`;
@@ -704,6 +705,26 @@ fontSizeRange.addEventListener("input", (e) => {
     subtitleOverlay.style.fontSize = `${e.target.value}px`;
 });
 
+[
+    "subtitleHighlightEnabled",
+    "highlightColorNew",
+    "highlightColorLearning",
+    "highlightColorYoung",
+    "highlightColorMature",
+    "highlightColorSuspended",
+    "highlightColorUnknown"
+].forEach((id) => {
+    document.getElementById(id)?.addEventListener("input", () => {
+        const sub = getCurrentSubtitle();
+
+        renderSubtitleOverlay({
+            overlay,
+            text: sub ? sub.text : "",
+            highlighter: ankiSubtitleHighlighter
+        });
+    });
+});
+
 const globalSubDelayInput = document.getElementById("globalSubDelay");
 
 
@@ -715,12 +736,19 @@ globalSubDelayInput.addEventListener("input", (e) => {
 
 const ankiUrlInput = document.getElementById("ankiUrl");
 const deckNameInput = document.getElementById("deckName");
-[ankiUrlInput, deckNameInput].forEach((input) => {
+const highlightWordFieldInput = document.getElementById("highlightWordField");
+
+[ankiUrlInput, deckNameInput, highlightWordFieldInput].forEach((input) => {
     input?.addEventListener("input", () => {
         clearTimeout(deckNoteRefreshTimer);
+
         deckNoteRefreshTimer = setTimeout(() => {
             refreshTargetNoteList({ preserveSelection: true });
-        }, 300);
+
+            refreshAnkiWordStatuses().catch((err) => {
+                console.error("Anki highlighter refresh failed:", err);
+            });
+        }, 500);
     });
 });
 
@@ -740,6 +768,12 @@ window.addEventListener("load", () => {
     initTargetNoteDropdown();
     refreshTargetNoteList({ preserveSelection: true });
     updateIconButtons();
+
+    setTimeout(() => {
+        refreshAnkiWordStatuses().catch((err) => {
+            console.error("Anki highlighter load failed:", err);
+        });
+    }, 300);
 });
 
 document.addEventListener("visibilitychange", () => {

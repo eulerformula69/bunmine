@@ -51,7 +51,15 @@ function saveSettings() {
 		sentenceField: document.getElementById("sentenceField").value,
 		pictureField: document.getElementById("pictureField").value,
 		audioField: document.getElementById("audioField").value,
-		includeImageSubtitle: document.getElementById("includeImageSubtitle").checked
+		includeImageSubtitle: document.getElementById("includeImageSubtitle").checked,
+		subtitleHighlightEnabled: document.getElementById("subtitleHighlightEnabled")?.checked ?? true,
+		highlightColorNew: document.getElementById("highlightColorNew")?.value || "#ffcc66",
+		highlightColorLearning: document.getElementById("highlightColorLearning")?.value || "#66ccff",
+		highlightColorYoung: document.getElementById("highlightColorYoung")?.value || "#66ccff",
+		highlightColorMature: document.getElementById("highlightColorMature")?.value || "#88ff88",
+		highlightColorSuspended: document.getElementById("highlightColorSuspended")?.value || "#999999",
+		highlightColorUnknown: document.getElementById("highlightColorUnknown")?.value || "#ffffff"
+		
     };
     localStorage.setItem("subtitlePlayerSettings", JSON.stringify(settings));
     alert("Settings saved!");
@@ -75,6 +83,41 @@ function loadSettings() {
         const sidebarEl = document.getElementById("sidebar");
         if (sidebarEl) sidebarEl.style.width = settings.sidebarWidth;
     }
+
+	const subtitleHighlightEnabled = document.getElementById("subtitleHighlightEnabled");
+	if (subtitleHighlightEnabled) {
+		subtitleHighlightEnabled.checked = settings.subtitleHighlightEnabled ?? true;
+	}
+
+	const highlightColorNew = document.getElementById("highlightColorNew");
+	if (highlightColorNew) {
+		highlightColorNew.value = settings.highlightColorNew || "#ffcc66";
+	}
+
+	const highlightColorLearning = document.getElementById("highlightColorLearning");
+	if (highlightColorLearning) {
+		highlightColorLearning.value = settings.highlightColorLearning || "#66ccff";
+	}
+
+	const highlightColorYoung = document.getElementById("highlightColorYoung");
+	if (highlightColorYoung) {
+		highlightColorYoung.value = settings.highlightColorYoung || "#66ccff";
+	}
+
+	const highlightColorMature = document.getElementById("highlightColorMature");
+	if (highlightColorMature) {
+		highlightColorMature.value = settings.highlightColorMature || "#88ff88";
+	}
+
+	const highlightColorSuspended = document.getElementById("highlightColorSuspended");
+	if (highlightColorSuspended) {
+		highlightColorSuspended.value = settings.highlightColorSuspended || "#999999";
+	}
+
+	const highlightColorUnknown = document.getElementById("highlightColorUnknown");
+	if (highlightColorUnknown) {
+		highlightColorUnknown.value = settings.highlightColorUnknown || "#ffffff";
+	}
 
     const mapping = {
         fontSizeRange: settings.fontSize,

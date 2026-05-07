@@ -81,6 +81,47 @@
 
         <label data-i18n="interfaceLang">Interface Language:</label>
         <select id="interfaceLangSelect"></select>
+		
+<div class="settings-checkbox-row">
+  <label for="subtitleHighlightEnabled">Highlight subtitle words</label>
+  <input type="checkbox" id="subtitleHighlightEnabled" checked>
+</div>
+
+<label>Highlight colors:</label>
+
+<div class="settings-row">
+  <label>
+    New
+    <input type="color" id="highlightColorNew" value="#ffcc66">
+  </label>
+  <label>
+    Learning
+    <input type="color" id="highlightColorLearning" value="#66ccff">
+  </label>
+</div>
+
+<div class="settings-row">
+  <label>
+    Young
+    <input type="color" id="highlightColorYoung" value="#66ccff">
+  </label>
+  <label>
+    Mature
+    <input type="color" id="highlightColorMature" value="#88ff88">
+  </label>
+</div>
+
+<div class="settings-row">
+  <label>
+    Suspended
+    <input type="color" id="highlightColorSuspended" value="#999999">
+  </label>
+  <label>
+    Unknown
+    <input type="color" id="highlightColorUnknown" value="#ffffff">
+  </label>
+</div>		
+		
       </div>
 
       <div class="settings-page" data-settings-page="anki">
@@ -100,6 +141,12 @@
 
         <label data-i18n="audioField">Audio Field:</label>
         <input type="text" id="audioField" value="SentenceAudio">
+		
+		<!-- тут сделать нормальный ввод для колоды подсветки и полей -->
+		
+		<label>Highlight Word Field:</label>
+		<input type="text" id="highlightWordField" value="Word">		
+		
       </div>
 
       <div class="settings-footer">
@@ -194,6 +241,7 @@
 <script src="player.i18n.js" defer></script>
 <script src="player.api.js" defer></script>
 <script src="player.subtitles-highlighter.js" defer></script>
+<script src="player.anki-highlighter.js" defer></script>
 <script src="player.subtitles.js" defer></script>
 <script src="player.js" defer></script>
 <script src="player.audio.js" defer></script>
