@@ -28,12 +28,9 @@ const videoPickerModal = document.getElementById("videoPickerModal");
 const videoPickerList = document.getElementById("videoPickerList");
 const videoPickerCancelBtn = document.getElementById("videoPickerCancelBtn");
 const addKnownBasicBtn = document.getElementById("addKnownBasicBtn");
-const lookupYomitanBtn = document.getElementById("lookupYomitanBtn");
+const addCardToDeck = document.getElementById("addCardToDeck");
 
-// ПЕРЕДЕЛАТЬ ЧТОБЫ МОЖНО БЫЛО МЕНЯТЬ В НАСТРОЙКАХ
 
-const YOMITAN_SEARCH_URL =
-    "chrome-extension://likgccmbimhjbgkjambclfkhldnlhbnn/search.html?query=";
 
 
 let isResizing = false;
@@ -119,7 +116,7 @@ function getCleanSelectedText() {
 }
 
 function showAddKnownBasicButtonForSelection() {
-    if (!addKnownBasicBtn) return;
+    if (!addKnownBasicBtn && !addCardToDeck) return;
 
     const word = getCleanSelectedText();
 
@@ -143,29 +140,34 @@ function showAddKnownBasicButtonForSelection() {
         return;
     }
 
-	selectedKnownBasicWord = word;
+    selectedKnownBasicWord = word;
 
-	const mainRect = document.getElementById("main").getBoundingClientRect();
+    const main = document.getElementById("main");
+    const mainRect = main.getBoundingClientRect();
 
-	const centerLeft = rect.left - mainRect.left + rect.width / 2;
-	const top = Math.max(12, rect.top - mainRect.top - 42);
+    const centerLeft = rect.left - mainRect.left + rect.width / 2;
+    const safeTop = Math.max(12, rect.top - mainRect.top - 42);
 
-	addKnownBasicBtn.style.left = `${centerLeft}px`;
-	addKnownBasicBtn.style.top = `${top}px`;
-	addKnownBasicBtn.style.transform = "translateX(-105%)";
-	addKnownBasicBtn.classList.remove("hidden");
+    if (addKnownBasicBtn) {
+        addKnownBasicBtn.style.left = `${centerLeft}px`;
+        addKnownBasicBtn.style.top = `${safeTop}px`;
+		addKnownBasicBtn.style.transform = addCardToDeck
+			? "translateX(-105%)"
+			: "translateX(-50%)";
+        addKnownBasicBtn.classList.remove("hidden");
+    }
 
-	if (lookupYomitanBtn) {
-		lookupYomitanBtn.style.left = `${centerLeft}px`;
-		lookupYomitanBtn.style.top = `${top}px`;
-		lookupYomitanBtn.style.transform = "translateX(5%)";
-		lookupYomitanBtn.classList.remove("hidden");
-}
+    if (addCardToDeck) {
+        addCardToDeck.style.left = `${centerLeft}px`;
+        addCardToDeck.style.top = `${safeTop}px`;
+        addCardToDeck.style.transform = "translateX(5%)";
+        addCardToDeck.classList.remove("hidden");
+    }
 }
 
 function hideAddKnownBasicButton() {
     addKnownBasicBtn?.classList.add("hidden");
-    lookupYomitanBtn?.classList.add("hidden");
+    addCardToDeck?.classList.add("hidden");
     selectedKnownBasicWord = "";
 }
 
@@ -206,6 +208,23 @@ async function addWordToKnownBasic(word) {
     } catch (err) {
         console.error("Known-basic add failed:", err);
         showToast("Known-basic add failed: " + err.message, "error", 6000);
+    }
+}
+
+async function copyWordForYomitan(word) {
+    const cleanWord = String(word || "").trim();
+
+    if (!cleanWord) {
+        showToast("No word selected", "error", 3000);
+        return;
+    }
+
+    try {
+        await navigator.clipboard.writeText(cleanWord);
+        showToast(`Copied for Yomitan: ${cleanWord}`, "success", 3000);
+    } catch (err) {
+        console.error("Copy for Yomitan failed:", err);
+        showToast("Could not copy word: " + err.message, "error", 5000);
     }
 }
 
@@ -1284,28 +1303,21 @@ addKnownBasicBtn?.addEventListener("click", async (e) => {
     await addWordToKnownBasic(selectedKnownBasicWord);
 });
 
-lookupYomitanBtn?.addEventListener("mousedown", (e) => {
+addCardToDeck?.addEventListener("mousedown", (e) => {
     e.preventDefault();
 });
 
-lookupYomitanBtn?.addEventListener("click", (e) => {
+addCardToDeck?.addEventListener("click", async (e) => {
     e.preventDefault();
     e.stopPropagation();
 
-    const word = String(selectedKnownBasicWord || "").trim();
-
-    if (!word) {
-        showToast("No word selected", "error", 3000);
-        return;
-    }
-
-    window.location.href = YOMITAN_SEARCH_URL + encodeURIComponent(word);
+    await copyWordForYomitan(selectedKnownBasicWord);
 });
 
 document.addEventListener("mousedown", (e) => {
     if (
         addKnownBasicBtn?.contains(e.target) ||
-        lookupYomitanBtn?.contains(e.target)
+        addCardToDeck?.contains(e.target)
     ) {
         return;
     }

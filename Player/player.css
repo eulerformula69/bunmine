@@ -804,7 +804,7 @@ video {
 }
 
 .add-known-basic-btn,
-.lookup-yomitan-btn {
+.copy-for-yomitan-btn {
   position: absolute;
   z-index: 999998;
   padding: 7px 10px;
@@ -820,11 +820,11 @@ video {
 }
 
 .add-known-basic-btn:hover,
-.lookup-yomitan-btn:hover {
+.copy-for-yomitan-btn:hover {
   background: #3a0872;
 }
 
 .add-known-basic-btn.hidden,
-.lookup-yomitan-btn.hidden {
+.copy-for-yomitan-btn.hidden {
   display: none;
 }
