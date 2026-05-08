@@ -430,3 +430,17 @@ const ankiSubtitleHighlighter = {
         return findAnkiMatchesInText(text);
     }
 };
+
+function addRuntimeKnownBasicWord(word) {
+    const normalized = normalizeHighlightWord(word);
+
+    if (!normalized) return;
+
+    const prev = ankiRuntimeWordStatusMap.get(normalized);
+
+    ankiRuntimeWordStatusMap.set(normalized, {
+        ...(prev || {}),
+        status: pickBetterStatus(prev?.status, "mature"),
+        source: "known-basic"
+    });
+}

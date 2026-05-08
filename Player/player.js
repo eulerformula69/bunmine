@@ -27,6 +27,14 @@ const resizer = document.getElementById("resizer");
 const videoPickerModal = document.getElementById("videoPickerModal");
 const videoPickerList = document.getElementById("videoPickerList");
 const videoPickerCancelBtn = document.getElementById("videoPickerCancelBtn");
+const addKnownBasicBtn = document.getElementById("addKnownBasicBtn");
+const lookupYomitanBtn = document.getElementById("lookupYomitanBtn");
+
+// ПЕРЕДЕЛАТЬ ЧТОБЫ МОЖНО БЫЛО МЕНЯТЬ В НАСТРОЙКАХ
+
+const YOMITAN_SEARCH_URL =
+    "chrome-extension://likgccmbimhjbgkjambclfkhldnlhbnn/search.html?query=";
+
 
 let isResizing = false;
 let subtitles = [];
@@ -38,6 +46,7 @@ let lastSidebarWidth = "";
 let lastRuntimeSubtitleText = "";
 let runtimePrefetchAllRunId = 0;
 let runtimePrefetchAllInProgress = false;
+let selectedKnownBasicWord = "";
 
 prevSubBtn.onclick = () => seekBySubtitle(-1);
 nextSubBtn.onclick = () => seekBySubtitle(1);
@@ -94,6 +103,124 @@ function showToast(message, type = "info", timeout = 3000) {
       toast.remove();
     }, 180);
   }, timeout);
+}
+
+function getCleanSelectedText() {
+    const selection = window.getSelection();
+
+    if (!selection || selection.rangeCount === 0) {
+        return "";
+    }
+
+    return selection
+        .toString()
+        .trim()
+        .replace(/\s+/g, " ");
+}
+
+function showAddKnownBasicButtonForSelection() {
+    if (!addKnownBasicBtn) return;
+
+    const word = getCleanSelectedText();
+
+    if (!word) {
+        hideAddKnownBasicButton();
+        return;
+    }
+
+    const selection = window.getSelection();
+
+    if (!selection || selection.rangeCount === 0) {
+        hideAddKnownBasicButton();
+        return;
+    }
+
+    const range = selection.getRangeAt(0);
+    const rect = range.getBoundingClientRect();
+
+    if (!rect || rect.width === 0 || rect.height === 0) {
+        hideAddKnownBasicButton();
+        return;
+    }
+
+	selectedKnownBasicWord = word;
+
+	const mainRect = document.getElementById("main").getBoundingClientRect();
+
+	const centerLeft = rect.left - mainRect.left + rect.width / 2;
+	const top = Math.max(12, rect.top - mainRect.top - 42);
+
+	addKnownBasicBtn.style.left = `${centerLeft}px`;
+	addKnownBasicBtn.style.top = `${top}px`;
+	addKnownBasicBtn.style.transform = "translateX(-105%)";
+	addKnownBasicBtn.classList.remove("hidden");
+
+	if (lookupYomitanBtn) {
+		lookupYomitanBtn.style.left = `${centerLeft}px`;
+		lookupYomitanBtn.style.top = `${top}px`;
+		lookupYomitanBtn.style.transform = "translateX(5%)";
+		lookupYomitanBtn.classList.remove("hidden");
+}
+}
+
+function hideAddKnownBasicButton() {
+    addKnownBasicBtn?.classList.add("hidden");
+    lookupYomitanBtn?.classList.add("hidden");
+    selectedKnownBasicWord = "";
+}
+
+async function addWordToKnownBasic(word) {
+    const cleanWord = String(word || "").trim();
+
+    if (!cleanWord) {
+        showToast("No word selected", "error", 3000);
+        return;
+    }
+
+    try {
+        const { response, data } = await apiJson("/known-basic-words/add", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                word: cleanWord
+            })
+        });
+
+        if (!response.ok || data.error) {
+            throw new Error(data.error || "Could not add word");
+        }
+
+        markKnownBasicWordAsMature(cleanWord);
+
+        window.getSelection()?.removeAllRanges();
+        hideAddKnownBasicButton();
+
+        if (data.added) {
+            showToast(`Added to known-basic: ${cleanWord}`, "success", 3000);
+        } else {
+            showToast(`Already in known-basic: ${cleanWord}`, "info", 3000);
+        }
+
+    } catch (err) {
+        console.error("Known-basic add failed:", err);
+        showToast("Known-basic add failed: " + err.message, "error", 6000);
+    }
+}
+
+function markKnownBasicWordAsMature(word) {
+    if (typeof addRuntimeKnownBasicWord === "function") {
+        addRuntimeKnownBasicWord(word);
+    }
+
+    const sub = getCurrentSubtitle?.();
+
+    renderSubtitleOverlay({
+        overlay,
+        text: sub ? sub.text : "",
+        highlighter: ankiSubtitleHighlighter
+    });
 }
 
 async function handleFiles(files) {
@@ -1146,9 +1273,86 @@ document.addEventListener("mouseup", () => {
     localStorage.setItem("subtitlePlayerSettings", JSON.stringify(settings));
 });
 
+addKnownBasicBtn?.addEventListener("mousedown", (e) => {
+    e.preventDefault();
+});
+
+addKnownBasicBtn?.addEventListener("click", async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    await addWordToKnownBasic(selectedKnownBasicWord);
+});
+
+lookupYomitanBtn?.addEventListener("mousedown", (e) => {
+    e.preventDefault();
+});
+
+lookupYomitanBtn?.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const word = String(selectedKnownBasicWord || "").trim();
+
+    if (!word) {
+        showToast("No word selected", "error", 3000);
+        return;
+    }
+
+    window.location.href = YOMITAN_SEARCH_URL + encodeURIComponent(word);
+});
+
+document.addEventListener("mousedown", (e) => {
+    if (
+        addKnownBasicBtn?.contains(e.target) ||
+        lookupYomitanBtn?.contains(e.target)
+    ) {
+        return;
+    }
+
+    const selection = window.getSelection();
+
+    if (!selection || selection.isCollapsed) {
+        hideAddKnownBasicButton();
+    }
+});
+
 videoPickerCancelBtn?.addEventListener("click", () => {
     videoPickerModal?.classList.add("hidden");
     dropzone.classList.remove("hidden");
+});
+
+document.addEventListener("selectionchange", () => {
+    const selection = window.getSelection();
+
+    if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
+        hideAddKnownBasicButton();
+        return;
+    }
+
+    const anchorNode = selection.anchorNode;
+    const focusNode = selection.focusNode;
+
+    const anchorElement = anchorNode?.nodeType === Node.TEXT_NODE
+        ? anchorNode.parentElement
+        : anchorNode;
+
+    const focusElement = focusNode?.nodeType === Node.TEXT_NODE
+        ? focusNode.parentElement
+        : focusNode;
+
+    const isSubtitleSelection =
+        overlay?.contains(anchorElement) ||
+        overlay?.contains(focusElement);
+
+    if (!isSubtitleSelection) {
+        hideAddKnownBasicButton();
+        return;
+    }
+
+    requestAnimationFrame(() => {
+        showAddKnownBasicButtonForSelection();
+    });
 });
 
 async function restoreCurrentVideoFromServer() {
