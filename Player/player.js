@@ -187,10 +187,10 @@ function hideAddKnownBasicButton() {
 async function addWordToKnownBasic(word) {
     const cleanWord = String(word || "").trim();
 
-    if (!cleanWord) {
-        showToast(t("toastCopiedForYomitan", { word: cleanWord }), "success", 3000);
-        return;
-    }
+		if (!cleanWord) {
+			showToast(t("toastNoWordSelected"), "error", 3000);
+			return;
+		}
 
     try {
         const { response, data } = await apiJson("/known-basic-words/add", {
