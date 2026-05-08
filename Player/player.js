@@ -95,13 +95,18 @@ function showToast(message, type = "info", timeout = 3000) {
 
 async function handleFiles(files) {
     let videoFile = null;
+    let subtitleFile = null;
     let hasSubtitles = false;
 
     for (const file of files) {
-        if (file.name.endsWith(".srt")) {
+        const lowerName = file.name.toLowerCase();
+
+        if (lowerName.endsWith(".srt")) {
+            subtitleFile = file;
             subtitles = parseSRT(await file.text());
             hasSubtitles = true;
-        } else if (file.name.endsWith(".ass")) {
+        } else if (lowerName.endsWith(".ass")) {
+            subtitleFile = file;
             subtitles = parseASS(await file.text());
             hasSubtitles = true;
         } else if (file.type.startsWith("video")) {
@@ -122,7 +127,8 @@ async function handleFiles(files) {
 
         video.src = URL.createObjectURL(videoFile);
         dropzone.classList.add("hidden");
-        uploadVideoInBackground(videoFile);
+
+        uploadVideoInBackground(videoFile, subtitleFile);
     }
 
     lastRuntimeSubtitleText = "";
@@ -202,9 +208,9 @@ async function prefetchRuntimeStatusesForAllSubtitles({ silent = true } = {}) {
     });
 });
 
-async function uploadVideoInBackground(file) {
+async function uploadVideoInBackground(videoFile, subtitleFile = null) {
     const form = new FormData();
-    form.append("videoFile", file);
+    form.append("videoFile", videoFile);
 
     try {
         const { data } = await apiJson("/upload-video", {
@@ -214,12 +220,82 @@ async function uploadVideoInBackground(file) {
 
         if (data.error) {
             console.error("Server upload error:", data.error);
-        } else {
-            currentVideoFile = data.filename;
-            loadAudioTrackList(data.filename);
+            showToast("Video upload failed: " + data.error, "error", 5000);
+            return;
         }
+
+        currentVideoFile = data.filename;
+        loadAudioTrackList(data.filename);
+
+        if (subtitleFile) {
+            await uploadSubtitleInBackground(subtitleFile, data.filename);
+        }
+
     } catch (e) {
         console.error("Upload failed:", e);
+        showToast("Upload failed: " + e.message, "error", 5000);
+    }
+}
+
+async function uploadSubtitleInBackground(subtitleFile, videoFilename) {
+    const form = new FormData();
+
+    form.append("subtitleFile", subtitleFile);
+    form.append("videoFilename", videoFilename);
+
+    try {
+        const { data } = await apiJson("/upload-subtitle", {
+            method: "POST",
+            body: form
+        });
+
+        if (data.error) {
+            console.error("Subtitle upload error:", data.error);
+            showToast("Subtitle upload failed: " + data.error, "error", 5000);
+            return;
+        }
+
+        console.log("Subtitle uploaded:", data.filename);
+    } catch (err) {
+        console.error("Subtitle upload failed:", err);
+        showToast("Subtitle upload failed: " + err.message, "error", 5000);
+    }
+}
+
+async function restoreSubtitleFromServer(subtitleFilename) {
+    try {
+        const res = await fetch(buildApiUrl(`/subtitle/${encodeURIComponent(subtitleFilename)}`));
+
+        if (!res.ok) {
+            throw new Error(`Subtitle load failed: HTTP ${res.status}`);
+        }
+
+        const text = await res.text();
+        const lowerName = subtitleFilename.toLowerCase();
+
+        if (lowerName.endsWith(".srt")) {
+            subtitles = parseSRT(text);
+        } else if (lowerName.endsWith(".ass")) {
+            subtitles = parseASS(text);
+        } else {
+            throw new Error("Unsupported subtitle format");
+        }
+
+        lastRuntimeSubtitleText = "";
+        runtimePrefetchAllRunId += 1;
+
+        clearRuntimeWordStatuses?.();
+
+        renderSubtitles();
+
+        requestAnimationFrame(() => {
+            prefetchRuntimeStatusesForAllSubtitles({ silent: true });
+        });
+
+        showToast("Video and subtitles restored", "info", 2500);
+    } catch (err) {
+        console.error("Could not restore subtitles:", err);
+        showToast("Video restored, but subtitles failed", "error", 5000);
     }
 }
 
@@ -989,6 +1065,8 @@ window.addEventListener("load", () => {
     refreshTargetNoteList({ preserveSelection: true });
     updateIconButtons();
 
+	restoreCurrentVideoFromServer();
+
     getJapaneseTokenizer?.()
         .then(() => loadKnownBasicWords?.())
         .then(() => {
@@ -1064,3 +1142,40 @@ document.addEventListener("mouseup", () => {
     settings.sidebarWidth = sidebar.style.width;
     localStorage.setItem("subtitlePlayerSettings", JSON.stringify(settings));
 });
+
+async function restoreCurrentVideoFromServer() {
+    try {
+        const { data } = await apiJson("/current-video");
+
+        if (!data.filename) {
+            dropzone.classList.remove("hidden");
+            return;
+        }
+
+        currentVideoFile = data.filename;
+
+        video.src = buildApiUrl(`/video/${encodeURIComponent(data.filename)}`);
+        video.load();
+
+        dropzone.classList.add("hidden");
+
+        loadAudioTrackList(data.filename);
+
+        if (data.subtitleFilename) {
+            await restoreSubtitleFromServer(data.subtitleFilename);
+        } else {
+            subtitles = [];
+            renderSubtitles();
+
+            renderSubtitleOverlay({
+                overlay,
+                text: ""
+            });
+        }
+
+    } catch (err) {
+        console.warn("Could not restore video from server:", err);
+        dropzone.classList.remove("hidden");
+    }
+}
+

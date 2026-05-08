@@ -231,9 +231,8 @@ def serve_file(path):
 def upload_video():
     file = request.files.get('videoFile')
     if not file:
-        return jsonify({"error":"Файл не получен"}), 400
+        return jsonify({"error": "Файл не получен"}), 400
 
-    # безопасное имя файла
     try:
         filename = _safe_uploaded_filename(file.filename)
     except ValueError as err:
@@ -242,7 +241,129 @@ def upload_video():
     save_path = os.path.join(VIDEO_DIR, filename)
     file.save(save_path)
 
-    return jsonify({"filename": filename})
+    base_name = os.path.splitext(filename)[0]
+
+    return jsonify({
+        "filename": filename,
+        "baseName": base_name
+    })
+    
+@app.route('/upload-subtitle', methods=['POST'])
+def upload_subtitle():
+    subtitle_file = request.files.get('subtitleFile')
+    video_filename = request.form.get('videoFilename')
+
+    if not subtitle_file:
+        return jsonify({"error": "Subtitle file is not received"}), 400
+
+    if not video_filename:
+        return jsonify({"error": "Video filename is required"}), 400
+
+    try:
+        safe_video_filename = _safe_uploaded_filename(video_filename)
+    except ValueError as err:
+        return jsonify({"error": str(err)}), 400
+
+    original_subtitle_name = subtitle_file.filename or ""
+    subtitle_ext = os.path.splitext(original_subtitle_name)[1].lower()
+
+    if subtitle_ext not in {".srt", ".ass"}:
+        return jsonify({"error": "Only .srt and .ass subtitles are supported"}), 400
+
+    video_base_name = os.path.splitext(safe_video_filename)[0]
+    subtitle_filename = f"{video_base_name}{subtitle_ext}"
+
+    save_path = os.path.join(VIDEO_DIR, subtitle_filename)
+    subtitle_file.save(save_path)
+
+    return jsonify({
+        "filename": subtitle_filename
+    })    
+
+@app.route("/current-video", methods=["GET"])
+def current_video():
+    video_extensions = {".mp4", ".mkv", ".webm", ".avi", ".mov"}
+    subtitle_extensions = [".srt", ".ass"]
+
+    videos = [
+        path for path in VIDEO_DIR.iterdir()
+        if path.is_file() and path.suffix.lower() in video_extensions
+    ]
+
+    if not videos:
+        return jsonify({
+            "filename": None,
+            "subtitleFilename": None
+        })
+
+    latest_video = max(videos, key=lambda path: path.stat().st_mtime)
+    video_base_name = latest_video.stem
+
+    subtitle_filename = None
+
+    for ext in subtitle_extensions:
+        candidate = VIDEO_DIR / f"{video_base_name}{ext}"
+        if candidate.exists():
+            subtitle_filename = candidate.name
+            break
+
+    return jsonify({
+        "filename": latest_video.name,
+        "subtitleFilename": subtitle_filename
+    })
+
+@app.route("/videos", methods=["GET"])
+def list_videos():
+    video_extensions = {".mp4", ".mkv", ".webm", ".avi", ".mov"}
+    subtitle_extensions = [".srt", ".ass"]
+
+    videos = []
+
+    for path in VIDEO_DIR.iterdir():
+        if not path.is_file():
+            continue
+
+        if path.suffix.lower() not in video_extensions:
+            continue
+
+        subtitle_filename = None
+
+        for ext in subtitle_extensions:
+            candidate = VIDEO_DIR / f"{path.stem}{ext}"
+            if candidate.exists():
+                subtitle_filename = candidate.name
+                break
+
+        videos.append({
+            "filename": path.name,
+            "subtitleFilename": subtitle_filename,
+            "modifiedTime": path.stat().st_mtime
+        })
+
+    videos.sort(key=lambda item: item["modifiedTime"], reverse=True)
+
+    return jsonify({
+        "videos": videos
+    })
+
+@app.route("/video/<path:filename>")
+def serve_video(filename):
+    return send_from_directory(str(VIDEO_DIR), filename)
+
+@app.route("/subtitle/<path:filename>")
+def serve_subtitle(filename):
+    safe_name = os.path.basename(filename)
+    subtitle_path = os.path.join(VIDEO_DIR, safe_name)
+
+    if not os.path.exists(subtitle_path):
+        return jsonify({"error": "Subtitle not found"}), 404
+
+    ext = os.path.splitext(safe_name)[1].lower()
+
+    if ext not in {".srt", ".ass"}:
+        return jsonify({"error": "Invalid subtitle extension"}), 400
+
+    return send_from_directory(str(VIDEO_DIR), safe_name)
 
 # --- Создание скриншота ---
 @app.route('/screenshot', methods=['POST'])
