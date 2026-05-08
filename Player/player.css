@@ -301,6 +301,30 @@ video {
   display: none;
 }
 
+/* Dark scrollbar for settings pages */
+.settings-page {
+  scrollbar-width: thin;
+  scrollbar-color: #555 #1d1d1d;
+}
+
+.settings-page::-webkit-scrollbar {
+  width: 10px;
+}
+
+.settings-page::-webkit-scrollbar-track {
+  background: #1d1d1d;
+}
+
+.settings-page::-webkit-scrollbar-thumb {
+  background: #555;
+  border-radius: 999px;
+  border: 2px solid #1d1d1d;
+}
+
+.settings-page::-webkit-scrollbar-thumb:hover {
+  background: #777;
+}
+
 .settings-window {
   width: min(560px, 88vw);
   height: min(680px, 88vh);

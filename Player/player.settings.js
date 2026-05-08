@@ -49,6 +49,7 @@ function saveSettings() {
 		globalSubDelay: document.getElementById("globalSubDelay").value,
         sidebarWidth: document.getElementById("sidebar").style.width,
 		sentenceField: document.getElementById("sentenceField").value,
+		sentenceFuriganaField: document.getElementById("sentenceFuriganaField").value,
 		pictureField: document.getElementById("pictureField").value,
 		audioField: document.getElementById("audioField").value,
 		includeImageSubtitle: document.getElementById("includeImageSubtitle").checked,
@@ -60,7 +61,7 @@ function saveSettings() {
 		highlightColorSuspended: document.getElementById("highlightColorSuspended")?.value || "#999999",
 		highlightColorUnknown: document.getElementById("highlightColorUnknown")?.value || "#ffffff",
 		highlightDeckNames: document.getElementById("highlightDeckNames")?.value || "",
-		highlightWordField: document.getElementById("highlightWordField")?.value || "Word"		
+		highlightWordField: document.getElementById("highlightWordField")?.value || "Word"
 		
     };
     localStorage.setItem("subtitlePlayerSettings", JSON.stringify(settings));
@@ -142,6 +143,7 @@ function loadSettings() {
 		globalSubDelay: settings.globalSubDelay,
         screenshotMode: settings.screenshotMode,
 		sentenceField: settings.sentenceField,
+		sentenceFuriganaField: settings.sentenceFuriganaField,
 		pictureField: settings.pictureField,
 		audioField: settings.audioField
     };

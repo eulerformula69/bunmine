@@ -648,6 +648,101 @@ function stripHtml(input) {
         .trim();
 }
 
+function isKanaOnly(text) {
+    return /^[\u3040-\u309f\u30a0-\u30ffー]+$/.test(String(text || ""));
+}
+
+function hasKanji(text) {
+    return /[\u3400-\u9fff]/.test(String(text || ""));
+}
+
+function escapeAnkiFieldText(text) {
+    return String(text || "")
+        .replace(/\\/g, "\\\\")
+        .replace(/"/g, '\\"');
+}
+
+function splitKanjiStemAndKanaTail(surface, readingHiragana) {
+    const match = String(surface || "").match(/^(.+?)([\u3040-\u309f]+)$/);
+
+    if (!match) {
+        return {
+            stem: surface,
+            tail: "",
+            stemReading: readingHiragana
+        };
+    }
+
+    const stem = match[1];
+    const tail = match[2];
+
+    if (!hasKanji(stem)) {
+        return {
+            stem: surface,
+            tail: "",
+            stemReading: readingHiragana
+        };
+    }
+
+    if (readingHiragana.endsWith(tail)) {
+        return {
+            stem,
+            tail,
+            stemReading: readingHiragana.slice(0, -tail.length)
+        };
+    }
+
+    return {
+        stem: surface,
+        tail: "",
+        stemReading: readingHiragana
+    };
+}
+
+async function buildSentenceFurigana(text) {
+    const source = String(text || "").trim();
+
+    if (!source) return "";
+
+    if (typeof tokenizeJapaneseText !== "function") {
+        console.warn("tokenizeJapaneseText is not available");
+        return source;
+    }
+
+    const tokens = await tokenizeJapaneseText(source);
+    let result = "";
+
+    for (const token of tokens) {
+        const surface = token.surface_form || "";
+        const reading = token.reading || "";
+
+        if (!surface) continue;
+
+        if (!hasKanji(surface) || !reading) {
+            result += surface;
+            continue;
+        }
+
+        const hiraganaReading = katakanaToHiragana(reading);
+        const { stem, tail, stemReading } = splitKanjiStemAndKanaTail(surface, hiraganaReading);
+
+        if (!stemReading) {
+            result += surface;
+            continue;
+        }
+
+        result += `${stem}[${stemReading}]${tail}`;
+    }
+
+    return result;
+}
+
+function katakanaToHiragana(text) {
+    return String(text || "").replace(/[\u30a1-\u30f6]/g, (char) => {
+        return String.fromCharCode(char.charCodeAt(0) - 0x60);
+    });
+}
+
 function pickNotePreviewText(noteInfo) {
     const fields = noteInfo?.fields || {};
     const preferredFieldOrder = [
@@ -963,6 +1058,7 @@ ankiAllBtn.onclick = async () => {
     const sentenceField = document.getElementById("sentenceField").value.trim();
     const pictureField = document.getElementById("pictureField").value.trim();
     const audioField = document.getElementById("audioField").value.trim();
+	const sentenceFuriganaField = document.getElementById("sentenceFuriganaField")?.value.trim();
 
 	if (!pictureField || !audioField) {
 	  showToast(t("toastRequiredFields"), "error", 4000);
@@ -998,6 +1094,10 @@ ankiAllBtn.onclick = async () => {
         .slice(currentIdx, endIdx + 1)
         .map((s) => s.text)
         .join(" ");
+		
+	const combinedTextFurigana = sentenceFuriganaField
+		? await buildSentenceFurigana(combinedText)
+		: "";			
 
     const includeImageSubtitle = document.getElementById("includeImageSubtitle")?.checked !== false;
     const imageSubtitleText = includeImageSubtitle ? combinedText : "";
@@ -1060,6 +1160,17 @@ ankiAllBtn.onclick = async () => {
         const selectedId = Number(targetNoteSelect?.value || 0);
         const targetNoteId = selectedId > 0 ? selectedId : noteIds[noteIds.length - 1];
 
+
+		const sentenceFuriganaField = document
+			.getElementById("sentenceFuriganaField")
+			?.value
+			.trim();
+
+		const combinedTextFurigana = sentenceFuriganaField
+			? await buildSentenceFurigana(combinedText)
+			: "";
+			
+
         await fetch(ankiUrl, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -1069,18 +1180,22 @@ ankiAllBtn.onclick = async () => {
                 params: {
                     note: {
                         id: targetNoteId,
-                        fields: (() => {
-                            const fieldsToUpdate = {};
+						fields: (() => {
+							const fieldsToUpdate = {};
 
-                            if (sentenceField) {
-                                fieldsToUpdate[sentenceField] = combinedText;
-                            }
+							if (sentenceField) {
+								fieldsToUpdate[sentenceField] = combinedText;
+							}
 
-                            fieldsToUpdate[pictureField] = `<img src="${sName}">`;
-                            fieldsToUpdate[audioField] = `[sound:${aName}]`;
+							if (sentenceFuriganaField) {
+								fieldsToUpdate[sentenceFuriganaField] = combinedTextFurigana;
+							}
 
-                            return fieldsToUpdate;
-                        })()
+							fieldsToUpdate[pictureField] = `<img src="${sName}">`;
+							fieldsToUpdate[audioField] = `[sound:${aName}]`;
+
+							return fieldsToUpdate;
+						})()
                     }
                 }
             })
