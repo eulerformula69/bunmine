@@ -30,9 +30,11 @@ const videoPickerCancelBtn = document.getElementById("videoPickerCancelBtn");
 const addKnownBasicBtn = document.getElementById("addKnownBasicBtn");
 const addCardToDeck = document.getElementById("addCardToDeck");
 
-
-
-
+let subtitleSearchQuery = "";
+let subtitleSearchMatches = [];
+let subtitleSearchIndex = -1;
+let subtitleSearchMode = "word";
+let subtitleSearchTimeSeconds = null;
 let isResizing = false;
 let subtitles = [];
 let globalSubDelay = 0;
@@ -304,6 +306,7 @@ async function handleFiles(files) {
         prefetchRuntimeStatusesForAllSubtitles({ silent: true });
     });
 }
+
 
 async function prefetchRuntimeStatusesForAllSubtitles({ silent = true } = {}) {
     if (!Array.isArray(subtitles) || !subtitles.length) return;
@@ -1402,6 +1405,7 @@ window.addEventListener("load", () => {
     initTargetNoteDropdown();
     refreshTargetNoteList({ preserveSelection: true });
     updateIconButtons();
+	initSubtitleSearchPanel();
 
 	restoreCurrentVideoFromServer();
 

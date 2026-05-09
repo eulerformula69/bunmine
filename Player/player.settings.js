@@ -187,6 +187,10 @@ function applyLanguage(lang) {
     if (typeof updateFullscreenButtonText === "function") {
         updateFullscreenButtonText();
     }
+		
+	if (typeof updateSubtitleSearchPanelLanguage === "function") {
+		updateSubtitleSearchPanelLanguage();
+	}	
 }
 
 function initLangSelector() {

@@ -56,6 +56,11 @@ const i18n = {
 			dropNewFile: "Загрузить новый файл",
 			subtitleFound: "Субтитры: {name}",
 			subtitleNotFound: "Субтитры не найдены",
+			subtitleSearchWord: "Поиск",
+			subtitleSearchTime: "Время",
+			subtitleSearchPrev: "Предыдущий результат",
+			subtitleSearchNext: "Следующий результат",
+			subtitleSearchCommit: "Перейти",
 
 			toastVideoNotUploaded: "Видео не загружено",
 			toastRequiredFields: "Поля картинки и аудио обязательны",
@@ -134,6 +139,12 @@ const i18n = {
 			dropNewFile: "Drop new file",
 			subtitleFound: "Subtitle: {name}",
 			subtitleNotFound: "No subtitle found",
+			subtitleSearchWord: "Search word",
+			subtitleSearchTime: "Time",
+			subtitleSearchPrev: "Previous result",
+			subtitleSearchNext: "Next result",
+			subtitleSearchCommit: "Go to result",
+
 
 			toastVideoNotUploaded: "Video is not uploaded",
 			toastRequiredFields: "Picture Field and Audio Field are required",
@@ -212,6 +223,11 @@ const i18n = {
 			dropNewFile: "新しいファイルを読み込む",
 			subtitleFound: "字幕: {name}",
 			subtitleNotFound: "字幕が見つかりません",
+			subtitleSearchWord: "単語検索",
+			subtitleSearchTime: "時間",
+			subtitleSearchPrev: "前の結果",
+			subtitleSearchNext: "次の結果",
+			subtitleSearchCommit: "移動",			
 
 			toastVideoNotUploaded: "動画がアップロードされていません",
 			toastRequiredFields: "画像フィールドと音声フィールドは必須です",

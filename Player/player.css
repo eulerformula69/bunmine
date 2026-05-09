@@ -155,8 +155,13 @@ video {
 }
 
 #audioTrackSelect {
-  min-width: 135px;
-  flex-shrink: 0;
+  min-width: 10px;
+  width: auto;
+  padding-right: 4px;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: none;
 }
 
 #ankiAllBtn {
@@ -208,7 +213,9 @@ video {
   width: 260px;
   min-width: 150px;
   max-width: 50vw;
-  overflow-y: auto;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
   border-left: 1px solid #333;
   background: #0b030d;
   scrollbar-width: none;
@@ -851,4 +858,80 @@ video {
 .add-known-basic-btn.hidden,
 .copy-for-yomitan-btn.hidden {
   display: none;
+}
+
+#subtitleSearchPanel {
+  position: sticky;
+  bottom: 0;
+  z-index: 999;
+  display: flex;
+  gap: 6px;
+  padding: 8px;
+  background: #0b030d;
+  border-top: 1px solid #333;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+
+#subtitleSearchPanel input:focus {
+  outline: none;
+  box-shadow: none;
+  border-color: #444;
+}
+
+.subtitle.search-active {
+  outline: 2px solid #a97ce6;
+  outline-offset: -2px;
+}
+
+#subtitleList {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+#subtitleList::-webkit-scrollbar {
+  display: none;
+}
+
+#subtitleSearchPanel {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 30px 30px minmax(0, 1fr) 34px;
+  gap: 6px;
+  padding: 8px;
+  border-top: 1px solid #333;
+  background: #0b030d;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+#subtitleSearchPanel input,
+#subtitleSearchPanel button {
+  min-width: 0;
+  height: 30px;
+  box-sizing: border-box;
+  border: 1px solid #444;
+  border-radius: 4px;
+  background: #181020;
+  color: white;
+  font-size: 12px;
+}
+
+#subtitleSearchPanel input {
+  padding: 4px 8px;
+}
+
+#subtitleSearchPanel button {
+  padding: 0;
+  cursor: pointer;
+}
+
+#subtitleSearchPanel input:focus,
+#subtitleSearchPanel button:focus {
+  outline: none;
+  box-shadow: none;
+  border-color: #444;
 }

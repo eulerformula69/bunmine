@@ -72,8 +72,8 @@ async function loadAudioTrackList(filename) {
                 const lang = (track.tags?.language || `Track ${index + 1}`).toUpperCase();
                 const title = track.tags?.title ? ` (${track.tags.title})` : "";
                 const opt = document.createElement("option");
-                opt.value = index === 0 ? "default" : track.index;
-                opt.textContent = index === 0 ? `${lang}${title}` : ` ${lang}${title}`;
+				opt.value = index === 0 ? "default" : track.index;
+				opt.textContent = `${lang}${title}`;
                 audioTrackSelect.appendChild(opt);
             });
         } else {
