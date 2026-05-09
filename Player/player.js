@@ -699,8 +699,42 @@ function splitKanjiStemAndKanaTail(surface, readingHiragana) {
     };
 }
 
+function escapeRegExp(text) {
+    return String(text || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function boldWordInText(text, word) {
+    const source = String(text || "");
+    const target = stripHtml(word);
+
+    if (!target) return source;
+
+    const pattern = new RegExp(`${escapeRegExp(target)}(\\[[^\\]]+\\])?`, "g");
+
+    return source.replace(pattern, (match) => {
+        return `<b>${match}</b>`;
+    });
+}
+
+function getNoteWord(noteInfo) {
+    const fields = noteInfo?.fields || {};
+    const wordFieldNames = (
+        document.getElementById("highlightWordField")?.value || "Word"
+    )
+        .split(",")
+        .map((name) => name.trim())
+        .filter(Boolean);
+
+    for (const fieldName of wordFieldNames) {
+        const word = stripHtml(fields[fieldName]?.value);
+        if (word) return word;
+    }
+
+    return "";
+}
+
 async function buildSentenceFurigana(text) {
-    const source = String(text || "").trim();
+    const source = String(text || "");
 
     if (!source) return "";
 
@@ -711,6 +745,7 @@ async function buildSentenceFurigana(text) {
 
     const tokens = await tokenizeJapaneseText(source);
     let result = "";
+    let lastEnd = 0;
 
     for (const token of tokens) {
         const surface = token.surface_form || "";
@@ -718,8 +753,29 @@ async function buildSentenceFurigana(text) {
 
         if (!surface) continue;
 
+        const start = Math.max(0, Number(token.word_position || 1) - 1);
+        const end = start + surface.length;
+
+        // preserve spaces / punctuation between tokens
+        if (start > lastEnd) {
+            result += source.slice(lastEnd, start);
+        }
+
+		const previousChar = result.slice(-1);
+		const shouldAddSpaceBeforeKanjiWord =
+			hasKanji(surface) &&
+			result &&
+			previousChar &&
+			!/\s/.test(previousChar) &&
+			!/[（(「『【［]/.test(previousChar);
+
+		if (shouldAddSpaceBeforeKanjiWord) {
+			result += " ";
+		}
+
         if (!hasKanji(surface) || !reading) {
             result += surface;
+            lastEnd = end;
             continue;
         }
 
@@ -728,10 +784,16 @@ async function buildSentenceFurigana(text) {
 
         if (!stemReading) {
             result += surface;
+            lastEnd = end;
             continue;
         }
 
         result += `${stem}[${stemReading}]${tail}`;
+        lastEnd = end;
+    }
+
+    if (lastEnd < source.length) {
+        result += source.slice(lastEnd);
     }
 
     return result;
@@ -1095,9 +1157,7 @@ ankiAllBtn.onclick = async () => {
         .map((s) => s.text)
         .join(" ");
 		
-	const combinedTextFurigana = sentenceFuriganaField
-		? await buildSentenceFurigana(combinedText)
-		: "";			
+	
 
     const includeImageSubtitle = document.getElementById("includeImageSubtitle")?.checked !== false;
     const imageSubtitleText = includeImageSubtitle ? combinedText : "";
@@ -1159,16 +1219,17 @@ ankiAllBtn.onclick = async () => {
 
         const selectedId = Number(targetNoteSelect?.value || 0);
         const targetNoteId = selectedId > 0 ? selectedId : noteIds[noteIds.length - 1];
+		const [targetNoteInfo] = await fetchNotesInfo(ankiUrl, [targetNoteId]);
+		const targetWord = getNoteWord(targetNoteInfo);
 
+		const combinedTextForAnki = targetWord
+			? boldWordInText(combinedText, targetWord)
+			: combinedText;
 
-		const sentenceFuriganaField = document
-			.getElementById("sentenceFuriganaField")
-			?.value
-			.trim();
-
-		const combinedTextFurigana = sentenceFuriganaField
-			? await buildSentenceFurigana(combinedText)
+		const combinedTextFuriganaForAnki = sentenceFuriganaField
+			? boldWordInText(await buildSentenceFurigana(combinedText), targetWord)
 			: "";
+
 			
 
         await fetch(ankiUrl, {
@@ -1184,11 +1245,11 @@ ankiAllBtn.onclick = async () => {
 							const fieldsToUpdate = {};
 
 							if (sentenceField) {
-								fieldsToUpdate[sentenceField] = combinedText;
+								fieldsToUpdate[sentenceField] = combinedTextForAnki;
 							}
 
 							if (sentenceFuriganaField) {
-								fieldsToUpdate[sentenceFuriganaField] = combinedTextFurigana;
+								fieldsToUpdate[sentenceFuriganaField] = combinedTextFuriganaForAnki;
 							}
 
 							fieldsToUpdate[pictureField] = `<img src="${sName}">`;
