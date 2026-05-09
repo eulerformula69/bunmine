@@ -77,6 +77,23 @@ video.addEventListener("timeupdate", () => {
         const idx = subtitles.indexOf(sub);
         syncSubtitleStyle(idx);
     }
+
+	const currentSearchMatch = getCurrentSearchMatch?.();
+
+	if (currentSearchMatch && !video.paused) {
+		const currentSubtitleIndex = subtitles.findIndex((s) => {
+			const t = video.currentTime - globalSubDelay;
+			return t >= s.start && t <= s.end;
+		});
+
+		if (
+			currentSubtitleIndex !== -1 &&
+			currentSubtitleIndex !== currentSearchMatch.subtitleIndex
+		) {
+			clearSearchMatches?.();
+		}
+	}
+	
 });
 
 function showToast(message, type = "info", timeout = 3000) {

@@ -35,7 +35,6 @@ function parseASS(data) {
         if (!line.startsWith("Dialogue:")) return;
 
         const parts = line.split(",");
-
         if (parts.length < 10) return;
 
         const start = timeToSeconds(parts[1]);
@@ -88,40 +87,21 @@ function initSubtitleSearchPanel() {
     const panel = document.createElement("div");
     panel.id = "subtitleSearchPanel";
 
-	panel.innerHTML = `
-		<input
-			id="subtitleWordSearchInput"
-			type="text"
-			placeholder="${t("subtitleSearchWord")}"
-			aria-label="${t("subtitleSearchWord")}"
-			autocomplete="off"
-		/>
-		<button
-			id="subtitleSearchPrevBtn"
-			type="button"
-			title="${t("subtitleSearchPrev")}"
-			aria-label="${t("subtitleSearchPrev")}"
-		>↑</button>
-		<button
-			id="subtitleSearchNextBtn"
-			type="button"
-			title="${t("subtitleSearchNext")}"
-			aria-label="${t("subtitleSearchNext")}"
-		>↓</button>
-		<input
-			id="subtitleTimeSearchInput"
-			type="text"
-			placeholder="${t("subtitleSearchTime")}"
-			aria-label="${t("subtitleSearchTime")}"
-			autocomplete="off"
-		/>
-		<button
-			id="subtitleSearchCommitBtn"
-			type="button"
-			title="${t("subtitleSearchCommit")}"
-			aria-label="${t("subtitleSearchCommit")}"
-		>↵</button>
-	`;
+    panel.innerHTML = `
+        <input
+            id="subtitleWordSearchInput"
+            type="text"
+            autocomplete="off"
+        />
+        <button id="subtitleSearchPrevBtn" type="button">↑</button>
+        <button id="subtitleSearchNextBtn" type="button">↓</button>
+        <input
+            id="subtitleTimeSearchInput"
+            type="text"
+            autocomplete="off"
+        />
+        <button id="subtitleSearchCommitBtn" type="button">↵</button>
+    `;
 
     sidebar.appendChild(panel);
 
@@ -139,28 +119,30 @@ function initSubtitleSearchPanel() {
         timeInput.value = formatTime(subtitleSearchTimeSeconds);
     }
 
-	wordInput?.addEventListener("focus", () => {
-		subtitleSearchMode = "word";
-		subtitleSearchTimeSeconds = null;
+    updateSubtitleSearchPanelLanguage?.();
 
-		if (timeInput) timeInput.value = "";
+    wordInput?.addEventListener("focus", () => {
+        subtitleSearchMode = "word";
+        subtitleSearchTimeSeconds = null;
 
-		if (!wordInput.value.trim()) {
-			setSearchMatches([]);
-		}
-	});
+        if (timeInput) timeInput.value = "";
 
-	timeInput?.addEventListener("focus", () => {
-		subtitleSearchMode = "time";
-		subtitleSearchQuery = "";
+        if (!wordInput.value.trim()) {
+            clearSearchMatches();
+        }
+    });
 
-		if (wordInput) wordInput.value = "";
+    timeInput?.addEventListener("focus", () => {
+        subtitleSearchMode = "time";
+        subtitleSearchQuery = "";
 
-		if (!timeInput.value.trim()) {
-			setSearchMatches([]);
-		}
-	});
-	
+        if (wordInput) wordInput.value = "";
+
+        if (!timeInput.value.trim()) {
+            clearSearchMatches();
+        }
+    });
+
     wordInput?.addEventListener("input", () => {
         subtitleSearchMode = "word";
         subtitleSearchQuery = wordInput.value;
@@ -181,7 +163,13 @@ function initSubtitleSearchPanel() {
             return;
         }
 
-        goToSearchMatch(e.shiftKey ? -1 : 1);
+	if (!subtitleSearchMatches.length) {
+		setSearchMatches(findSubtitleTextMatches(wordInput.value), 0);
+		return;
+	}
+
+	goToSearchMatch(e.shiftKey ? -1 : 1);
+	
     });
 
     timeInput?.addEventListener("input", () => {
@@ -194,7 +182,7 @@ function initSubtitleSearchPanel() {
 
         if (!Number.isFinite(seconds)) {
             subtitleSearchTimeSeconds = null;
-            setSearchMatches([]);
+            clearSearchMatches();
             return;
         }
 
@@ -231,7 +219,6 @@ function initSubtitleSearchPanel() {
 
         commitSearchMatch();
     });
-	updateSubtitleSearchPanelLanguage();
 }
 
 function updateSubtitleSearchPanelLanguage() {
@@ -267,6 +254,13 @@ function updateSubtitleSearchPanelLanguage() {
         commitBtn.title = dict.subtitleSearchCommit || "Go to result";
         commitBtn.setAttribute("aria-label", dict.subtitleSearchCommit || "Go to result");
     }
+}
+
+function clearSearchMatches() {
+    subtitleSearchMatches = [];
+    subtitleSearchIndex = -1;
+
+    renderSubtitles();
 }
 
 function setSearchMatches(matches, index = 0) {
@@ -418,6 +412,26 @@ function scrollToSearchMatch(match) {
 }
 
 function goToSearchMatch(direction = 1) {
+    if (!subtitleSearchMatches.length) {
+        if (subtitleSearchMode === "word") {
+            const wordInput = document.getElementById("subtitleWordSearchInput");
+            subtitleSearchQuery = wordInput?.value || "";
+            subtitleSearchMatches = findSubtitleTextMatches(subtitleSearchQuery);
+        }
+
+        if (subtitleSearchMode === "time") {
+            const timeInput = document.getElementById("subtitleTimeSearchInput");
+            const seconds = parseSearchTime(timeInput?.value);
+
+            if (Number.isFinite(seconds)) {
+                subtitleSearchTimeSeconds = seconds;
+                subtitleSearchMatches = buildTimeSearchMatches(seconds);
+            }
+        }
+
+        subtitleSearchIndex = subtitleSearchMatches.length ? 0 : -1;
+    }
+
     if (!subtitleSearchMatches.length) return;
 
     subtitleSearchIndex += direction;
@@ -453,6 +467,10 @@ function commitSearchMatch() {
 
     video.pause();
     syncSubtitleStyle(match.subtitleIndex);
+
+    subtitleSearchMatches = [];
+    subtitleSearchIndex = -1;
+    renderSubtitles();
 }
 
 function appendSubtitleTextWithSearchHighlight(container, text, idx) {
@@ -528,6 +546,8 @@ function renderSubtitles() {
         div.appendChild(textContent);
 
         div.onclick = () => {
+            clearSearchMatches();
+
             if (lastClickedSubtitleIdx === idx) {
                 if (video.paused) {
                     video.play();
@@ -560,6 +580,8 @@ function renderSubtitles() {
 
 function seekBySubtitle(offset) {
     if (!subtitles.length) return;
+
+    clearSearchMatches();
 
     const t = video.currentTime;
     let currentIdx = subtitles.findIndex((s) => t >= s.start && t <= s.end);
