@@ -162,40 +162,57 @@ async function prefetchRuntimeStatusesForAllSubtitles({ silent = true } = {}) {
             await getJapaneseTokenizer();
         }
 
-        const uniqueTexts = [...new Set(
-            subtitles
-                .map((sub) => sub?.text)
-                .filter(Boolean)
-        )];
+        const allCandidates = new Set();
 
-        console.log(`Runtime prefetch started: ${uniqueTexts.length} subtitle lines`);
+        for (let i = 0; i < subtitles.length; i += 1) {
+            if (runId !== runtimePrefetchAllRunId) return;
 
-        for (let i = 0; i < uniqueTexts.length; i += 1) {
+            const text = subtitles[i]?.text;
+            if (!text) continue;
+
+            const candidates = collectSubtitleCandidates(text);
+
+            for (const candidate of candidates) {
+                if (!ankiRuntimeWordStatusMap.has(candidate)) {
+                    allCandidates.add(candidate);
+                }
+            }
+
+            if (i % 50 === 0) {
+                console.log(`Runtime collect candidates ${i}/${subtitles.length}`);
+                await new Promise((resolve) => setTimeout(resolve, 0));
+            }
+        }
+
+        const candidates = [...allCandidates];
+        const chunkSize = 150;
+
+        console.log(`Runtime batch prefetch started: ${candidates.length} candidates`);
+
+        for (let i = 0; i < candidates.length; i += chunkSize) {
             if (runId !== runtimePrefetchAllRunId) {
-                console.log("Runtime prefetch cancelled");
+                console.log("Runtime batch prefetch cancelled");
                 return;
             }
 
-            const text = uniqueTexts[i];
+            const chunk = candidates.slice(i, i + chunkSize);
 
-            console.log(`Runtime prefetch ${i + 1}/${uniqueTexts.length}:`, text);
+            console.log(
+                `Runtime batch prefetch ${Math.floor(i / chunkSize) + 1}/${Math.ceil(candidates.length / chunkSize)}: ${chunk.length}`
+            );
 
-            await ensureStatusesForSubtitleText(text, {
-                rerender: false,
-                silent
-            });
+            await ensureStatusesForCandidates(chunk, { silent: true });
 
-            await new Promise((resolve) => setTimeout(resolve, 5));
+            await new Promise((resolve) => setTimeout(resolve, 0));
         }
 
         if (runId === runtimePrefetchAllRunId) {
             runtimeHighlightPrefetchReady = true;
-            console.log("Runtime prefetch finished");
-
+            console.log("Runtime batch prefetch finished");
             rerenderCurrentSubtitleWithAnkiHighlighter?.();
         }
     } catch (err) {
-        console.warn("Runtime full subtitle prefetch failed:", err);
+        console.warn("Runtime batch prefetch failed:", err);
     } finally {
         if (runId === runtimePrefetchAllRunId) {
             runtimePrefetchAllInProgress = false;
@@ -1033,11 +1050,8 @@ globalSubDelayInput.addEventListener("input", (e) => {
     lastRuntimeSubtitleText = "";
     runtimePrefetchAllRunId += 1;
 
-    renderSubtitles();
-
-    requestAnimationFrame(() => {
-        prefetchRuntimeStatusesForAllSubtitles({ silent: true });
-    });
+	renderSubtitles();
+	rerenderCurrentSubtitleWithAnkiHighlighter?.();
 });
 
 const ankiUrlInput = document.getElementById("ankiUrl");
@@ -1060,6 +1074,7 @@ const highlightDeckNamesInput = document.getElementById("highlightDeckNames");
         lastRuntimeSubtitleText = "";
         runtimePrefetchAllRunId += 1;
 		runtimeHighlightPrefetchReady = false;
+		prefetchRuntimeStatusesForAllSubtitles({ silent: true });
 
         clearRuntimeWordStatuses?.();
 
@@ -1130,7 +1145,7 @@ document.getElementById("refreshAnkiHighlighterBtn")?.addEventListener("click", 
 		});
     }
 
-    prefetchRuntimeStatusesForAllSubtitles({ silent: true });
+	prefetchRuntimeStatusesForAllSubtitles({ silent: true });
 });
 
 document.addEventListener("visibilitychange", () => {
