@@ -115,8 +115,6 @@ video {
 }
 
 #playPause,
-#prevSubBtn,
-#nextSubBtn,
 .icon-btn {
   width: var(--control-height) !important;
   min-width: var(--control-height) !important;

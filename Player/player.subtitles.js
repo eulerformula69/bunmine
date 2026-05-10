@@ -14,9 +14,19 @@ function parseSRT(data) {
 
         const start = +match[1] * 3600 + +match[2] * 60 + +match[3] + +match[4] / 1000;
         const end = +match[5] * 3600 + +match[6] * 60 + +match[7] + +match[8] / 1000;
-        const text = lines.slice(2).map((l) => l.trim()).join(" ");
+		const rawText = lines.slice(2).map((l) => l.trim()).join(" ");
 
-        subs.push({ start, end, text });
+		// Пропускаем верхние субтитры типа {\an8}
+		if (/\{\\an8\}/.test(rawText)) continue;
+
+		// На всякий случай чистим остальные ASS/SRT override-теги
+		const text = rawText
+			.replace(/\{\\.*?\}/g, "")
+			.trim();
+
+		if (text) {
+			subs.push({ start, end, text });
+		}
     }
 
     return subs;
@@ -203,13 +213,23 @@ function initSubtitleSearchPanel() {
         activateTimeSearch({ commit: false });
     });
 
-    prevBtn?.addEventListener("click", () => {
-        goToSearchMatch(-1);
-    });
+	prevBtn?.addEventListener("click", () => {
+		if (hasActiveSubtitleSearch()) {
+			goToSearchMatch(-1);
+			return;
+		}
 
-    nextBtn?.addEventListener("click", () => {
-        goToSearchMatch(1);
-    });
+		goToPreviousSubtitle();
+	});
+
+	nextBtn?.addEventListener("click", () => {
+		if (hasActiveSubtitleSearch()) {
+			goToSearchMatch(1);
+			return;
+		}
+
+		goToNextSubtitle();
+	});
 
     commitBtn?.addEventListener("click", () => {
         if (subtitleSearchMode === "time") {
@@ -219,6 +239,44 @@ function initSubtitleSearchPanel() {
 
         commitSearchMatch();
     });
+}
+
+function hasActiveSubtitleSearch() {
+    return subtitleSearchMatches.length > 0;
+}
+
+function getCurrentSubtitleIndexForNavigation() {
+    const t = video.currentTime - globalSubDelay;
+
+    const activeIndex = subtitles.findIndex((s) => t >= s.start && t <= s.end);
+    if (activeIndex !== -1) return activeIndex;
+
+    const nextIndex = subtitles.findIndex((s) => s.start > t);
+    if (nextIndex !== -1) return nextIndex;
+
+    return subtitles.length - 1;
+}
+
+function goToPreviousSubtitle() {
+    if (!subtitles.length) return;
+
+    const currentIndex = getCurrentSubtitleIndexForNavigation();
+    const targetIndex = Math.max(0, currentIndex - 1);
+
+    video.currentTime = Math.max(0, subtitles[targetIndex].start + globalSubDelay + 0.01);
+    syncSubtitleStyle(targetIndex);
+    audioManager?.sync?.();
+}
+
+function goToNextSubtitle() {
+    if (!subtitles.length) return;
+
+    const currentIndex = getCurrentSubtitleIndexForNavigation();
+    const targetIndex = Math.min(subtitles.length - 1, currentIndex + 1);
+
+    video.currentTime = Math.max(0, subtitles[targetIndex].start + globalSubDelay + 0.01);
+    syncSubtitleStyle(targetIndex);
+    audioManager?.sync?.();
 }
 
 function updateSubtitleSearchPanelLanguage() {

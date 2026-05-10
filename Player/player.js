@@ -19,8 +19,6 @@ const targetNoteSelect = document.getElementById("targetNoteSelect");
 const audioTrackSelect = document.getElementById("audioTrackSelect");
 const fontSizeRange = document.getElementById("fontSizeRange");
 const subtitleOverlay = document.getElementById("subtitleOverlay");
-const prevSubBtn = document.getElementById("prevSubBtn");
-const nextSubBtn = document.getElementById("nextSubBtn");
 const resizer = document.getElementById("resizer");
 const videoPickerModal = document.getElementById("videoPickerModal");
 const videoPickerList = document.getElementById("videoPickerList");
@@ -28,8 +26,6 @@ const videoPickerCancelBtn = document.getElementById("videoPickerCancelBtn");
 const addKnownBasicBtn = document.getElementById("addKnownBasicBtn");
 const addCardToDeck = document.getElementById("addCardToDeck");
 
-prevSubBtn.onclick = () => seekBySubtitle(-1);
-nextSubBtn.onclick = () => seekBySubtitle(1);
 
 const volume = document.getElementById("volume");
 video.volume = volume.value;
