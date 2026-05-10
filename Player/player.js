@@ -1,5 +1,3 @@
-let currentLang = "en";
-
 const video = document.getElementById("video");
 const sidebar = document.getElementById("sidebar");
 const multiInput = document.getElementById("multiInput");
@@ -29,23 +27,6 @@ const videoPickerList = document.getElementById("videoPickerList");
 const videoPickerCancelBtn = document.getElementById("videoPickerCancelBtn");
 const addKnownBasicBtn = document.getElementById("addKnownBasicBtn");
 const addCardToDeck = document.getElementById("addCardToDeck");
-
-let subtitleSearchQuery = "";
-let subtitleSearchMatches = [];
-let subtitleSearchIndex = -1;
-let subtitleSearchMode = "word";
-let subtitleSearchTimeSeconds = null;
-let isResizing = false;
-let subtitles = [];
-let globalSubDelay = 0;
-let subtitleElements = [];
-let currentVideoFile = null;
-let lastClickedSubtitleIdx = null;
-let lastSidebarWidth = "";
-let lastRuntimeSubtitleText = "";
-let runtimePrefetchAllRunId = 0;
-let runtimePrefetchAllInProgress = false;
-let selectedKnownBasicWord = "";
 
 prevSubBtn.onclick = () => seekBySubtitle(-1);
 nextSubBtn.onclick = () => seekBySubtitle(1);
@@ -95,113 +76,6 @@ video.addEventListener("timeupdate", () => {
 	}
 	
 });
-
-function showToast(message, type = "info", timeout = 3000) {
-  let container = document.getElementById("mpToastContainer");
-
-  if (!container) {
-    container = document.createElement("div");
-    container.id = "mpToastContainer";
-    container.className = "mp-toast-container";
-    document.body.appendChild(container);
-  }
-
-  const toast = document.createElement("div");
-  toast.className = `mp-toast mp-toast-${type}`;
-  toast.textContent = message;
-
-  container.appendChild(toast);
-
-  setTimeout(() => {
-    toast.classList.add("mp-toast-removing");
-
-    setTimeout(() => {
-      toast.remove();
-    }, 180);
-  }, timeout);
-}
-
-function t(key, params = {}) {
-    const fallbackDict = i18n?.en?.dict || {};
-    const dictionary = i18n?.[currentLang]?.dict || fallbackDict;
-
-    let text = dictionary[key] || fallbackDict[key] || key;
-
-    for (const [name, value] of Object.entries(params)) {
-        text = text.replaceAll(`{${name}}`, String(value));
-    }
-
-    return text;
-}
-
-function getCleanSelectedText() {
-    const selection = window.getSelection();
-
-    if (!selection || selection.rangeCount === 0) {
-        return "";
-    }
-
-    return selection
-        .toString()
-        .trim()
-        .replace(/\s+/g, " ");
-}
-
-function showAddKnownBasicButtonForSelection() {
-    if (!addKnownBasicBtn && !addCardToDeck) return;
-
-    const word = getCleanSelectedText();
-
-    if (!word) {
-        hideAddKnownBasicButton();
-        return;
-    }
-
-    const selection = window.getSelection();
-
-    if (!selection || selection.rangeCount === 0) {
-        hideAddKnownBasicButton();
-        return;
-    }
-
-    const range = selection.getRangeAt(0);
-    const rect = range.getBoundingClientRect();
-
-    if (!rect || rect.width === 0 || rect.height === 0) {
-        hideAddKnownBasicButton();
-        return;
-    }
-
-    selectedKnownBasicWord = word;
-
-    const main = document.getElementById("main");
-    const mainRect = main.getBoundingClientRect();
-
-    const centerLeft = rect.left - mainRect.left + rect.width / 2;
-    const safeTop = Math.max(12, rect.top - mainRect.top - 42);
-
-    if (addKnownBasicBtn) {
-        addKnownBasicBtn.style.left = `${centerLeft}px`;
-        addKnownBasicBtn.style.top = `${safeTop}px`;
-		addKnownBasicBtn.style.transform = addCardToDeck
-			? "translateX(-105%)"
-			: "translateX(-50%)";
-        addKnownBasicBtn.classList.remove("hidden");
-    }
-
-    if (addCardToDeck) {
-        addCardToDeck.style.left = `${centerLeft}px`;
-        addCardToDeck.style.top = `${safeTop}px`;
-        addCardToDeck.style.transform = "translateX(5%)";
-        addCardToDeck.classList.remove("hidden");
-    }
-}
-
-function hideAddKnownBasicButton() {
-    addKnownBasicBtn?.classList.add("hidden");
-    addCardToDeck?.classList.add("hidden");
-    selectedKnownBasicWord = "";
-}
 
 async function addWordToKnownBasic(word) {
     const cleanWord = String(word || "").trim();
@@ -274,55 +148,6 @@ function markKnownBasicWordAsMature(word) {
     });
 }
 
-async function handleFiles(files) {
-    let videoFile = null;
-    let subtitleFile = null;
-    let hasSubtitles = false;
-
-    for (const file of files) {
-        const lowerName = file.name.toLowerCase();
-
-        if (lowerName.endsWith(".srt")) {
-            subtitleFile = file;
-            subtitles = parseSRT(await file.text());
-            hasSubtitles = true;
-        } else if (lowerName.endsWith(".ass")) {
-            subtitleFile = file;
-            subtitles = parseASS(await file.text());
-            hasSubtitles = true;
-        } else if (file.type.startsWith("video")) {
-            videoFile = file;
-        }
-    }
-
-    if (videoFile) {
-        if (!hasSubtitles) {
-            subtitles = [];
-            lastRuntimeSubtitleText = "";
-
-            renderSubtitleOverlay({
-                overlay,
-                text: ""
-            });
-        }
-
-        video.src = URL.createObjectURL(videoFile);
-        dropzone.classList.add("hidden");
-
-        uploadVideoInBackground(videoFile, subtitleFile);
-    }
-
-    lastRuntimeSubtitleText = "";
-    runtimePrefetchAllRunId += 1;
-
-    clearRuntimeWordStatuses?.();
-
-    renderSubtitles();
-
-    requestAnimationFrame(() => {
-        prefetchRuntimeStatusesForAllSubtitles({ silent: true });
-    });
-}
 
 
 async function prefetchRuntimeStatusesForAllSubtitles({ silent = true } = {}) {
@@ -390,96 +215,6 @@ async function prefetchRuntimeStatusesForAllSubtitles({ silent = true } = {}) {
     });
 });
 
-async function uploadVideoInBackground(videoFile, subtitleFile = null) {
-    const form = new FormData();
-    form.append("videoFile", videoFile);
-
-    try {
-        const { data } = await apiJson("/upload-video", {
-            method: "POST",
-            body: form
-        });
-
-        if (data.error) {
-            console.error("Server upload error:", data.error);
-            showToast(t("toastVideoUploadFailed", { message: data.error }), "error", 5000);
-            return;
-        }
-
-        currentVideoFile = data.filename;
-        loadAudioTrackList(data.filename);
-
-        if (subtitleFile) {
-            await uploadSubtitleInBackground(subtitleFile, data.filename);
-        }
-
-    } catch (e) {
-        console.error("Upload failed:", e);
-        showToast(t("toastVideoUploadFailed", { message: e.message }), "error", 5000);
-    }
-}
-
-async function uploadSubtitleInBackground(subtitleFile, videoFilename) {
-    const form = new FormData();
-
-    form.append("subtitleFile", subtitleFile);
-    form.append("videoFilename", videoFilename);
-
-    try {
-        const { data } = await apiJson("/upload-subtitle", {
-            method: "POST",
-            body: form
-        });
-
-        if (data.error) {
-            console.error("Subtitle upload error:", data.error);
-            showToast(t("toastSubtitleUploadFailed", { message: data.error }), "error", 5000);
-            return;
-        }
-
-        console.log("Subtitle uploaded:", data.filename);
-    } catch (err) {
-        console.error("Subtitle upload failed:", err);
-        showToast(t("toastSubtitleUploadFailed", { message: err.message }), "error", 5000);
-    }
-}
-
-async function restoreSubtitleFromServer(subtitleFilename) {
-    try {
-        const res = await fetch(buildApiUrl(`/subtitle/${encodeURIComponent(subtitleFilename)}`));
-
-        if (!res.ok) {
-            throw new Error(`Subtitle load failed: HTTP ${res.status}`);
-        }
-
-        const text = await res.text();
-        const lowerName = subtitleFilename.toLowerCase();
-
-        if (lowerName.endsWith(".srt")) {
-            subtitles = parseSRT(text);
-        } else if (lowerName.endsWith(".ass")) {
-            subtitles = parseASS(text);
-        } else {
-            throw new Error("Unsupported subtitle format");
-        }
-
-        lastRuntimeSubtitleText = "";
-        runtimePrefetchAllRunId += 1;
-
-        clearRuntimeWordStatuses?.();
-
-        renderSubtitles();
-
-        requestAnimationFrame(() => {
-            prefetchRuntimeStatusesForAllSubtitles({ silent: true });
-        });
-
-        showToast(t("toastVideoAndSubtitlesRestored"), "info", 2500);
-    } catch (err) {
-        console.error("Could not restore subtitles:", err);
-        showToast(t("toastVideoRestoredSubtitlesFailed"), "error", 5000);
-    }
-}
 
 document.getElementById("clickToUpload").onclick = () => multiInput.click();
 multiInput.addEventListener("change", (e) => handleFiles(e.target.files));
@@ -514,9 +249,6 @@ toggleBtn.onclick = (e) => {
     toggleBtn.textContent = i18n[currentLang].dict[langKey];
 };
 
-function updatePlayButton() {
-    playPause.textContent = video.paused ? "▶" : "⏸";
-}
 
 playPause.onclick = (e) => {
     e.stopPropagation();
@@ -576,70 +308,6 @@ videoContainer.addEventListener("mousemove", (e) => {
     controls.style.opacity = isBottom ? "1" : "0";
     controls.style.pointerEvents = isBottom ? "auto" : "none";
 });
-
-const FRAME_STEP_SECONDS = 1 / 30;
-
-function updateFullscreenButtonText() {
-    if (!fullscreenBtn) return;
-
-    const isFullscreen = !!document.fullscreenElement;
-    const key = isFullscreen ? "exitFullscreen" : "fullscreen";
-    const label = i18n[currentLang].dict[key] || (isFullscreen ? "Exit Fullscreen" : "Fullscreen");
-
-    fullscreenBtn.textContent = "⛶";
-    fullscreenBtn.title = label;
-    fullscreenBtn.setAttribute("aria-label", label);
-}
-
-function updateIconButtons() {
-    if (settingsBtn) {
-        const settingsLabel = i18n[currentLang].dict.settings || "Settings";
-        settingsBtn.textContent = "⚙";
-        settingsBtn.title = settingsLabel;
-        settingsBtn.setAttribute("aria-label", settingsLabel);
-    }
-
-    updateFullscreenButtonText();
-}
-
-async function toggleFullscreenMode() {
-    try {
-        if (!document.fullscreenElement) {
-            await document.documentElement.requestFullscreen();
-        } else {
-            await document.exitFullscreen();
-        }
-    } catch (err) {
-        console.error("Fullscreen toggle failed:", err);
-    }
-}
-
-function isTypingTarget(target) {
-    if (!target) return false;
-
-    const tag = target.tagName;
-    return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || target.isContentEditable;
-}
-
-function stepFrame(direction) {
-    if (!video.duration || Number.isNaN(video.duration)) return;
-
-    video.pause();
-
-    const nextTime = Math.max(
-        0,
-        Math.min(video.duration, video.currentTime + (FRAME_STEP_SECONDS * direction))
-    );
-
-    video.currentTime = nextTime;
-
-    if (typeof audioManager !== "undefined" && audioManager) {
-        audioManager.sync();
-        audioManager.pause();
-    }
-}
-
-let deckNoteRefreshTimer = null;
 
 async function fetchDeckNoteIds(ankiUrl, deckName) {
     const findRes = await fetch(ankiUrl, {
@@ -1577,106 +1245,3 @@ document.addEventListener("selectionchange", () => {
     });
 });
 
-async function restoreCurrentVideoFromServer() {
-    try {
-        const { data } = await apiJson("/videos");
-
-        const videos = Array.isArray(data.videos) ? data.videos : [];
-
-        if (!videos.length) {
-            dropzone.classList.remove("hidden");
-            return;
-        }
-
-        if (videos.length === 1) {
-            await restoreSelectedVideoFromServer(videos[0]);
-            return;
-        }
-
-        showVideoPickerModal(videos);
-    } catch (err) {
-        console.warn("Could not restore videos from server:", err);
-        dropzone.classList.remove("hidden");
-    }
-}
-
-async function restoreSelectedVideoFromServer(videoInfo) {
-    if (!videoInfo?.filename) {
-        dropzone.classList.remove("hidden");
-        return;
-    }
-
-    currentVideoFile = videoInfo.filename;
-
-    video.src = buildApiUrl(`/video/${encodeURIComponent(videoInfo.filename)}`);
-    video.load();
-
-    dropzone.classList.add("hidden");
-    videoPickerModal?.classList.add("hidden");
-
-    loadAudioTrackList(videoInfo.filename);
-
-    if (videoInfo.subtitleFilename) {
-        await restoreSubtitleFromServer(videoInfo.subtitleFilename);
-    } else {
-        subtitles = [];
-        lastRuntimeSubtitleText = "";
-
-        clearRuntimeWordStatuses?.();
-
-        renderSubtitles();
-
-        renderSubtitleOverlay({
-            overlay,
-            text: ""
-        });
-
-        showToast(t("toastSelectedVideoLoadFailed"), "error", 5000);
-    }
-
-    video.addEventListener("loadedmetadata", () => {
-        console.log("Restored video loaded:", video.duration);
-    }, { once: true });
-
-    video.addEventListener("error", () => {
-        console.error("Video restore failed:", video.error);
-        showToast("Could not load selected video", "error", 5000);
-        dropzone.classList.remove("hidden");
-    }, { once: true });
-}
-
-function showVideoPickerModal(videos) {
-    if (!videoPickerModal || !videoPickerList) {
-        return;
-    }
-
-    videoPickerList.innerHTML = "";
-
-    videos.forEach((videoInfo) => {
-        const item = document.createElement("button");
-        item.type = "button";
-        item.className = "video-picker-item";
-
-        const title = document.createElement("div");
-        title.className = "video-picker-title";
-        title.textContent = videoInfo.filename;
-
-        const subtitle = document.createElement("div");
-        subtitle.className = "video-picker-subtitle";
-		subtitle.textContent = videoInfo.subtitleFilename
-			? t("subtitleFound", { name: videoInfo.subtitleFilename })
-			: t("subtitleNotFound");
-
-        item.appendChild(title);
-        item.appendChild(subtitle);
-
-        item.addEventListener("click", () => {
-            restoreSelectedVideoFromServer(videoInfo);
-        });
-
-        videoPickerList.appendChild(item);
-    });
-
-    dropzone.classList.add("hidden");
-    videoPickerModal.classList.remove("hidden");
-}
