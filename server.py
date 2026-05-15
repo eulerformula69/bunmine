@@ -11,6 +11,8 @@ from pathlib import Path
 import hashlib
 import threading
 from typing import Optional
+import re
+import html
 
 
 
@@ -92,7 +94,17 @@ def _safe_media_name(raw_name: str) -> str:
 
 def _normalize_text(value: str) -> str:
     return " ".join((value or "").strip().split())
+    
+def _clean_srt_text_file(path: Path) -> None:
+    text = path.read_text(encoding="utf-8-sig", errors="replace")
 
+    # Убираем HTML-подобные теги: <font ...>, </font>, <i>, </i> и т.д.
+    text = re.sub(r"</?[^>\n]+>", "", text)
+
+    # Раскодируем HTML-сущности, если попадутся: &amp; &lt; &gt;
+    text = html.unescape(text)
+
+    path.write_text(text, encoding="utf-8")
 
 def _to_float(value, fallback=0.0) -> float:
     try:
@@ -279,6 +291,8 @@ def upload_subtitle():
     # Если уже SRT — просто сохраняем как .srt
     if subtitle_ext == ".srt":
         subtitle_file.save(srt_path)
+        _clean_srt_text_file(srt_path)
+
         return jsonify({
             "filename": srt_filename
         })
@@ -299,6 +313,7 @@ def upload_subtitle():
 
     try:
         _run_subprocess(cmd)
+        _clean_srt_text_file(srt_path)
     except RuntimeError as err:
         if srt_path.exists():
             srt_path.unlink()
@@ -308,10 +323,10 @@ def upload_subtitle():
     finally:
         if temp_ass_path.exists():
             temp_ass_path.unlink()
-
+            
     return jsonify({
-        "filename": srt_filename
-    })
+    "filename": srt_filename
+})        
     
 @app.route("/current-video", methods=["GET"])
 def current_video():

@@ -6,13 +6,20 @@ async function handleFiles(files) {
     for (const file of files) {
         const lowerName = file.name.toLowerCase();
 
-        if (lowerName.endsWith(".srt")) {
-            subtitleFile = file;
-            subtitles = parseSRT(await file.text());
-            hasSubtitles = true;
-        } else if (file.type.startsWith("video")) {
-            videoFile = file;
-        }
+		if (lowerName.endsWith(".srt")) {
+			subtitleFile = file;
+			subtitles = parseSRT(await file.text());
+			hasSubtitles = true;
+		} else if (lowerName.endsWith(".ass")) {
+			subtitleFile = file;
+
+			// ASS больше не парсим в браузере.
+			// Ждём, пока сервер сконвертирует ASS -> SRT.
+			subtitles = [];
+			hasSubtitles = true;
+		} else if (file.type.startsWith("video")) {
+			videoFile = file;
+		}
     }
 
     if (videoFile) {
@@ -94,6 +101,13 @@ async function uploadSubtitleInBackground(subtitleFile, videoFilename) {
         }
 
         console.log("Subtitle uploaded:", data.filename);
+
+        // ВАЖНО:
+        // сервер вернул уже .srt, даже если на вход был .ass
+        if (data.filename) {
+            await restoreSubtitleFromServer(data.filename);
+        }
+
     } catch (err) {
         console.error("Subtitle upload failed:", err);
         showToast(t("toastSubtitleUploadFailed", { message: err.message }), "error", 5000);
