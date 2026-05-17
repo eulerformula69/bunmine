@@ -1,33 +1,35 @@
-const video = document.getElementById("video");
-const sidebar = document.getElementById("sidebar");
-const multiInput = document.getElementById("multiInput");
-const fullscreenBtn = document.getElementById("fullscreenBtn");
-const settingsBtn = document.getElementById("settingsBtn");
-const settingsModal = document.getElementById("settingsModal");
-const closeSettingsBtn = document.getElementById("closeSettingsBtn");
-const dropzone = document.getElementById("dropzone");
-const toggleBtn = document.getElementById("toggleSubs");
-const overlay = document.getElementById("subtitleOverlay");
-const deleteVideoBtn = document.getElementById("deleteVideoBtn");
-const playPause = document.getElementById("playPause");
-const progress = document.getElementById("progress");
-const timeLabel = document.getElementById("time");
-const videoContainer = document.getElementById("videoContainer");
-const controls = document.getElementById("controls");
-const ankiAllBtn = document.getElementById("ankiAllBtn");
-const targetNoteSelect = document.getElementById("targetNoteSelect");
-const audioTrackSelect = document.getElementById("audioTrackSelect");
-const fontSizeRange = document.getElementById("fontSizeRange");
-const subtitleOverlay = document.getElementById("subtitleOverlay");
-const resizer = document.getElementById("resizer");
-const videoPickerModal = document.getElementById("videoPickerModal");
-const videoPickerList = document.getElementById("videoPickerList");
-const videoPickerCancelBtn = document.getElementById("videoPickerCancelBtn");
-const addKnownBasicBtn = document.getElementById("addKnownBasicBtn");
-const addCardToDeck = document.getElementById("addCardToDeck");
+const {
+    video,
+    sidebar,
+    multiInput,
+    fullscreenBtn,
+    settingsBtn,
+    settingsModal,
+    closeSettingsBtn,
+    dropzone,
+    toggleBtn,
+    overlay,
+    deleteVideoBtn,
+    playPause,
+    progress,
+    timeLabel,
+    videoContainer,
+    controls,
+    ankiAllBtn,
+    targetNoteSelect,
+    audioTrackSelect,
+    fontSizeRange,
+    subtitleOverlay,
+    resizer,
+    videoPickerModal,
+    videoPickerList,
+    videoPickerCancelBtn,
+    addKnownBasicBtn,
+    addCardToDeck,
+    volume
+} = dom;
 
 
-const volume = document.getElementById("volume");
 video.volume = volume.value;
 
 video.addEventListener("timeupdate", () => {
