@@ -261,6 +261,47 @@ video {
   background: #2f2633;
 }
 
+.subtitle.capture-range {
+  background: #1c1221;
+}
+
+.subtitle.capture-range:hover {
+  background: #261b2c;
+}
+
+.subtitle.capture-range.active {
+  background: #2f2633;
+}
+
+.subtitle-depth-handle-row {
+  height: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: ns-resize;
+  user-select: none;
+}
+
+.subtitle-depth-handle {
+  width: 28px;
+  height: 8px;
+  border: none;
+  border-radius: 999px;
+  background: #a544c0;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.35),
+    0 2px 8px rgba(165, 68, 192, 0.35);
+  cursor: ns-resize;
+}
+
+.subtitle-depth-handle:hover {
+  background: #bc58d8;
+}
+
+.subtitle-depth-handle:focus {
+  outline: none;
+}
+
 /* Dropzone / preview */
 #dropzone {
   border: 4px dashed #8800ff;
@@ -727,6 +768,36 @@ video {
 
 .mp-toast-info {
   background: #1565c0;
+}
+
+.mp-toast-action {
+  min-width: min(360px, calc(100vw - 32px));
+}
+
+.mp-toast-action-message {
+  white-space: normal;
+}
+
+.mp-toast-action-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.mp-toast-action-button {
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.mp-toast-action-button:hover {
+  background: rgba(255, 255, 255, 0.18);
 }
 
 .mp-toast-removing {

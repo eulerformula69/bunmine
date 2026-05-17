@@ -23,6 +23,64 @@ function showToast(message, type = "info", timeout = 3000) {
   }, timeout);
 }
 
+function showActionToast(message, actions = [], type = "info", timeout = 0) {
+  let container = document.getElementById("mpToastContainer");
+
+  if (!container) {
+    container = document.createElement("div");
+    container.id = "mpToastContainer";
+    container.className = "mp-toast-container";
+    document.body.appendChild(container);
+  }
+
+  const toast = document.createElement("div");
+  toast.className = `mp-toast mp-toast-${type} mp-toast-action`;
+
+  const messageEl = document.createElement("div");
+  messageEl.className = "mp-toast-action-message";
+  messageEl.textContent = message;
+
+  const actionsEl = document.createElement("div");
+  actionsEl.className = "mp-toast-action-buttons";
+
+  actions.forEach((action) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "mp-toast-action-button";
+    button.textContent = action.label;
+
+    button.addEventListener("click", () => {
+      try {
+        action.onClick?.();
+      } finally {
+        toast.classList.add("mp-toast-removing");
+
+        setTimeout(() => {
+          toast.remove();
+        }, 180);
+      }
+    });
+
+    actionsEl.appendChild(button);
+  });
+
+  toast.appendChild(messageEl);
+  toast.appendChild(actionsEl);
+  container.appendChild(toast);
+
+  if (timeout > 0) {
+    setTimeout(() => {
+      toast.classList.add("mp-toast-removing");
+
+      setTimeout(() => {
+        toast.remove();
+      }, 180);
+    }, timeout);
+  }
+
+  return toast;
+}
+
 function t(key, params = {}) {
     const fallbackDict = i18n?.en?.dict || {};
     const dictionary = i18n?.[currentLang]?.dict || fallbackDict;

@@ -839,6 +839,27 @@ document.addEventListener("keydown", (e) => {
     }
 });
 
+function maybePromptSubtitleDepthReset() {
+    if (isSubtitleContextDepthDefault()) return;
+
+    showActionToast(
+        "Сбросить глубину субтитров на стандартную?",
+        [
+            {
+                label: "Да",
+                onClick: () => {
+                    resetSubtitleContextDepths();
+                }
+            },
+            {
+                label: "Нет"
+            }
+        ],
+        "info",
+        0
+    );
+}
+
 ankiAllBtn.onclick = async () => {
 	
 	if (!currentVideoFile) {
@@ -848,7 +869,6 @@ ankiAllBtn.onclick = async () => {
 
     const offsetStart = parseFloat(document.getElementById("subOffsetStart").value) || 0;
     const offsetEnd = parseFloat(document.getElementById("subOffsetEnd").value) || 0;
-    const depth = parseInt(document.getElementById("subDepth")?.value, 10) || 1;
     const volumeLevel = getValidatedVolume();
     const ankiUrl = document.getElementById("ankiUrl").value;
     const deckName = document.getElementById("deckName").value;
@@ -882,17 +902,18 @@ ankiAllBtn.onclick = async () => {
         targetTime = Math.max(0, subtitles[currentIdx].start + offsetStart);
     }
 
-    const endIdx = Math.min(currentIdx + depth - 1, subtitles.length - 1);
-    const audioStart = Math.max(0, subtitles[currentIdx].start + globalSubDelay + offsetStart);
+	const contextSelection = getSubtitleContextSelection(currentIdx);
 
-    let audioEnd = subtitles[endIdx].end + globalSubDelay + offsetEnd;
+	const audioStart = Math.max(
+		0,
+		contextSelection.startTime + globalSubDelay + offsetStart
+	);
 
-    if (audioEnd <= audioStart) audioEnd = audioStart + 0.5;
+	let audioEnd = contextSelection.endTime + globalSubDelay + offsetEnd;
 
-    const combinedText = subtitles
-        .slice(currentIdx, endIdx + 1)
-        .map((s) => s.text)
-        .join(" ");
+	if (audioEnd <= audioStart) audioEnd = audioStart + 0.5;
+
+	const combinedText = contextSelection.text;
 		
 	
 
@@ -969,15 +990,15 @@ ankiAllBtn.onclick = async () => {
 
 			
 
-        await fetch(ankiUrl, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                action: "updateNoteFields",
-                version: 6,
-                params: {
-                    note: {
-                        id: targetNoteId,
+		const updateRes = await fetch(ankiUrl, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({
+				action: "updateNoteFields",
+				version: 6,
+				params: {
+					note: {
+						id: targetNoteId,
 						fields: (() => {
 							const fieldsToUpdate = {};
 
@@ -994,11 +1015,17 @@ ankiAllBtn.onclick = async () => {
 
 							return fieldsToUpdate;
 						})()
-                    }
-                }
-            })
-        });
-		
+					}
+				}
+			})
+		});
+
+		const updateData = await updateRes.json();
+
+		if (!updateRes.ok || updateData.error) {
+			throw new Error(updateData.error || `Anki update failed: HTTP ${updateRes.status}`);
+		}
+				
 		runtimePrefetchWindowStart = -1;
 		runtimePrefetchWindowEnd = -1;
 		runtimeNextPrefetchStart = 0;
@@ -1012,11 +1039,13 @@ ankiAllBtn.onclick = async () => {
 
         prefetchRuntimeStatusesForAllSubtitles({ silent: true });
 
-        showToast("Card updated successfully", "success");
+		showToast(t("toastCardUpdated"), "success");
 
-        if (targetNoteSelect) targetNoteSelect.value = "";
+		if (targetNoteSelect) targetNoteSelect.value = "";
 
-        refreshTargetNoteList({ preserveSelection: false });
+		refreshTargetNoteList({ preserveSelection: false });
+		maybePromptSubtitleDepthReset();
+		
 	} catch (err) {
 	  console.error("Update error:", err);
 	  showToast(t("toastError", { message: err.message }), "error", 6000);

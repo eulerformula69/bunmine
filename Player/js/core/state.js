@@ -17,6 +17,9 @@ let subtitleSearchMatches = [];
 let subtitleSearchIndex = -1;
 let subtitleSearchMode = "word";
 let subtitleSearchTimeSeconds = null;
+let subtitleContextBackDepth = 0;
+let subtitleContextForwardDepth = 0;
+let subtitleContextDragState = null;
 
 let deckNoteRefreshTimer = null;
 
@@ -25,4 +28,6 @@ let runtimePrefetchWindowStart = -1;
 let runtimePrefetchWindowEnd = -1;
 let runtimeNextPrefetchStart = 0;
 let lastPrefetchSubtitleIndex = -1;	
+
+
 

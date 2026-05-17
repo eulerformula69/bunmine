@@ -124,16 +124,21 @@ document.getElementById("previewAudioBtn").addEventListener("click", async () =>
 
     const offsetStart = parseFloat(document.getElementById("subOffsetStart").value) || 0;
     const offsetEnd = parseFloat(document.getElementById("subOffsetEnd").value) || 0;
-    const depth = parseInt(document.getElementById("subDepth")?.value, 10) || 1;
     const volumeLevel = parseFloat(document.getElementById("audioVol").value) || 1;
 
 	const currentIdx = subtitles.findIndex((s) => (video.currentTime - globalSubDelay) >= s.start && (video.currentTime - globalSubDelay) <= s.end);
 	if (currentIdx === -1) return showToast("No active subtitle: " + err.message, "error", 6000);
 
-    const endIdx = Math.min(currentIdx + depth - 1, subtitles.length - 1);
-	const start = Math.max(0, subtitles[currentIdx].start + globalSubDelay + offsetStart);
-	let end = subtitles[endIdx].end + globalSubDelay + offsetEnd;
-    if (end <= start) end = start + 0.5;
+	const contextSelection = getSubtitleContextSelection(currentIdx);
+
+	const start = Math.max(
+		0,
+		contextSelection.startTime + globalSubDelay + offsetStart
+	);
+
+	let end = contextSelection.endTime + globalSubDelay + offsetEnd;
+
+	if (end <= start) end = start + 0.5;
 
     try {
         const { data } = await apiJson("/audio-to-anki", {
