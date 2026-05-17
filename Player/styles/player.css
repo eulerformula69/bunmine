@@ -248,6 +248,7 @@ video {
 }
 
 .subtitle {
+  position: relative;
   padding: 8px 12px;
   border-bottom: 1px solid #222;
   cursor: pointer;
@@ -274,12 +275,26 @@ video {
 }
 
 .subtitle-depth-handle-row {
-  height: 14px;
+  position: absolute;
+  left: 50%;
+  height: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: visible;
   cursor: ns-resize;
   user-select: none;
+  z-index: 5;
+  transform: translateX(-50%);
+  cursor: ns-resize;
+}
+
+.subtitle-depth-handle-row[data-kind="back"] {
+  top: 0;
+}
+
+.subtitle-depth-handle-row[data-kind="forward"] {
+  bottom: 0;
 }
 
 .subtitle-depth-handle {
@@ -296,6 +311,17 @@ video {
 
 .subtitle-depth-handle:hover {
   background: #bc58d8;
+  cursor: ns-resize;
+}
+
+body.subtitle-depth-dragging,
+body.subtitle-depth-dragging * {
+  cursor: ns-resize !important;
+}
+
+.subtitle-depth-handle-row:hover,
+.subtitle-depth-handle-row:hover .subtitle-depth-handle {
+  cursor: ns-resize;
 }
 
 .subtitle-depth-handle:focus {

@@ -686,23 +686,30 @@ function startSubtitleContextDrag(kind, event) {
     event.preventDefault();
     event.stopPropagation();
 
-    subtitleContextDragState = {
-        kind,
-        currentIdx: context.currentIdx
-    };
-
-    document.body.style.cursor = "ns-resize";
-    document.body.style.userSelect = "none";
-
-	updateSubtitleContextDepthFromPointer(
+	subtitleContextDragState = {
 		kind,
-		event.clientY,
-		context.currentIdx
-	);
+		currentIdx: context.currentIdx,
+		startY: event.clientY,
+		activated: false
+	};
+
+	document.body.style.cursor = "row-resize";
+	document.documentElement.style.cursor = "row-resize";
+	document.body.style.userSelect = "none";
+	document.body.classList.add("subtitle-depth-dragging");
 }
 
 function onSubtitleContextDragMove(event) {
     if (!subtitleContextDragState) return;
+
+    const dragDeadZonePx = 14;
+    const distanceY = Math.abs(event.clientY - subtitleContextDragState.startY);
+
+    if (!subtitleContextDragState.activated) {
+        if (distanceY < dragDeadZonePx) return;
+
+        subtitleContextDragState.activated = true;
+    }
 
     updateSubtitleContextDepthFromPointer(
         subtitleContextDragState.kind,
@@ -715,8 +722,10 @@ function stopSubtitleContextDrag() {
     if (!subtitleContextDragState) return;
 
     subtitleContextDragState = null;
-    document.body.style.cursor = "default";
+	document.body.style.cursor = "";
+	document.documentElement.style.cursor = "";
     document.body.style.userSelect = "auto";
+	document.body.classList.remove("subtitle-depth-dragging");
 }
 
 function updateSubtitleContextDepthFromPointer(kind, clientY, currentIdx) {
@@ -770,12 +779,9 @@ function renderSubtitles() {
     const context = getSubtitleContextRange();
     const currentSearchMatch = getCurrentSearchMatch();
 
-	subtitles.forEach((sub, idx) => {
-		if (context.currentIdx >= 0 && idx === context.startIdx) {
-			list.appendChild(createSubtitleDepthHandle("back"));
-		}
-
+		subtitles.forEach((sub, idx) => {
 		const div = document.createElement("div");
+		
         div.className = "subtitle";
         div.dataset.index = String(idx);
 
@@ -840,12 +846,16 @@ function renderSubtitles() {
             updatePlayButton();
         };
 
-		list.appendChild(div);
-		subtitleElements.push({ index: idx, div, sub });
+		if (context.currentIdx >= 0 && idx === context.startIdx) {
+			div.appendChild(createSubtitleDepthHandle("back"));
+		}
 
 		if (context.currentIdx >= 0 && idx === context.endIdx) {
-			list.appendChild(createSubtitleDepthHandle("forward"));
+			div.appendChild(createSubtitleDepthHandle("forward"));
 		}
+
+		list.appendChild(div);
+		subtitleElements.push({ index: idx, div, sub });
     });
 }
 
