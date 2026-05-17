@@ -14,46 +14,29 @@ from typing import Optional
 import re
 import html
 
+from ffmpeg_service import run_subprocess
 
+from config import (
+    PLAYER_DIR,
+    VIDEO_DIR,
+    ANKI_HIGHLIGHT_CACHE_DIR,
+    ANKI_MEDIA_DIR,
+    SCREENSHOT_DIR,
+    AUDIO_DIR,
+    ALLOWED_ORIGIN,
+    ALLOWED_VIDEO_EXTENSIONS,
+    DEDUPE_INDEX_PATH,
+    PORT,
+)
 
-# --- Lightweight .env loader ---
-def _load_env_file(path: Path) -> None:
-    if not path.exists():
-        return
-    for raw_line in path.read_text(encoding="utf-8").splitlines():
-        line = raw_line.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        key, value = line.split("=", 1)
-        key = key.strip()
-        value = value.strip().strip('"').strip("'")
-        if key and key not in os.environ:
-            os.environ[key] = value
-
-
-_load_env_file(Path(__file__).resolve().parent / ".env")
-
-# --- Настройки директорий ---
-DEFAULT_BASE_DIR = Path(__file__).resolve().parent
-BASE_DIR = Path(os.getenv("PLAYER_SERVER_BASE_DIR", str(DEFAULT_BASE_DIR))).resolve()
-PLAYER_DIR = BASE_DIR / "Player"
-VIDEO_DIR = BASE_DIR / "UploadedVideos"
-ANKI_HIGHLIGHT_CACHE_DIR = BASE_DIR / "anki_highlight_cache"
-
-anki_media_dir_raw = os.getenv("ANKI_MEDIA_DIR")
-
-if not anki_media_dir_raw:
-    raise RuntimeError(
-        "ANKI_MEDIA_DIR is not set. Create .env from .env.example and set your Anki collection.media path."
-    )
-
-ANKI_MEDIA_DIR = Path(anki_media_dir_raw).expanduser().resolve()
-
-SCREENSHOT_DIR = ANKI_MEDIA_DIR
-AUDIO_DIR = ANKI_MEDIA_DIR
-ALLOWED_ORIGIN = os.getenv("ALLOWED_ORIGIN")
-ALLOWED_VIDEO_EXTENSIONS = {".mp4", ".mkv", ".avi", ".mov", ".webm"}
-DEDUPE_INDEX_PATH = BASE_DIR / "dedupe_index.json"
+from utils_validation import (
+    is_within,
+    safe_uploaded_filename,
+    safe_media_name,
+    safe_cache_key,
+    normalize_text,
+    to_float,
+)
 
 os.makedirs(VIDEO_DIR, exist_ok=True)
 os.makedirs(SCREENSHOT_DIR, exist_ok=True)
@@ -66,35 +49,7 @@ dedupe_lock = threading.Lock()
 app = Flask(__name__, static_folder=str(PLAYER_DIR))
 CORS(app, resources={r"/*": {"origins": [ALLOWED_ORIGIN]}})
 
-
-def _is_within(base: Path, target: Path) -> bool:
-    try:
-        target.resolve().relative_to(base.resolve())
-        return True
-    except ValueError:
-        return False
-
-
-def _safe_uploaded_filename(raw_filename: str) -> str:
-    filename = werkzeug.utils.secure_filename(raw_filename or "")
-    if not filename:
-        raise ValueError("Некорректное имя файла")
-    ext = Path(filename).suffix.lower()
-    if ext not in ALLOWED_VIDEO_EXTENSIONS:
-        raise ValueError(f"Неподдерживаемый формат видео: {ext}")
-    return filename
-
-
-def _safe_media_name(raw_name: str) -> str:
-    name = os.path.basename(raw_name or "")
-    if not name or name != raw_name:
-        raise ValueError("Некорректное имя файла")
-    return name
-
-
-def _normalize_text(value: str) -> str:
-    return " ".join((value or "").strip().split())
-    
+   
 def _clean_srt_text_file(path: Path) -> None:
     text = path.read_text(encoding="utf-8-sig", errors="replace")
 
@@ -105,28 +60,6 @@ def _clean_srt_text_file(path: Path) -> None:
     text = html.unescape(text)
 
     path.write_text(text, encoding="utf-8")
-
-def _to_float(value, fallback=0.0) -> float:
-    try:
-        return float(value)
-    except (TypeError, ValueError):
-        return fallback
-
-def _run_subprocess(cmd: list[str]) -> subprocess.CompletedProcess:
-    try:
-        return subprocess.run(
-            cmd,
-            check=True,
-            capture_output=True,
-            text=True
-        )
-    except FileNotFoundError:
-        raise RuntimeError(
-            "FFmpeg/FFprobe is not installed or not available in PATH."
-        )
-    except subprocess.CalledProcessError as err:
-        details = err.stderr.strip() if err.stderr else str(err)
-        raise RuntimeError(details)
 
 def _load_dedupe_index() -> dict:
     if not DEDUPE_INDEX_PATH.exists():
@@ -218,7 +151,7 @@ def serve_kuromoji_dict(filename):
     dict_dir = PLAYER_DIR / "libs" / "kuromoji" / "dict"
     file_path = dict_dir / filename
 
-    if not file_path.exists() or not _is_within(dict_dir, file_path):
+    if not file_path.exists() or not is_within(dict_dir, file_path):
         return jsonify({"error": "Dictionary file not found"}), 404
 
     data = file_path.read_bytes()
@@ -246,7 +179,10 @@ def upload_video():
         return jsonify({"error": "Файл не получен"}), 400
 
     try:
-        filename = _safe_uploaded_filename(file.filename)
+        filename = safe_uploaded_filename(
+            file.filename,
+            ALLOWED_VIDEO_EXTENSIONS
+        )
     except ValueError as err:
         return jsonify({"error": str(err)}), 400
 
@@ -272,7 +208,10 @@ def upload_subtitle():
         return jsonify({"error": "Video filename is required"}), 400
 
     try:
-        safe_video_filename = _safe_uploaded_filename(video_filename)
+        safe_video_filename = safe_uploaded_filename(
+            video_filename,
+            ALLOWED_VIDEO_EXTENSIONS
+        )
     except ValueError as err:
         return jsonify({"error": str(err)}), 400
 
@@ -312,7 +251,7 @@ def upload_subtitle():
     ]
 
     try:
-        _run_subprocess(cmd)
+        run_subprocess(cmd)
         _clean_srt_text_file(srt_path)
     except RuntimeError as err:
         if srt_path.exists():
@@ -427,17 +366,17 @@ def screenshot():
         return jsonify({"error":"Параметры не указаны"}), 400
 
     try:
-        safe_filename = _safe_media_name(filename)
+        safe_filename = safe_media_name(filename)
     except ValueError as err:
         return jsonify({"error": str(err)}), 400
 
     video_path = os.path.join(VIDEO_DIR, safe_filename)
     raw_screenshot = os.path.join(VIDEO_DIR, "temp_raw.jpg")
-    normalized_text = _normalize_text(text)
+    normalized_text = normalize_text(text)
 
     screenshot_payload = {
         "filename": safe_filename,
-        "time": round(_to_float(t_val), 3),
+        "time": round(to_float(t_val), 3),
         "text": normalized_text,
         "fontSize": font_size,
     }
@@ -449,7 +388,7 @@ def screenshot():
     # 1. Создаем скриншот через FFmpeg
     cmd = ["ffmpeg", "-y", "-ss", str(t_val), "-i", video_path, "-vframes", "1", "-q:v", "2", raw_screenshot]
     try:
-        _run_subprocess(cmd)
+        run_subprocess(cmd)
     except RuntimeError as err:
         return jsonify({"error": f"FFmpeg screenshot error: {str(err)}"}), 500
 
@@ -514,14 +453,14 @@ def animated_webp():
         return jsonify({"error": "Параметры не указаны"}), 400
 
     try:
-        safe_filename = _safe_media_name(filename)
+        safe_filename = safe_media_name(filename)
     except ValueError as err:
         return jsonify({"error": str(err)}), 400
 
     video_path = os.path.join(VIDEO_DIR, safe_filename)
 
-    start_f = round(_to_float(start), 3)
-    end_f = round(_to_float(end), 3)
+    start_f = round(to_float(start), 3)
+    end_f = round(to_float(end), 3)
 
     if end_f <= start_f:
         end_f = start_f + 0.5
@@ -529,7 +468,7 @@ def animated_webp():
     # Защита от слишком больших файлов
     duration = min(end_f - start_f, 8.0)
 
-    normalized_text = _normalize_text(text)
+    normalized_text = normalize_text(text)
 
     webp_payload = {
         "filename": safe_filename,
@@ -597,7 +536,7 @@ Dialogue: 0,0:00:00.00,{duration_ass},Default,,0,0,0,,{ass_text}
     ]
 
     try:
-        _run_subprocess(cmd)
+        run_subprocess(cmd)
         _save_cached_media("screenshot", webp_key, webp_filename)
     except RuntimeError as err:
         return jsonify({"error": f"FFmpeg WebP error: {str(err)}"}), 500
@@ -623,14 +562,14 @@ def audio():
         return jsonify({"error":"Неверные параметры"}), 400
 
     try:
-        safe_filename = _safe_media_name(filename)
+        safe_filename = safe_media_name(filename)
     except ValueError as err:
         return jsonify({"error": str(err)}), 400
 
     video_path = os.path.join(VIDEO_DIR, safe_filename)
-    start_f = round(_to_float(start), 3)
-    end_f = round(_to_float(end), 3)
-    volume_f = round(_to_float(volume_level, 1.0), 3)
+    start_f = round(to_float(start), 3)
+    end_f = round(to_float(end), 3)
+    volume_f = round(to_float(volume_level, 1.0), 3)
     track_str = str(track_index)
 
     audio_payload = {
@@ -665,7 +604,7 @@ def audio():
         ]
     
     try:
-        _run_subprocess(cmd)
+        run_subprocess(cmd)
         _save_cached_media("audio", audio_key, audio_filename)
         return jsonify({
             "filename": audio_filename,
@@ -679,12 +618,12 @@ def audio():
 def get_temp_audio():
     filename = request.args.get("filename")
     try:
-        safe_name = _safe_media_name(filename)
+        safe_name = safe_media_name(filename)
     except ValueError as err:
         return jsonify({"error": str(err)}), 400
 
     file_path = AUDIO_DIR / safe_name
-    if not file_path.exists() or not _is_within(AUDIO_DIR, file_path):
+    if not file_path.exists() or not is_within(AUDIO_DIR, file_path):
         return jsonify({"error": "Файл не найден"}), 404
     return send_from_directory(str(AUDIO_DIR), safe_name, mimetype='audio/mpeg')
 
@@ -696,7 +635,7 @@ def get_audio_tracks():
     
     # ВАЖНО: используем os.path.join(VIDEO_DIR, filename)
     try:
-        safe_filename = _safe_media_name(filename)
+        safe_filename = safe_media_name(filename)
     except ValueError as err:
         return jsonify({"error": str(err)}), 400
 
@@ -712,7 +651,7 @@ def get_audio_tracks():
     ]
     
     try:
-        result = _run_subprocess(cmd)
+        result = run_subprocess(cmd)
         # Если ffprobe ничего не нашел, result.stdout может быть пустым
         data = json.loads(result.stdout)
         tracks = data.get("streams", [])
@@ -728,7 +667,7 @@ def get_track_url():
     track_index = data.get("trackIndex") # это индекс из ffprobe (например, 1)
 
     try:
-        safe_filename = _safe_media_name(filename)
+        safe_filename = safe_media_name(filename)
     except ValueError as err:
         return jsonify({"error": str(err)}), 400
 
@@ -743,7 +682,7 @@ def get_track_url():
             "-map", f"0:{track_index}", "-c", "copy", temp_audio_path
         ]
         try:
-            _run_subprocess(cmd)
+            run_subprocess(cmd)
         except RuntimeError as err:
             return jsonify({"error": f"FFmpeg track extraction error: {str(err)}"}), 500
 
@@ -754,7 +693,7 @@ def get_track_url():
 def download_audio():
     name = request.args.get("name")
     try:
-        safe_name = _safe_media_name(name)
+        safe_name = safe_media_name(name)
     except ValueError as err:
         return jsonify({"error": str(err)}), 400
     return send_from_directory(str(VIDEO_DIR), safe_name)
@@ -766,7 +705,7 @@ def delete_video():
         return jsonify({"error":"filename не указан"}), 400
     
     try:
-        safe_filename = _safe_media_name(filename)
+        safe_filename = safe_media_name(filename)
     except ValueError as err:
         return jsonify({"error": str(err)}), 400
 
@@ -945,4 +884,4 @@ def add_known_basic_word():
         return jsonify({"error": str(err)}), 500
 
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=int(os.getenv("PORT", "5000")))
+    app.run(host="127.0.0.1", port=PORT)
