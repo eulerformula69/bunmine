@@ -12,7 +12,6 @@ const i18n = {
             updateCard: "Обновить карточку",
             cardSettings: "Настройки Карточки",
             offset: "Смещение (Начало / Конец):",
-            subDepth: "Контекст субтитров:",
             audioVol: "Громкость аудио:",
             previewAudio: "Прослушать",
             screenshotMode: "Режим скриншота:",
@@ -79,7 +78,10 @@ const i18n = {
 			toastKnownBasicAddFailed: "Ошибка known-basic: {message}",
 			toastCopiedForYomitan: "Скопировано для Yomitan: {word}",
 			toastCopyFailed: "Не удалось скопировать: {message}",
-			toastRuntimeHighlighterFailed: "Ошибка подсветки Anki: {message}"			
+			toastRuntimeHighlighterFailed: "Ошибка подсветки Anki: {message}",
+			toastResetSubtitleDepthQuestion: "Сбросить глубину субтитров на стандартную?",
+			toastResetSubtitleDepthYes: "Да",
+			toastResetSubtitleDepthNo: "Нет"			
         }
     },
     en: {
@@ -95,7 +97,6 @@ const i18n = {
             updateCard: "Update Card",
             cardSettings: "Card Settings",
             offset: "Offset (Start / End):",
-            subDepth: "Subtitle context:",
             audioVol: "Audio Volume:",
             previewAudio: "Preview Audio",
             screenshotMode: "Screenshot Mode:",
@@ -163,7 +164,11 @@ const i18n = {
 			toastKnownBasicAddFailed: "Known-basic add failed: {message}",
 			toastCopiedForYomitan: "Copied for Yomitan: {word}",
 			toastCopyFailed: "Could not copy word: {message}",
-			toastRuntimeHighlighterFailed: "Runtime Anki highlighter failed: {message}"			
+			toastRuntimeHighlighterFailed: "Runtime Anki highlighter failed: {message}",
+			toastResetSubtitleDepthQuestion: "Reset subtitle depth to default?",
+			toastResetSubtitleDepthYes: "Yes",
+			toastResetSubtitleDepthNo: "No"		
+			
         }
     },
     ja: {
@@ -179,7 +184,6 @@ const i18n = {
             updateCard: "カードを更新",
             cardSettings: "Ankiカード設定",
             offset: "オフセット（開始 / 終了）:",
-            subDepth: "字幕の深さ:",
             audioVol: "音量:",
             previewAudio: "音声プレビュー",
             screenshotMode: "スクリーンショットモード:",
@@ -246,7 +250,10 @@ const i18n = {
 			toastKnownBasicAddFailed: "known-basic の追加に失敗しました: {message}",
 			toastCopiedForYomitan: "Yomitan 用にコピーしました: {word}",
 			toastCopyFailed: "コピーできませんでした: {message}",
-			toastRuntimeHighlighterFailed: "Anki ハイライトに失敗しました: {message}"			
+			toastRuntimeHighlighterFailed: "Anki ハイライトに失敗しました: {message}",
+			toastResetSubtitleDepthQuestion: "字幕の深さを標準にリセットしますか？",
+			toastResetSubtitleDepthYes: "はい",
+			toastResetSubtitleDepthNo: "いいえ"		
 			
         }
     }

@@ -843,16 +843,16 @@ function maybePromptSubtitleDepthReset() {
     if (isSubtitleContextDepthDefault()) return;
 
     showActionToast(
-        "Сбросить глубину субтитров на стандартную?",
+        t("toastResetSubtitleDepthQuestion"),
         [
             {
-                label: "Да",
+                label: t("toastResetSubtitleDepthYes"),
                 onClick: () => {
                     resetSubtitleContextDepths();
                 }
             },
             {
-                label: "Нет"
+                label: t("toastResetSubtitleDepthNo")
             }
         ],
         "info",
@@ -984,41 +984,69 @@ ankiAllBtn.onclick = async () => {
 			? boldWordInText(combinedText, targetWord)
 			: combinedText;
 
-		const combinedTextFuriganaForAnki = sentenceFuriganaField
-			? boldWordInText(await buildSentenceFurigana(combinedText), targetWord)
-			: "";
+		let combinedTextFuriganaForAnki = "";
 
-			
+		if (sentenceFuriganaField) {
+			try {
+				combinedTextFuriganaForAnki = boldWordInText(
+					await Promise.race([
+						buildSentenceFurigana(combinedText),
+						new Promise((_, reject) => {
+							setTimeout(() => {
+								reject(new Error("Furigana generation timeout"));
+							}, 1500);
+						})
+					]),
+					targetWord
+				);
+			} catch (err) {
+				console.warn("Furigana generation skipped:", err);
+				combinedTextFuriganaForAnki = "";
+			}
+		}
 
-		const updateRes = await fetch(ankiUrl, {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({
-				action: "updateNoteFields",
-				version: 6,
-				params: {
-					note: {
-						id: targetNoteId,
-						fields: (() => {
-							const fieldsToUpdate = {};
 
-							if (sentenceField) {
-								fieldsToUpdate[sentenceField] = combinedTextForAnki;
-							}
+		const updateController = new AbortController();
+		const updateTimeoutId = setTimeout(() => {
+			updateController.abort();
+		}, 5000);
 
-							if (sentenceFuriganaField) {
-								fieldsToUpdate[sentenceFuriganaField] = combinedTextFuriganaForAnki;
-							}
+		let updateRes;
 
-							fieldsToUpdate[pictureField] = `<img src="${sName}">`;
-							fieldsToUpdate[audioField] = `[sound:${aName}]`;
+		try {
+			updateRes = await fetch(ankiUrl, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				signal: updateController.signal,
+				body: JSON.stringify({
+					action: "updateNoteFields",
+					version: 6,
+					params: {
+						note: {
+							id: targetNoteId,
+							fields: (() => {
+								const fieldsToUpdate = {};
 
-							return fieldsToUpdate;
-						})()
+								if (sentenceField) {
+									fieldsToUpdate[sentenceField] = combinedTextForAnki;
+								}
+
+								if (sentenceFuriganaField) {
+									fieldsToUpdate[sentenceFuriganaField] = combinedTextFuriganaForAnki;
+								}
+
+								fieldsToUpdate[pictureField] = `<img src="${sName}">`;
+								fieldsToUpdate[audioField] = `[sound:${aName}]`;
+
+								return fieldsToUpdate;
+							})()
+						}
 					}
-				}
-			})
-		});
+				})
+			});
+		} finally {
+			clearTimeout(updateTimeoutId);
+		}
 
 		const updateData = await updateRes.json();
 
@@ -1033,11 +1061,13 @@ ankiAllBtn.onclick = async () => {
 
 		clearRuntimeWordStatuses?.();
 
-        await ensureStatusesForSubtitleText(combinedText).catch((err) => {
-            console.warn("Could not update runtime highlight status:", err);
-        });
-
-        prefetchRuntimeStatusesForAllSubtitles({ silent: true });
+		ensureStatusesForSubtitleText(combinedText)
+			.then(() => {
+				prefetchRuntimeStatusesForAllSubtitles({ silent: true });
+			})
+			.catch((err) => {
+				console.warn("Could not update runtime highlight status:", err);
+			});
 
 		showToast(t("toastCardUpdated"), "success");
 

@@ -740,6 +740,7 @@ video {
   flex-direction: column;
   gap: 10px;
   pointer-events: none;
+  align-items: center;
 }
 
 .mp-toast {
