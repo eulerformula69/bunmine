@@ -105,8 +105,63 @@ video.addEventListener("timeupdate", () => {
 	
 });
 
+async function getKnownBasicDictionaryForm(rawWord) {
+    const selected = String(rawWord || "").trim();
+
+    if (!selected) return "";
+
+    if (typeof tokenizeJapaneseText !== "function") {
+        console.warn("tokenizeJapaneseText is not available");
+        return selected;
+    }
+
+    try {
+        const tokens = await tokenizeJapaneseText(selected);
+
+        if (!Array.isArray(tokens) || !tokens.length) {
+            return selected;
+        }
+
+        const meaningfulTokens = tokens.filter((token) => {
+            const surface = String(token.surface_form || "").trim();
+
+            if (!surface) return false;
+
+            const pos = String(token.pos || "");
+            return !["記号", "助詞", "助動詞"].includes(pos);
+        });
+
+        if (!meaningfulTokens.length) {
+            return selected;
+        }
+
+        // Нормализуем только если выделение — один глагол:
+        // 食べた -> 食べる
+        // 見ました -> 見る
+        if (meaningfulTokens.length === 1) {
+            const token = meaningfulTokens[0];
+            const pos = String(token.pos || "");
+
+            if (pos === "動詞") {
+                const basic = String(token.basic_form || "").trim();
+
+                if (basic && basic !== "*") {
+                    return basic;
+                }
+            }
+        }
+
+        // Всё остальное сохраняем как выделено
+        return selected;
+    } catch (err) {
+        console.warn("Known-basic dictionary form lookup failed:", err);
+        return selected;
+    }
+}
+
 async function addWordToKnownBasic(word) {
-    const cleanWord = String(word || "").trim();
+    const originalWord = String(word || "").trim();
+    const cleanWord = await getKnownBasicDictionaryForm(originalWord);
 
 		if (!cleanWord) {
 			showToast(t("toastNoWordSelected"), "error", 3000);
@@ -134,7 +189,11 @@ async function addWordToKnownBasic(word) {
         hideAddKnownBasicButton();
 
         if (data.added) {
-            showToast(`Added to known-basic: ${cleanWord}`, "success", 3000);
+			if (originalWord && originalWord !== cleanWord) {
+				showToast(`Added to known-basic: ${originalWord} → ${cleanWord}`, "success", 3000);
+			} else {
+				showToast(`Added to known-basic: ${cleanWord}`, "success", 3000);
+			}
         } else {
             showToast(t("toastKnownBasicAlreadyExists", { word: cleanWord }), "info", 3000);
         }
