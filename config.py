@@ -43,9 +43,20 @@ ANKI_MEDIA_DIR = Path(anki_media_dir_raw).expanduser().resolve()
 SCREENSHOT_DIR = ANKI_MEDIA_DIR
 AUDIO_DIR = ANKI_MEDIA_DIR
 
+MEDIA_LIBRARY_DIR_RAW = os.getenv("MEDIA_LIBRARY_DIR")
+
+if not MEDIA_LIBRARY_DIR_RAW:
+    raise RuntimeError(
+        "MEDIA_LIBRARY_DIR is not set. Add MEDIA_LIBRARY_DIR to .env, for example: MEDIA_LIBRARY_DIR=D:\\Anime"
+    )
+
+MEDIA_LIBRARY_DIR = Path(MEDIA_LIBRARY_DIR_RAW).expanduser().resolve()
+
 ALLOWED_ORIGIN = os.getenv("ALLOWED_ORIGIN")
 ALLOWED_VIDEO_EXTENSIONS = {".mp4", ".mkv", ".avi", ".mov", ".webm"}
+ALLOWED_SUBTITLE_EXTENSIONS = {".srt", ".ass", ".vtt"}
 
 DEDUPE_INDEX_PATH = BASE_DIR / "dedupe_index.json"
+LIBRARY_DB_PATH = BASE_DIR / "library.sqlite3"
 PORT = int(os.getenv("PORT", "5000"))
 

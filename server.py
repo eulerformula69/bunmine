@@ -16,6 +16,19 @@ import html
 
 from ffmpeg_service import run_subprocess
 
+from library_db import (
+    init_library_db,
+    get_library_db_status,
+    get_library_series_debug,
+    get_library_series_files_debug,
+    get_library_series_list,
+    get_library_series_detail,
+    get_library_file_by_id,
+    get_episode_playback,
+)
+
+from library_scanner import scan_library
+
 from config import (
     PLAYER_DIR,
     VIDEO_DIR,
@@ -25,7 +38,10 @@ from config import (
     AUDIO_DIR,
     ALLOWED_ORIGIN,
     ALLOWED_VIDEO_EXTENSIONS,
+    ALLOWED_SUBTITLE_EXTENSIONS,
+    MEDIA_LIBRARY_DIR,
     DEDUPE_INDEX_PATH,
+    LIBRARY_DB_PATH,
     PORT,
 )
 
@@ -136,7 +152,99 @@ def cleanup_on_startup():
 
 # Вызываем функцию при запуске скрипта
 cleanup_on_startup()
+init_library_db(LIBRARY_DB_PATH)
 
+# - библиотека просмотренных аниме
+
+@app.route("/library/config", methods=["GET"])
+def library_config():
+    return jsonify({
+        "mediaLibraryDir": str(MEDIA_LIBRARY_DIR),
+        "exists": MEDIA_LIBRARY_DIR.exists(),
+        "isDirectory": MEDIA_LIBRARY_DIR.is_dir(),
+        "videoExtensions": sorted(ALLOWED_VIDEO_EXTENSIONS),
+        "subtitleExtensions": sorted(ALLOWED_SUBTITLE_EXTENSIONS),
+    })
+
+@app.route("/library/db/status", methods=["GET"])
+def library_db_status():
+    return jsonify(get_library_db_status(LIBRARY_DB_PATH))
+
+@app.route("/library/scan", methods=["GET"])
+def library_scan():
+    result = scan_library(
+        db_path=LIBRARY_DB_PATH,
+        media_root=MEDIA_LIBRARY_DIR,
+        video_extensions=ALLOWED_VIDEO_EXTENSIONS,
+        subtitle_extensions=ALLOWED_SUBTITLE_EXTENSIONS,
+    )
+
+    status_code = 200 if result.get("ok") else 400
+    return jsonify(result), status_code
+
+@app.route("/library/debug/series", methods=["GET"])
+def library_debug_series():
+    return jsonify({
+        "series": get_library_series_debug(LIBRARY_DB_PATH)
+    })
+    
+@app.route("/library/debug/series/<int:series_id>/files", methods=["GET"])
+def library_debug_series_files(series_id):
+    result = get_library_series_files_debug(LIBRARY_DB_PATH, series_id)
+    status_code = 200 if result.get("found") else 404
+    return jsonify(result), status_code
+
+@app.route("/library/series", methods=["GET"])
+def library_series_list():
+    return jsonify({
+        "series": get_library_series_list(LIBRARY_DB_PATH)
+    })
+
+
+@app.route("/library/series/<int:series_id>", methods=["GET"])
+def library_series_detail(series_id):
+    result = get_library_series_detail(LIBRARY_DB_PATH, series_id)
+    status_code = 200 if result.get("found") else 404
+    return jsonify(result), status_code
+
+@app.route("/library/episodes/<int:episode_id>/playback", methods=["GET"])
+def library_episode_playback(episode_id):
+    result = get_episode_playback(LIBRARY_DB_PATH, episode_id)
+
+    if not result.get("found"):
+        return jsonify({
+            "error": "Episode not found"
+        }), 404
+
+    if result.get("error"):
+        return jsonify({
+            "error": result["error"]
+        }), 404
+
+    return jsonify(result["playback"])
+
+
+@app.route("/library/file/<int:file_id>", methods=["GET"])
+def serve_library_file(file_id):
+    result = get_library_file_by_id(LIBRARY_DB_PATH, file_id)
+
+    if not result.get("found"):
+        return jsonify({"error": "File not found"}), 404
+
+    file_info = result["file"]
+    file_path = Path(file_info["path"]).resolve()
+
+    if not is_within(MEDIA_LIBRARY_DIR, file_path):
+        return jsonify({"error": "File is outside MEDIA_LIBRARY_DIR"}), 403
+
+    if not file_path.exists() or not file_path.is_file():
+        return jsonify({"error": "File is missing"}), 404
+
+    return send_from_directory(
+        str(file_path.parent),
+        file_path.name,
+        as_attachment=False,
+    )
 
 # --- Статические файлы ---
 @app.route('/')
