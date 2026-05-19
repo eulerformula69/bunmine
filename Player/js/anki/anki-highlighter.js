@@ -250,7 +250,7 @@ function isVerbChainTailToken(token) {
     if (pos === "助動詞") return true;
     if (pos === "助詞" && ["て", "で", "たら", "ても", "でも", "ば", "える"].includes(surface)) return true;
 
-    if (pos === "動詞" && ["しまう", "いる", "ある", "くれる", "もらう", "くださる"].includes(basic)) {
+    if (pos === "動詞" && ["しまう", "ちゃう", "いる", "ある", "くれる", "もらう", "くださる"].includes(basic)) {
         return true;
     }
 
