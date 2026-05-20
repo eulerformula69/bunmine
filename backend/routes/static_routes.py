@@ -38,3 +38,6 @@ def serve_kuromoji_dict(filename):
 def serve_file(path):
     return send_from_directory(str(FRONTEND_DIR), path)
 
+
+
+

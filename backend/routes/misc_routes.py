@@ -99,3 +99,6 @@ def add_known_basic_word():
     except Exception as err:
         return jsonify({"error": str(err)}), 500
 
+
+
+

@@ -39,3 +39,6 @@ function tokenizeJapaneseTextSync(text) {
     return japaneseTokenizerInstance.tokenize(String(text || ""));
 }
 
+
+
+

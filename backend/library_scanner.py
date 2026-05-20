@@ -162,6 +162,7 @@ def scan_library(db_path: Path, media_root: Path, video_extensions: set[str], su
             """
             UPDATE library_files
             SET file_exists = 0, missing_since = COALESCE(missing_since, CURRENT_TIMESTAMP), updated_at = CURRENT_TIMESTAMP
+            WHERE file_type IN ('video', 'subtitle')
             """
         )
 
@@ -195,10 +196,13 @@ def scan_library(db_path: Path, media_root: Path, video_extensions: set[str], su
                     "relativePath": relative_path,
                 })
 
-        missing_row = conn.execute("SELECT COUNT(*) AS count FROM library_files WHERE file_exists = 0").fetchone()
+        missing_row = conn.execute("SELECT COUNT(*) AS count FROM library_files WHERE file_exists = 0 AND file_type IN ('video', 'subtitle')").fetchone()
         summary["missingFilesMarked"] = int(missing_row["count"])
 
     summary["seriesTouched"] = len(touched_series_ids)
     summary["episodesTouched"] = len(touched_episode_ids)
     return summary
+
+
+
 

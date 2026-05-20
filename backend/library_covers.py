@@ -4,6 +4,7 @@ import urllib.request
 from pathlib import Path
 
 from backend.library_db import get_db
+from backend.utils_validation import is_within
 
 
 ANILIST_GRAPHQL_URL = "https://graphql.anilist.co"
@@ -173,3 +174,32 @@ def get_series_cover_file(db_path: Path, series_id: int) -> dict:
             return {"found": False, "file": None}
         return {"found": True, "file": dict(row)}
 
+def resolve_cover_file_path(covers_dir: Path, file_info: dict) -> Path | None:
+    """Resolve both current and legacy cover DB records to a safe path under LibraryCovers."""
+    candidates: list[Path] = []
+
+    stored_path = file_info.get("path") if file_info else None
+    relative_path = file_info.get("relative_path") if file_info else None
+
+    if stored_path:
+        candidates.append(Path(stored_path).expanduser().resolve())
+        candidates.append((covers_dir / Path(stored_path).name).resolve())
+
+    if relative_path:
+        rel = Path(str(relative_path))
+        candidates.append((covers_dir / rel.name).resolve())
+        # Old versions stored paths relative to BASE_DIR, e.g. frontend/LibraryCovers/file.jpg.
+        if len(rel.parts) >= 1:
+            candidates.append((covers_dir.parent.parent / rel).resolve())
+
+    seen: set[str] = set()
+    for candidate in candidates:
+        key = str(candidate)
+        if key in seen:
+            continue
+        seen.add(key)
+        if not is_within(covers_dir, candidate):
+            continue
+        if candidate.exists() and candidate.is_file():
+            return candidate
+    return None

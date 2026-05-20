@@ -54,4 +54,8 @@ LIBRARY_DB_PATH = BASE_DIR / "library.sqlite3"
 LIBRARY_COVERS_DIR = FRONTEND_DIR / "LibraryCovers"
 FONTS_DIR = FRONTEND_DIR / "fonts"
 PORT = int(os.getenv("PORT", "5000"))
+JIMAKU_API_TOKEN = os.getenv("JIMAKU_API_TOKEN", "").strip()
+
+
+
 

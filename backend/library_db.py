@@ -24,6 +24,59 @@ def get_db(db_path: Path) -> Iterator[sqlite3.Connection]:
         conn.close()
 
 
+
+
+def refresh_library_file_existence(db_path: Path, file_types: list[str] | tuple[str, ...] | set[str] | None = None) -> dict:
+    """Mark DB file records as missing when the file disappeared from disk.
+
+    Scanner updates this too, but user can rename/delete files after a subtitle/cover was saved.
+    This helper keeps library reads honest without requiring a manual rescan.
+    """
+    filters = []
+    params: list[object] = []
+    if file_types:
+        placeholders = ", ".join("?" for _ in file_types)
+        filters.append(f"file_type IN ({placeholders})")
+        params.extend(list(file_types))
+
+    where = "WHERE file_exists = 1"
+    if filters:
+        where += " AND " + " AND ".join(filters)
+
+    checked = 0
+    marked_missing = 0
+    missing_ids: list[int] = []
+
+    with get_db(db_path) as conn:
+        rows = conn.execute(
+            f"SELECT id, path FROM library_files {where}",
+            tuple(params),
+        ).fetchall()
+
+        for row in rows:
+            checked += 1
+            file_path = Path(row["path"]).expanduser()
+            if file_path.exists() and file_path.is_file():
+                continue
+            missing_ids.append(int(row["id"]))
+
+        if missing_ids:
+            placeholders = ", ".join("?" for _ in missing_ids)
+            conn.execute(
+                f"""
+                UPDATE library_files
+                SET file_exists = 0,
+                    missing_since = COALESCE(missing_since, CURRENT_TIMESTAMP),
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id IN ({placeholders})
+                """,
+                tuple(missing_ids),
+            )
+            marked_missing = len(missing_ids)
+
+    return {"checked": checked, "markedMissing": marked_missing}
+
+
 def init_library_db(db_path: Path) -> None:
     db_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -165,6 +218,7 @@ def get_library_db_status(db_path: Path) -> dict:
 
 
 def get_library_series_debug(db_path: Path) -> list[dict]:
+    refresh_library_file_existence(db_path, {"video", "subtitle", "cover"})
     with get_db(db_path) as conn:
         rows = conn.execute(
             """
@@ -227,6 +281,7 @@ def get_library_series_debug(db_path: Path) -> list[dict]:
 
 
 def get_library_series_files_debug(db_path: Path, series_id: int) -> dict:
+    refresh_library_file_existence(db_path, {"video", "subtitle", "cover"})
     with get_db(db_path) as conn:
         series = conn.execute("SELECT id, title FROM series WHERE id = ?", (series_id,)).fetchone()
         if not series:
@@ -275,6 +330,7 @@ def _series_link_status(episodes_count: int, episodes_with_video: int, episodes_
 
 
 def get_library_series_list(db_path: Path) -> list[dict]:
+    refresh_library_file_existence(db_path, {"video", "subtitle", "cover"})
     with get_db(db_path) as conn:
         rows = conn.execute(
             """
@@ -326,6 +382,7 @@ def get_library_series_list(db_path: Path) -> list[dict]:
 
 
 def get_library_series_detail(db_path: Path, series_id: int) -> dict:
+    refresh_library_file_existence(db_path, {"video", "subtitle", "cover"})
     with get_db(db_path) as conn:
         series_row = conn.execute("SELECT id, title, cover_file_id FROM series WHERE id = ?", (series_id,)).fetchone()
         if not series_row:
@@ -401,6 +458,7 @@ def get_library_series_detail(db_path: Path, series_id: int) -> dict:
 
 
 def get_library_file_by_id(db_path: Path, file_id: int) -> dict:
+    refresh_library_file_existence(db_path, {"video", "subtitle", "cover"})
     with get_db(db_path) as conn:
         row = conn.execute(
             """
@@ -416,6 +474,7 @@ def get_library_file_by_id(db_path: Path, file_id: int) -> dict:
 
 
 def get_episode_playback(db_path: Path, episode_id: int) -> dict:
+    refresh_library_file_existence(db_path, {"video", "subtitle"})
     with get_db(db_path) as conn:
         row = conn.execute(
             """
@@ -532,3 +591,6 @@ def set_episode_completed(db_path: Path, episode_id: int, completed: bool) -> di
             (episode_id,),
         ).fetchone()
         return {"found": True, "progress": dict(row)}
+
+
+

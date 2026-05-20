@@ -199,3 +199,6 @@ function renderSubtitleOverlay(options) {
     renderHighlightedSubtitleOverlay(overlay, text, highlighter);
 }
 
+
+
+

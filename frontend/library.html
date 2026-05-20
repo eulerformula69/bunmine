@@ -31,6 +31,7 @@
 		  </div>
 
 		  <div class="series-panel-actions">
+			<button id="downloadMissingSubtitlesBtn" type="button">Download missing JP subs</button>
 			<button id="changeSeriesCoverBtn" type="button">Change cover</button>
 			<button id="closeSeriesPanelBtn" type="button">Close</button>
 		  </div>
@@ -40,6 +41,47 @@
 	  </section>
 	</div>
   </div>
+
+
+<div id="bulkSubtitleModal" class="library-modal hidden">
+  <section class="cover-panel bulk-subtitle-panel" role="dialog" aria-modal="true" aria-labelledby="bulkSubtitleModalTitle">
+    <div class="series-panel-header">
+      <div>
+        <h2 id="bulkSubtitleModalTitle">Download missing Japanese subtitles</h2>
+        <p id="bulkSubtitleModalSubtitle"></p>
+      </div>
+      <button id="closeBulkSubtitleModalBtn" type="button">Close</button>
+    </div>
+
+    <div id="bulkSubtitleStatus" class="cover-message">Preparing download plan...</div>
+    <div id="bulkSubtitleSets" class="bulk-subtitle-sets"></div>
+    <div id="bulkSubtitleList" class="bulk-subtitle-list"></div>
+
+    <div class="bulk-subtitle-actions">
+      <button id="confirmBulkSubtitleDownloadBtn" type="button" disabled>Download selected</button>
+      <button id="cancelBulkSubtitleDownloadBtn" type="button">Cancel</button>
+    </div>
+  </section>
+</div>
+
+<div id="subtitleModal" class="library-modal hidden">
+  <section class="cover-panel" role="dialog" aria-modal="true" aria-labelledby="subtitleModalTitle">
+    <div class="series-panel-header">
+      <div>
+        <h2 id="subtitleModalTitle">Find Japanese subtitles</h2>
+        <p id="subtitleModalSubtitle"></p>
+      </div>
+      <button id="closeSubtitleModalBtn" type="button">Close</button>
+    </div>
+
+    <div class="cover-search-row">
+      <input id="subtitleSearchInput" type="text" />
+      <button id="subtitleSearchBtn" type="button">Search</button>
+    </div>
+
+    <div id="subtitleResults" class="cover-results subtitle-results"></div>
+  </section>
+</div>
 
 <div id="coverModal" class="library-modal hidden">
   <section class="cover-panel" role="dialog" aria-modal="true" aria-labelledby="coverModalTitle">
@@ -66,3 +108,5 @@
   <script src="js/library/library.js"></script>
 </body>
 </html>
+
+
