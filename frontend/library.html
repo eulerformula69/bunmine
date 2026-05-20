@@ -10,13 +10,13 @@
   <div class="library-shell">
     <header class="library-header">
       <div>
-        <h1>Bunmine Library</h1>
-        <p id="librarySummary" class="library-summary">Loading...</p>
+        <h1 data-i18n="libraryTitle">Bunmine Library</h1>
+        <p id="librarySummary" class="library-summary" data-i18n="loading">Loading...</p>
       </div>
 
       <div class="library-actions">
-        <button id="scanLibraryBtn" type="button">Scan library</button>
-        <a class="player-link" href="/">Player</a>
+        <button id="scanLibraryBtn" type="button" data-i18n="scanLibrary">Scan library</button>
+        <a class="player-link" href="/" data-i18n="player">Player</a>
       </div>
     </header>
 
@@ -31,9 +31,9 @@
 		  </div>
 
 		  <div class="series-panel-actions">
-			<button id="downloadMissingSubtitlesBtn" type="button">Download missing JP subs</button>
-			<button id="changeSeriesCoverBtn" type="button">Change cover</button>
-			<button id="closeSeriesPanelBtn" type="button">Close</button>
+			<button id="downloadMissingSubtitlesBtn" type="button" data-i18n="downloadMissingJpSubs">Download missing JP subs</button>
+			<button id="changeSeriesCoverBtn" type="button" data-i18n="changeCover">Change cover</button>
+			<button id="closeSeriesPanelBtn" type="button" data-i18n="close">Close</button>
 		  </div>
 		</div>
 
@@ -47,19 +47,19 @@
   <section class="cover-panel bulk-subtitle-panel" role="dialog" aria-modal="true" aria-labelledby="bulkSubtitleModalTitle">
     <div class="series-panel-header">
       <div>
-        <h2 id="bulkSubtitleModalTitle">Download missing Japanese subtitles</h2>
+        <h2 id="bulkSubtitleModalTitle" data-i18n="downloadMissingJapaneseSubtitles">Download missing Japanese subtitles</h2>
         <p id="bulkSubtitleModalSubtitle"></p>
       </div>
-      <button id="closeBulkSubtitleModalBtn" type="button">Close</button>
+      <button id="closeBulkSubtitleModalBtn" type="button" data-i18n="close">Close</button>
     </div>
 
-    <div id="bulkSubtitleStatus" class="cover-message">Preparing download plan...</div>
+    <div id="bulkSubtitleStatus" class="cover-message" data-i18n="preparingDownloadPlan">Preparing download plan...</div>
     <div id="bulkSubtitleSets" class="bulk-subtitle-sets"></div>
     <div id="bulkSubtitleList" class="bulk-subtitle-list"></div>
 
     <div class="bulk-subtitle-actions">
-      <button id="confirmBulkSubtitleDownloadBtn" type="button" disabled>Download selected</button>
-      <button id="cancelBulkSubtitleDownloadBtn" type="button">Cancel</button>
+      <button id="confirmBulkSubtitleDownloadBtn" type="button" disabled data-i18n="downloadSelected">Download selected</button>
+      <button id="cancelBulkSubtitleDownloadBtn" type="button" data-i18n="cancel">Cancel</button>
     </div>
   </section>
 </div>
@@ -68,15 +68,15 @@
   <section class="cover-panel" role="dialog" aria-modal="true" aria-labelledby="subtitleModalTitle">
     <div class="series-panel-header">
       <div>
-        <h2 id="subtitleModalTitle">Find Japanese subtitles</h2>
+        <h2 id="subtitleModalTitle" data-i18n="findJapaneseSubtitles">Find Japanese subtitles</h2>
         <p id="subtitleModalSubtitle"></p>
       </div>
-      <button id="closeSubtitleModalBtn" type="button">Close</button>
+      <button id="closeSubtitleModalBtn" type="button" data-i18n="close">Close</button>
     </div>
 
     <div class="cover-search-row">
       <input id="subtitleSearchInput" type="text" />
-      <button id="subtitleSearchBtn" type="button">Search</button>
+      <button id="subtitleSearchBtn" type="button" data-i18n="search">Search</button>
     </div>
 
     <div id="subtitleResults" class="cover-results subtitle-results"></div>
@@ -87,15 +87,15 @@
   <section class="cover-panel" role="dialog" aria-modal="true" aria-labelledby="coverModalTitle">
     <div class="series-panel-header">
       <div>
-        <h2 id="coverModalTitle">Find cover</h2>
+        <h2 id="coverModalTitle" data-i18n="findCover">Find cover</h2>
         <p id="coverModalSubtitle"></p>
       </div>
-      <button id="closeCoverModalBtn" type="button">Close</button>
+      <button id="closeCoverModalBtn" type="button" data-i18n="close">Close</button>
     </div>
 
     <div class="cover-search-row">
       <input id="coverSearchInput" type="text" />
-      <button id="coverSearchBtn" type="button">Search</button>
+      <button id="coverSearchBtn" type="button" data-i18n="search">Search</button>
     </div>
 
     <div id="coverResults" class="cover-results"></div>
@@ -108,5 +108,3 @@
   <script src="js/library/library.js"></script>
 </body>
 </html>
-
-

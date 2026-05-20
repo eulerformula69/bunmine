@@ -1,3 +1,157 @@
+const LIBRARY_I18N = {
+    en: {
+        name: "English",
+        dict: {
+            libraryTitle: "Bunmine Library",
+            loading: "Loading...",
+            scanLibrary: "Scan library",
+            scanning: "Scanning...",
+            player: "Player",
+            close: "Close",
+            cancel: "Cancel",
+            search: "Search",
+            searching: "Searching...",
+            open: "Open",
+            error: "Error",
+            allLinked: "All linked",
+            partiallyLinked: "Partially linked",
+            missingFiles: "Missing files",
+            seriesSummary: "{count} series · {watched}/{total} watched",
+            seriesStats: "{videos}/{episodes} video · {subtitles}/{episodes} subtitles · {status}",
+            eps: "eps",
+            watched: "watched",
+            notWatched: "not watched",
+            atTime: "at {time}",
+            videoYes: "video ✓",
+            videoNo: "video ×",
+            subtitlesYes: "subtitles ✓",
+            subtitlesNo: "subtitles ×",
+            findJpSubs: "Find JP subs",
+            changeJpSubs: "Change JP subs",
+            findJapaneseSubtitles: "Find Japanese subtitles",
+            changeJapaneseSubtitles: "Change Japanese subtitles",
+            episodeLabel: "Episode {number}",
+            searchingJimaku: "Searching Jimaku...",
+            subtitleSearchFailed: "Subtitle search failed",
+            noDirectSubtitles: "No direct .srt/.ass/.vtt subtitles found.",
+            untitledSubtitle: "Untitled subtitle",
+            couldNotSaveSubtitle: "Could not save subtitle",
+            downloadMissingJpSubs: "Download missing JP subs",
+            downloadMissingJapaneseSubtitles: "Download missing Japanese subtitles",
+            preparingDownloadPlan: "Preparing download plan...",
+            analyzingJimakuEntries: "Analyzing Jimaku series entries...",
+            analyzing: "Analyzing...",
+            analysisReadyChoose: "Analysis ready: choose one subtitle set · {selectable} episodes have candidates · {skipped} skipped · {entries} entries checked",
+            analysisReadyNone: "Analysis ready: no matching subtitles found · {skipped} skipped · {entries} entries checked",
+            couldNotAnalyzeJimaku: "Could not analyze Jimaku subtitles",
+            jimakuRateLimitWait: "Jimaku rate limit. Waiting {seconds}s before retry...",
+            jimakuRetryReached: "Jimaku rate limit: retry limit reached",
+            noSubtitleSets: "No subtitle sets found.",
+            recommendedSubtitleSets: "Recommended subtitle sets",
+            subtitleSetsStillChecking: "Subtitle sets will appear while episodes are checked.",
+            noFileFromSelectedSet: "No file from selected set. Choose manually if needed.",
+            couldNotSearchEpisodeJimaku: "Could not search Jimaku for this episode",
+            noMissingSubtitleEpisodes: "No episodes with missing subtitles.",
+            searchingEpisodeJimaku: "Searching Jimaku...",
+            searchingJimakuProgress: "Searching Jimaku {current}/{total}: episode {episode}...",
+            planReadySelected: "Plan ready: {selected} selected · {review} need review · {skipped} skipped · {failed} failed",
+            planReadyChoose: "Plan ready: choose one subtitle set · {selectable} episodes have candidates · {skipped} skipped · {failed} failed",
+            bulkStatusReady: "{selected} selected · {review} need review · {skipped} skipped · {failed} failed",
+            bulkStatusChecking: "{selected} selected · {pending} still being checked · {failed} failed",
+            noSubtitleSelected: "No subtitle selected",
+            untitled: "Untitled",
+            chooseManually: "Choose manually...",
+            ready: "ready",
+            skipped: "skipped",
+            needsReview: "needs-review",
+            failed: "failed",
+            selectedManually: "Selected manually",
+            chooseSubtitleSetOrManual: "Choose one subtitle set or select manually",
+            selectedFromSubtitleSet: "Selected from subtitle set",
+            suggestedSetsFoundSoFar: "Suggested sets found so far",
+            chooseSetBeforeDownloading: "Choose one subtitle set before downloading",
+            other: "Other",
+            subtitle: "subtitle",
+            rateLimitedRetrying: "rate limited, retrying in {seconds}s...",
+            downloadingProgress: "Downloading {done}/{total} completed · {concurrency} at a time...",
+            downloadingState: "downloading...",
+            downloadedState: "downloaded",
+            failedState: "failed: {message}",
+            downloadingSummary: "Downloading {done}/{total} completed · {downloaded} downloaded · {failed} failed",
+            finishedDownloads: "Finished: {downloaded} downloaded, {failed} failed.",
+            downloadSelected: "Download selected",
+            changeCover: "Change cover",
+            findCover: "Find cover",
+            searchingAniList: "Searching AniList...",
+            coverSearchFailed: "Cover search failed",
+            noResultsFound: "No results found.",
+            couldNotSaveCover: "Could not save cover",
+            scanFailed: "Scan failed",
+            couldNotLoadLibrary: "Could not load library",
+            couldNotLoadSeries: "Could not load series",
+            couldNotUpdateEpisodeStatus: "Could not update episode status"
+        }
+    },
+    ru: {
+        name: "Русский",
+        dict: {
+            libraryTitle: "Библиотека Bunmine", loading: "Загрузка...", scanLibrary: "Сканировать библиотеку", scanning: "Сканирование...", player: "Плеер", close: "Закрыть", cancel: "Отмена", search: "Искать", searching: "Поиск...", open: "Открыть", error: "Ошибка", allLinked: "Всё связано", partiallyLinked: "Частично связано", missingFiles: "Файлы отсутствуют", seriesSummary: "{count} тайтлов · {watched}/{total} просмотрено", seriesStats: "{videos}/{episodes} видео · {subtitles}/{episodes} субтитров · {status}", eps: "эп.", watched: "просмотрено", notWatched: "не просмотрено", atTime: "на {time}", videoYes: "видео ✓", videoNo: "видео ×", subtitlesYes: "субтитры ✓", subtitlesNo: "субтитры ×", findJpSubs: "Найти JP субтитры", changeJpSubs: "Заменить JP субтитры", findJapaneseSubtitles: "Найти японские субтитры", changeJapaneseSubtitles: "Заменить японские субтитры", episodeLabel: "Эпизод {number}", searchingJimaku: "Поиск в Jimaku...", subtitleSearchFailed: "Не удалось найти субтитры", noDirectSubtitles: "Прямые .srt/.ass/.vtt субтитры не найдены.", untitledSubtitle: "Субтитры без названия", couldNotSaveSubtitle: "Не удалось сохранить субтитры", downloadMissingJpSubs: "Скачать недостающие JP субтитры", downloadMissingJapaneseSubtitles: "Скачать недостающие японские субтитры", preparingDownloadPlan: "Подготовка плана загрузки...", analyzingJimakuEntries: "Анализ записей Jimaku...", analyzing: "Анализ...", analysisReadyChoose: "Анализ готов: выберите набор субтитров · кандидаты есть для {selectable} эп. · пропущено {skipped} · проверено записей {entries}", analysisReadyNone: "Анализ готов: подходящих субтитров нет · пропущено {skipped} · проверено записей {entries}", couldNotAnalyzeJimaku: "Не удалось проанализировать субтитры Jimaku", jimakuRateLimitWait: "Лимит Jimaku. Повтор через {seconds} с...", jimakuRetryReached: "Лимит Jimaku: исчерпан лимит повторов", noSubtitleSets: "Наборы субтитров не найдены.", recommendedSubtitleSets: "Рекомендуемые наборы субтитров", subtitleSetsStillChecking: "Наборы появятся по мере проверки эпизодов.", noFileFromSelectedSet: "В выбранном наборе нет файла. При необходимости выберите вручную.", couldNotSearchEpisodeJimaku: "Не удалось найти Jimaku-субтитры для эпизода", noMissingSubtitleEpisodes: "Нет эпизодов с недостающими субтитрами.", searchingEpisodeJimaku: "Поиск в Jimaku...", searchingJimakuProgress: "Поиск в Jimaku {current}/{total}: эпизод {episode}...", planReadySelected: "План готов: выбрано {selected} · требуют проверки {review} · пропущено {skipped} · ошибок {failed}", planReadyChoose: "План готов: выберите набор субтитров · кандидаты есть для {selectable} эп. · пропущено {skipped} · ошибок {failed}", bulkStatusReady: "{selected} выбрано · требуют проверки {review} · пропущено {skipped} · ошибок {failed}", bulkStatusChecking: "{selected} выбрано · ещё проверяется {pending} · ошибок {failed}", noSubtitleSelected: "Субтитры не выбраны", untitled: "Без названия", chooseManually: "Выбрать вручную...", ready: "готово", skipped: "пропущено", needsReview: "нужна проверка", failed: "ошибка", selectedManually: "Выбрано вручную", chooseSubtitleSetOrManual: "Выберите набор субтитров или вручную", selectedFromSubtitleSet: "Выбрано из набора субтитров", suggestedSetsFoundSoFar: "Предложенные наборы на данный момент", chooseSetBeforeDownloading: "Выберите один набор субтитров перед загрузкой", other: "Другое", subtitle: "субтитры", rateLimitedRetrying: "лимит, повтор через {seconds} с...", downloadingProgress: "Загрузка: завершено {done}/{total} · параллельно {concurrency}...", downloadingState: "загрузка...", downloadedState: "скачано", failedState: "ошибка: {message}", downloadingSummary: "Загрузка: завершено {done}/{total} · скачано {downloaded} · ошибок {failed}", finishedDownloads: "Готово: скачано {downloaded}, ошибок {failed}.", downloadSelected: "Скачать выбранные", changeCover: "Заменить обложку", findCover: "Найти обложку", searchingAniList: "Поиск в AniList...", coverSearchFailed: "Не удалось найти обложку", noResultsFound: "Ничего не найдено.", couldNotSaveCover: "Не удалось сохранить обложку", scanFailed: "Сканирование не удалось", couldNotLoadLibrary: "Не удалось загрузить библиотеку", couldNotLoadSeries: "Не удалось загрузить тайтл", couldNotUpdateEpisodeStatus: "Не удалось обновить статус эпизода"
+        }
+    },
+    ja: {
+        name: "日本語",
+        dict: {
+            libraryTitle: "Bunmine ライブラリ", loading: "読み込み中...", scanLibrary: "ライブラリをスキャン", scanning: "スキャン中...", player: "プレイヤー", close: "閉じる", cancel: "キャンセル", search: "検索", searching: "検索中...", open: "開く", error: "エラー", allLinked: "すべてリンク済み", partiallyLinked: "一部リンク済み", missingFiles: "ファイル不足", seriesSummary: "{count} シリーズ · {watched}/{total} 視聴済み", seriesStats: "動画 {videos}/{episodes} · 字幕 {subtitles}/{episodes} · {status}", eps: "話", watched: "視聴済み", notWatched: "未視聴", atTime: "{time} まで", videoYes: "動画 ✓", videoNo: "動画 ×", subtitlesYes: "字幕 ✓", subtitlesNo: "字幕 ×", findJpSubs: "日本語字幕を探す", changeJpSubs: "日本語字幕を変更", findJapaneseSubtitles: "日本語字幕を探す", changeJapaneseSubtitles: "日本語字幕を変更", episodeLabel: "第{number}話", searchingJimaku: "Jimaku を検索中...", subtitleSearchFailed: "字幕検索に失敗しました", noDirectSubtitles: "直接利用できる .srt/.ass/.vtt 字幕は見つかりませんでした。", untitledSubtitle: "無題の字幕", couldNotSaveSubtitle: "字幕を保存できませんでした", downloadMissingJpSubs: "不足JP字幕をダウンロード", downloadMissingJapaneseSubtitles: "不足している日本語字幕をダウンロード", preparingDownloadPlan: "ダウンロード計画を準備中...", analyzingJimakuEntries: "Jimaku のシリーズ項目を分析中...", analyzing: "分析中...", analysisReadyChoose: "分析完了: 字幕セットを選択 · 候補あり {selectable} 話 · スキップ {skipped} · 確認済み項目 {entries}", analysisReadyNone: "分析完了: 一致する字幕なし · スキップ {skipped} · 確認済み項目 {entries}", couldNotAnalyzeJimaku: "Jimaku 字幕を分析できませんでした", jimakuRateLimitWait: "Jimaku の制限中。{seconds}秒後に再試行...", jimakuRetryReached: "Jimaku の制限: 再試行上限に達しました", noSubtitleSets: "字幕セットが見つかりません。", recommendedSubtitleSets: "おすすめ字幕セット", subtitleSetsStillChecking: "エピソード確認中に字幕セットが表示されます。", noFileFromSelectedSet: "選択したセットにファイルがありません。必要なら手動で選択してください。", couldNotSearchEpisodeJimaku: "このエピソードの Jimaku 字幕を検索できませんでした", noMissingSubtitleEpisodes: "字幕が不足しているエピソードはありません。", searchingEpisodeJimaku: "Jimaku を検索中...", searchingJimakuProgress: "Jimaku 検索 {current}/{total}: エピソード {episode}...", planReadySelected: "計画完了: {selected} 件選択 · 要確認 {review} · スキップ {skipped} · 失敗 {failed}", planReadyChoose: "計画完了: 字幕セットを選択 · 候補あり {selectable} 話 · スキップ {skipped} · 失敗 {failed}", bulkStatusReady: "{selected} 件選択 · 要確認 {review} · スキップ {skipped} · 失敗 {failed}", bulkStatusChecking: "{selected} 件選択 · 確認中 {pending} · 失敗 {failed}", noSubtitleSelected: "字幕が選択されていません", untitled: "無題", chooseManually: "手動で選択...", ready: "準備完了", skipped: "スキップ", needsReview: "要確認", failed: "失敗", selectedManually: "手動で選択済み", chooseSubtitleSetOrManual: "字幕セットを選ぶか手動で選択してください", selectedFromSubtitleSet: "字幕セットから選択済み", suggestedSetsFoundSoFar: "現在の候補セット", chooseSetBeforeDownloading: "ダウンロード前に字幕セットを1つ選択", other: "その他", subtitle: "字幕", rateLimitedRetrying: "制限中、{seconds}秒後に再試行...", downloadingProgress: "ダウンロード: {done}/{total} 完了 · 同時 {concurrency} 件...", downloadingState: "ダウンロード中...", downloadedState: "ダウンロード済み", failedState: "失敗: {message}", downloadingSummary: "ダウンロード: {done}/{total} 完了 · 成功 {downloaded} · 失敗 {failed}", finishedDownloads: "完了: 成功 {downloaded}, 失敗 {failed}。", downloadSelected: "選択をダウンロード", changeCover: "表紙を変更", findCover: "表紙を探す", searchingAniList: "AniList を検索中...", coverSearchFailed: "表紙検索に失敗しました", noResultsFound: "結果が見つかりません。", couldNotSaveCover: "表紙を保存できませんでした", scanFailed: "スキャンに失敗しました", couldNotLoadLibrary: "ライブラリを読み込めませんでした", couldNotLoadSeries: "シリーズを読み込めませんでした", couldNotUpdateEpisodeStatus: "エピソードの状態を更新できませんでした"
+        }
+    }
+};
+
+let libraryCurrentLang = loadLibraryLanguage();
+
+function loadLibraryLanguage() {
+    try {
+        const settings = JSON.parse(localStorage.getItem("subtitlePlayerSettings") || "{}");
+        return LIBRARY_I18N[settings.language] ? settings.language : "en";
+    } catch {
+        return "en";
+    }
+}
+
+function lt(key, params = {}) {
+    const fallback = LIBRARY_I18N.en.dict;
+    const dict = LIBRARY_I18N[libraryCurrentLang]?.dict || fallback;
+    let text = dict[key] || fallback[key] || key;
+    for (const [name, value] of Object.entries(params)) text = text.replaceAll(`{${name}}`, String(value));
+    return text;
+}
+
+function applyLibraryLanguage() {
+    libraryCurrentLang = loadLibraryLanguage();
+    document.documentElement.lang = libraryCurrentLang;
+    document.title = lt("libraryTitle");
+    document.querySelectorAll("[data-i18n]").forEach((el) => {
+        const key = el.getAttribute("data-i18n");
+        if (key) el.textContent = lt(key);
+    });
+    if (librarySummary?.textContent === "Loading..." || librarySummary?.textContent === "Загрузка..." || librarySummary?.textContent === "読み込み中...") librarySummary.textContent = lt("loading");
+}
+
+function watchedTextForEpisode(episode) {
+    if (episode.completed) return lt("watched");
+    if (episode.currentTimeSeconds > 0) return lt("atTime", { time: formatTime(episode.currentTimeSeconds) });
+    return lt("notWatched");
+}
+
+function statusLabel(status) {
+    if (status === "linked") return lt("allLinked");
+    if (status === "partial") return lt("partiallyLinked");
+    return lt("missingFiles");
+}
+
+function statusKeyLabel(status) {
+    return lt(status === "ready" ? "ready" : status === "needs-review" ? "needsReview" : status === "failed" ? "failed" : "skipped");
+}
+
 const seriesGrid = document.getElementById("seriesGrid");
 const librarySummary = document.getElementById("librarySummary");
 const scanLibraryBtn = document.getElementById("scanLibraryBtn");
@@ -118,9 +272,9 @@ function statusIcon(status) {
 }
 
 function statusTitle(status) {
-    if (status === "linked") return "All linked";
-    if (status === "partial") return "Partially linked";
-    return "Missing files";
+    if (status === "linked") return lt("allLinked");
+    if (status === "partial") return lt("partiallyLinked");
+    return lt("missingFiles");
 }
 
 function escapeHtml(value) {
@@ -133,12 +287,12 @@ function escapeHtml(value) {
 
 async function loadLibrarySeries() {
     seriesGrid.innerHTML = "";
-    librarySummary.textContent = "Loading...";
+    librarySummary.textContent = lt("loading");
 
     const { response, data } = await apiJson("/library/series");
 
     if (!response.ok || data.error) {
-        throw new Error(data.error || "Could not load library");
+        throw new Error(data.error || lt("couldNotLoadLibrary"));
     }
 
     const series = Array.isArray(data.series) ? data.series : [];
@@ -156,7 +310,7 @@ async function loadLibrarySeries() {
     }, 0);
 
 	librarySummary.textContent =
-		`${series.length} series · ${completedEpisodes}/${totalEpisodes} watched`;
+		lt("seriesSummary", { count: series.length, watched: completedEpisodes, total: totalEpisodes });
 
     for (const item of series) {
         seriesGrid.appendChild(renderSeriesCard(item));
@@ -191,7 +345,7 @@ function renderSeriesCard(item) {
 
 		<div class="series-meta">
 			<span>
-				<span data-completed-episodes>${escapeHtml(item.completedEpisodes)}</span>/<span data-total-episodes>${escapeHtml(item.episodesCount)}</span> eps
+				<span data-completed-episodes>${escapeHtml(item.completedEpisodes)}</span>/<span data-total-episodes>${escapeHtml(item.episodesCount)}</span> ${escapeHtml(lt("eps"))}
 			</span>
 		</div>
 
@@ -209,15 +363,15 @@ function renderSeriesCard(item) {
 }
 async function openSeries(seriesId) {
     openSeriesModal();
-    seriesTitle.textContent = "Loading...";
+    seriesTitle.textContent = lt("loading");
     seriesStats.textContent = "";
     episodeList.innerHTML = "";
 
     const { response, data } = await apiJson(`/library/series/${encodeURIComponent(seriesId)}`);
 
     if (!response.ok || data.error) {
-        seriesTitle.textContent = "Error";
-        seriesStats.textContent = data.error || "Could not load series";
+        seriesTitle.textContent = lt("error");
+        seriesStats.textContent = data.error || lt("couldNotLoadSeries");
         return;
     }
 
@@ -230,9 +384,7 @@ async function openSeries(seriesId) {
 
     seriesTitle.textContent = series.title;
     seriesStats.textContent =
-        `${series.episodesWithVideo}/${series.episodesCount} video · ` +
-        `${series.episodesWithSubtitle}/${series.episodesCount} subtitles · ` +
-        `${series.linkStatus}`;
+        lt("seriesStats", { videos: series.episodesWithVideo, episodes: series.episodesCount, subtitles: series.episodesWithSubtitle, status: statusLabel(series.linkStatus) });
 
     episodeList.innerHTML = "";
 
@@ -248,11 +400,7 @@ function renderEpisodeRow(episode) {
     const status = episode.linkStatus;
     const canOpen = Boolean(episode.hasVideo);
 
-    const watched = episode.completed
-        ? "watched"
-        : episode.currentTimeSeconds > 0
-            ? `at ${formatTime(episode.currentTimeSeconds)}`
-            : "not watched";
+    const watched = watchedTextForEpisode(episode);
 
 	row.innerHTML = `
 		<div>
@@ -267,16 +415,16 @@ function renderEpisodeRow(episode) {
 			</label>
 
             <div class="episode-meta">
-                <span>${episode.hasVideo ? "video ✓" : "video ×"}</span>
+                <span>${episode.hasVideo ? lt("videoYes") : lt("videoNo")}</span>
                 <span>·</span>
-                <span>${episode.hasSubtitle ? "subtitles ✓" : "subtitles ×"}</span>
+                <span>${episode.hasSubtitle ? lt("subtitlesYes") : lt("subtitlesNo")}</span>
                 <button
                     class="find-subtitles-btn find-subtitles-btn-inline"
                     type="button"
                     ${canOpen ? "" : "disabled"}
                     data-episode-id="${escapeHtml(episode.id)}"
                 >
-                    ${episode.hasSubtitle ? "Change JP subs" : "Find JP subs"}
+                    ${episode.hasSubtitle ? lt("changeJpSubs") : lt("findJpSubs")}
                 </button>
                 <span>·</span>
 				<span data-episode-watched-text>${escapeHtml(watched)}</span>
@@ -286,7 +434,7 @@ function renderEpisodeRow(episode) {
         <div class="episode-actions">
             <a class="open-episode-link ${canOpen ? "" : "disabled"}"
                href="/?episodeId=${encodeURIComponent(episode.id)}">
-                Open
+                ${escapeHtml(lt("open"))}
             </a>
         </div>
     `;
@@ -318,7 +466,7 @@ completedCheckbox.addEventListener("change", async () => {
         );
 
         if (!response.ok || data.error) {
-            throw new Error(data.error || "Could not update episode status");
+            throw new Error(data.error || lt("couldNotUpdateEpisodeStatus"));
         }
 
         const delta = nextValue ? 1 : -1;
@@ -330,10 +478,10 @@ completedCheckbox.addEventListener("change", async () => {
         const watchedText = row.querySelector("[data-episode-watched-text]");
         if (watchedText) {
             watchedText.textContent = nextValue
-                ? "watched"
+                ? lt("watched")
                 : episode.currentTimeSeconds > 0
-                    ? `at ${formatTime(episode.currentTimeSeconds)}`
-                    : "not watched";
+                    ? lt("atTime", { time: formatTime(episode.currentTimeSeconds) })
+                    : lt("notWatched");
         }
     } catch (err) {
         completedCheckbox.checked = previousValue;
@@ -371,8 +519,8 @@ async function openSubtitleSearchModal(episode, row) {
     currentSubtitleEpisode = { episode, row };
 
     const episodeNumber = episode.episodeNumber ?? "?";
-    subtitleModalTitle.textContent = episode.hasSubtitle ? "Change Japanese subtitles" : "Find Japanese subtitles";
-    subtitleModalSubtitle.textContent = `${currentOpenedSeries.title} · Episode ${episodeNumber}`;
+    subtitleModalTitle.textContent = episode.hasSubtitle ? lt("changeJapaneseSubtitles") : lt("findJapaneseSubtitles");
+    subtitleModalSubtitle.textContent = `${currentOpenedSeries.title} · ${lt("episodeLabel", { number: episodeNumber })}`;
     subtitleSearchInput.value = currentOpenedSeries.title;
     subtitleResults.innerHTML = "";
 
@@ -388,8 +536,8 @@ async function searchSubtitlesForCurrentEpisode() {
     const query = subtitleSearchInput.value.trim() || currentOpenedSeries?.title || "";
 
     subtitleSearchBtn.disabled = true;
-    subtitleSearchBtn.textContent = "Searching...";
-    subtitleResults.innerHTML = `<div class="cover-message">Searching Jimaku...</div>`;
+    subtitleSearchBtn.textContent = lt("searching");
+    subtitleResults.innerHTML = `<div class="cover-message">${escapeHtml(lt("searchingJimaku"))}</div>`;
 
     try {
         const url =
@@ -399,7 +547,7 @@ async function searchSubtitlesForCurrentEpisode() {
         const { response, data } = await apiJson(url);
 
         if (!response.ok || data.error) {
-            throw new Error(data.error || "Subtitle search failed");
+            throw new Error(data.error || lt("subtitleSearchFailed"));
         }
 
         renderSubtitleResults(data.results || []);
@@ -407,7 +555,7 @@ async function searchSubtitlesForCurrentEpisode() {
         subtitleResults.innerHTML = `<div class="cover-message error">${escapeHtml(err.message)}</div>`;
     } finally {
         subtitleSearchBtn.disabled = false;
-        subtitleSearchBtn.textContent = "Search";
+        subtitleSearchBtn.textContent = lt("search");
     }
 }
 
@@ -415,7 +563,7 @@ function renderSubtitleResults(results) {
     subtitleResults.innerHTML = "";
 
     if (!results.length) {
-        subtitleResults.innerHTML = `<div class="cover-message">No direct .srt/.ass/.vtt subtitles found.</div>`;
+        subtitleResults.innerHTML = `<div class="cover-message">${escapeHtml(lt("noDirectSubtitles"))}</div>`;
         return;
     }
 
@@ -433,7 +581,7 @@ function renderSubtitleResults(results) {
 
         item.innerHTML = `
             <div class="cover-result-info">
-                <div class="cover-result-title">${escapeHtml(result.filename || "Untitled subtitle")}</div>
+                <div class="cover-result-title">${escapeHtml(result.filename || lt("untitledSubtitle"))}</div>
                 <div class="cover-result-meta">${escapeHtml(meta)}</div>
             </div>
         `;
@@ -470,7 +618,7 @@ async function selectSubtitleResult(result) {
         );
 
         if (!response.ok || data.error) {
-            throw new Error(data.error || "Could not save subtitle");
+            throw new Error(data.error || lt("couldNotSaveSubtitle"));
         }
 
         episode.hasSubtitle = true;
@@ -480,11 +628,11 @@ async function selectSubtitleResult(result) {
         const meta = row.querySelector(".episode-meta");
         if (meta) {
             const watchedText = row.querySelector("[data-episode-watched-text]")?.outerHTML || "";
-            meta.innerHTML = `${episode.hasVideo ? "video ✓" : "video ×"} <span>·</span> <span>subtitles ✓</span> <button class="find-subtitles-btn find-subtitles-btn-inline" type="button" ${episode.hasVideo ? "" : "disabled"} data-episode-id="${escapeHtml(episode.id)}">Change JP subs</button> <span>·</span> ${watchedText}`;
+            meta.innerHTML = `${episode.hasVideo ? lt("videoYes") : lt("videoNo")} <span>·</span> <span>${lt("subtitlesYes")}</span> <button class="find-subtitles-btn find-subtitles-btn-inline" type="button" ${episode.hasVideo ? "" : "disabled"} data-episode-id="${escapeHtml(episode.id)}">${lt("changeJpSubs")}</button> <span>·</span> ${watchedText}`;
         }
 
         const btn = row.querySelector(".find-subtitles-btn");
-        if (btn) btn.textContent = "Change JP subs";
+        if (btn) btn.textContent = lt("changeJpSubs");
 
         closeSubtitleModal();
     } catch (err) {
@@ -516,10 +664,10 @@ async function prepareMissingSubtitlesForCurrentSeries() {
 
     currentBulkSubtitlePlan = null;
     currentBulkSubtitleSetKey = null;
-    bulkSubtitleModalTitle.textContent = "Download missing Japanese subtitles";
+    bulkSubtitleModalTitle.textContent = lt("downloadMissingJapaneseSubtitles");
     bulkSubtitleModalSubtitle.textContent = currentOpenedSeries.title;
     bulkSubtitleStatus.classList.remove("error");
-    bulkSubtitleStatus.textContent = "Analyzing Jimaku series entries...";
+    bulkSubtitleStatus.textContent = lt("analyzingJimakuEntries");
     if (bulkSubtitleSets) bulkSubtitleSets.innerHTML = "";
     bulkSubtitleList.innerHTML = "";
     confirmBulkSubtitleDownloadBtn.disabled = true;
@@ -527,7 +675,7 @@ async function prepareMissingSubtitlesForCurrentSeries() {
 
     const previousText = downloadMissingSubtitlesBtn.textContent;
     downloadMissingSubtitlesBtn.disabled = true;
-    downloadMissingSubtitlesBtn.textContent = "Analyzing...";
+    downloadMissingSubtitlesBtn.textContent = lt("analyzing");
     isBulkSubtitlePreparing = true;
     cancelBulkSubtitleDownloadBtn.disabled = true;
     closeBulkSubtitleModalBtn.disabled = true;
@@ -540,8 +688,8 @@ async function prepareMissingSubtitlesForCurrentSeries() {
         const selectable = (data.items || []).filter((item) => Array.isArray(item.candidates) && item.candidates.length).length;
         const skipped = (data.items || []).filter((item) => item.status === "skipped").length;
         bulkSubtitleStatus.textContent = selectable
-            ? `Analysis ready: choose one subtitle set · ${selectable} episodes have candidates · ${skipped} skipped · ${data.entriesChecked || 0} entries checked`
-            : `Analysis ready: no matching subtitles found · ${skipped} skipped · ${data.entriesChecked || 0} entries checked`;
+            ? lt("analysisReadyChoose", { selectable, skipped, entries: data.entriesChecked || 0 })
+            : lt("analysisReadyNone", { skipped, entries: data.entriesChecked || 0 });
     } catch (err) {
         bulkSubtitleStatus.classList.add("error");
         bulkSubtitleStatus.textContent = err.message;
@@ -571,17 +719,17 @@ async function requestSeriesSubtitleAnalysisWithBackoff(seriesId, query) {
 
         if (response.status !== 429) {
             if (!response.ok || data.error) {
-                throw new Error(data.error || "Could not analyze Jimaku subtitles");
+                throw new Error(data.error || lt("couldNotAnalyzeJimaku"));
             }
             return data;
         }
 
         const waitMs = retryAfterToMs(data.retryAfter);
-        bulkSubtitleStatus.textContent = `Jimaku rate limit. Waiting ${Math.ceil(waitMs / 1000)}s before retry...`;
+        bulkSubtitleStatus.textContent = lt("jimakuRateLimitWait", { seconds: Math.ceil(waitMs / 1000) });
         await sleep(waitMs);
     }
 
-    throw new Error("Jimaku rate limit: retry limit reached");
+    throw new Error(lt("jimakuRetryReached"));
 }
 
 function retryAfterToMs(value) {
@@ -641,7 +789,7 @@ function getBulkSubtitleSets(plan) {
             if (!byKey.has(releaseKey)) {
                 byKey.set(releaseKey, {
                     key: releaseKey,
-                    label: candidate.releaseLabel || candidate.entryTitle || "Other",
+                    label: candidate.releaseLabel || candidate.entryTitle || lt("other"),
                     count: 0,
                     totalEpisodes,
                     examples: [],
@@ -653,7 +801,7 @@ function getBulkSubtitleSets(plan) {
             group.count += 1;
             group.candidatesByEpisodeId.set(String(item.episodeId), candidate);
             if (group.examples.length < 2) {
-                group.examples.push(candidate.filename || candidate.entryTitle || "subtitle");
+                group.examples.push(candidate.filename || candidate.entryTitle || lt("subtitle"));
             }
         }
     }
@@ -673,7 +821,7 @@ function renderBulkSubtitleSets(plan) {
 
     if (!sets.length) {
         if (!hasPending) {
-            bulkSubtitleSets.innerHTML = `<div class="cover-message">No subtitle sets found.</div>`;
+            bulkSubtitleSets.innerHTML = `<div class="cover-message">${escapeHtml(lt("noSubtitleSets"))}</div>`;
         }
         return;
     }
@@ -684,8 +832,8 @@ function renderBulkSubtitleSets(plan) {
     const title = document.createElement("div");
     title.className = "bulk-subtitle-sets-title";
     title.textContent = hasPending
-        ? "Suggested sets found so far"
-        : "Choose one subtitle set before downloading";
+        ? lt("suggestedSetsFoundSoFar")
+        : lt("chooseSetBeforeDownloading");
     wrapper.appendChild(title);
 
     const list = document.createElement("div");
@@ -721,11 +869,11 @@ function applyBulkSubtitleSet(releaseKey) {
         if (candidate) {
             item.selected = candidate;
             item.status = "ready";
-            item.message = "Selected from subtitle set";
+            item.message = lt("selectedFromSubtitleSet");
         } else if (candidates.length) {
             item.selected = null;
             item.status = "needs-review";
-            item.message = "No file from selected set. Choose manually if needed.";
+            item.message = lt("noFileFromSelectedSet");
         }
     }
 
@@ -749,34 +897,34 @@ async function requestEpisodeSubtitlePlanWithBackoff(item) {
 
         if (response.status !== 429) {
             if (!response.ok || data.error) {
-                throw new Error(data.error || "Could not search Jimaku for this episode");
+                throw new Error(data.error || lt("couldNotSearchEpisodeJimaku"));
             }
             return data.item;
         }
 
         const waitMs = retryAfterToMs(data.retryAfter);
         item.status = "rate-limited";
-        item.message = `Jimaku rate limit. Waiting ${Math.ceil(waitMs / 1000)}s before retry...`;
+        item.message = lt("jimakuRateLimitWait", { seconds: Math.ceil(waitMs / 1000) });
         renderBulkSubtitlePlan(currentBulkSubtitlePlan);
         await sleep(waitMs);
     }
 
-    throw new Error("Jimaku rate limit: retry limit reached");
+    throw new Error(lt("jimakuRetryReached"));
 }
 
 async function prepareBulkSubtitlePlanGradually(plan) {
     const items = Array.isArray(plan.items) ? plan.items : [];
     if (!items.length) {
-        bulkSubtitleStatus.textContent = "No episodes with missing subtitles.";
+        bulkSubtitleStatus.textContent = lt("noMissingSubtitleEpisodes");
         return;
     }
 
     for (let index = 0; index < items.length; index += 1) {
         const item = items[index];
         item.status = "searching";
-        item.message = "Searching Jimaku...";
+        item.message = lt("searchingEpisodeJimaku");
         renderBulkSubtitlePlan(plan);
-        bulkSubtitleStatus.textContent = `Searching Jimaku ${index + 1}/${items.length}: episode ${item.episodeNumber ?? "?"}...`;
+        bulkSubtitleStatus.textContent = lt("searchingJimakuProgress", { current: index + 1, total: items.length, episode: item.episodeNumber ?? "?" });
 
         try {
             const plannedItem = await requestEpisodeSubtitlePlanWithBackoff(item);
@@ -787,7 +935,7 @@ async function prepareBulkSubtitlePlanGradually(plan) {
                 if (candidate) {
                     item.selected = candidate;
                     item.status = "ready";
-                    item.message = "Selected from subtitle set";
+                    item.message = lt("selectedFromSubtitleSet");
                 }
             }
         } catch (err) {
@@ -810,8 +958,8 @@ async function prepareBulkSubtitlePlanGradually(plan) {
     const skipped = items.filter((item) => item.status === "skipped").length;
     const failed = items.filter((item) => item.status === "failed").length;
     bulkSubtitleStatus.textContent = selected
-        ? `Plan ready: ${selected} selected · ${selectable - selected} need review · ${skipped} skipped · ${failed} failed`
-        : `Plan ready: choose one subtitle set · ${selectable} episodes have candidates · ${skipped} skipped · ${failed} failed`;
+        ? lt("planReadySelected", { selected, review: selectable - selected, skipped, failed })
+        : lt("planReadyChoose", { selectable, skipped, failed });
     updateBulkSubtitleConfirmState();
 }
 
@@ -826,17 +974,17 @@ function renderBulkSubtitlePlan(plan) {
     bulkSubtitleStatus.classList.remove("error");
     if (!isBulkSubtitlePreparing && !isBulkSubtitleDownloading) {
         bulkSubtitleStatus.textContent =
-            `${readyItems.length} selected · ${reviewItems.length} need review · ${skippedItems.length} skipped · ${failedItems.length} failed`;
+            lt("bulkStatusReady", { selected: readyItems.length, review: reviewItems.length, skipped: skippedItems.length, failed: failedItems.length });
     } else if (pendingItems.length) {
         bulkSubtitleStatus.textContent =
-            `${readyItems.length} selected · ${pendingItems.length} still being checked · ${failedItems.length} failed`;
+            lt("bulkStatusChecking", { selected: readyItems.length, pending: pendingItems.length, failed: failedItems.length });
     }
 
     renderBulkSubtitleSets(plan);
     bulkSubtitleList.innerHTML = "";
 
     if (!items.length) {
-        bulkSubtitleList.innerHTML = `<div class="cover-message">No episodes with missing subtitles.</div>`;
+        bulkSubtitleList.innerHTML = `<div class="cover-message">${escapeHtml(lt("noMissingSubtitleEpisodes"))}</div>`;
         confirmBulkSubtitleDownloadBtn.disabled = true;
         return;
     }
@@ -850,8 +998,8 @@ function renderBulkSubtitlePlan(plan) {
         const meta = canDownload
             ? formatSubtitleCandidate(selected)
             : candidates.length
-                ? item.message || "Choose one subtitle set or select manually"
-                : item.message || "No subtitle selected";
+                ? item.message || lt("chooseSubtitleSetOrManual")
+                : item.message || lt("noSubtitleSelected");
 
         row.className = `bulk-subtitle-item ${escapeHtml(item.status || "skipped")}`;
         row.innerHTML = `
@@ -864,22 +1012,22 @@ function renderBulkSubtitlePlan(plan) {
             >
             <div class="bulk-subtitle-info">
                 <div class="bulk-subtitle-title">
-                    Episode ${escapeHtml(item.episodeNumber ?? "?")} · ${escapeHtml(item.episodeTitle || "Untitled")}
+                    ${escapeHtml(lt("episodeLabel", { number: item.episodeNumber ?? "?" }))} · ${escapeHtml(item.episodeTitle || lt("untitled"))}
                 </div>
                 <div class="bulk-subtitle-meta">${escapeHtml(meta)}</div>
                 ${hasManualChoices ? `
                     <select class="bulk-subtitle-select" data-episode-id="${escapeHtml(item.episodeId)}">
-                        <option value="">Choose manually...</option>
+                        <option value="">${escapeHtml(lt("chooseManually"))}</option>
                         ${candidates.map((candidate) => `
                             <option value="${escapeHtml(candidateKey(candidate))}" ${selected && candidateKey(candidate) === candidateKey(selected) ? "selected" : ""}>
-                                ${escapeHtml(candidate.releaseLabel || candidate.entryTitle || "Other")} — ${escapeHtml(candidate.filename || "subtitle")}
+                                ${escapeHtml(candidate.releaseLabel || candidate.entryTitle || lt("other"))} — ${escapeHtml(candidate.filename || lt("subtitle"))}
                             </option>
                         `).join("")}
                     </select>
                 ` : ""}
             </div>
             <div class="bulk-subtitle-state" data-bulk-state-for="${escapeHtml(item.episodeId)}">
-                ${escapeHtml(canDownload ? "ready" : item.status || "skipped")}
+                ${escapeHtml(canDownload ? lt("ready") : statusKeyLabel(item.status))}
             </div>
         `;
 
@@ -924,18 +1072,18 @@ async function postSubtitleDownloadWithBackoff(item) {
 
         if (response.status !== 429) {
             if (!response.ok || data.error) {
-                throw new Error(data.error || "Could not save subtitle");
+                throw new Error(data.error || lt("couldNotSaveSubtitle"));
             }
             return data;
         }
 
         const waitMs = retryAfterToMs(data.retryAfter);
         const stateEl = bulkSubtitleList.querySelector(`[data-bulk-state-for="${String(item.episodeId)}"]`);
-        if (stateEl) stateEl.textContent = `rate limited, retrying in ${Math.ceil(waitMs / 1000)}s...`;
+        if (stateEl) stateEl.textContent = lt("rateLimitedRetrying", { seconds: Math.ceil(waitMs / 1000) });
         await sleep(waitMs);
     }
 
-    throw new Error("Jimaku rate limit: retry limit reached");
+    throw new Error(lt("jimakuRetryReached"));
 }
 
 async function downloadSelectedBulkSubtitles() {
@@ -961,26 +1109,26 @@ async function downloadSelectedBulkSubtitles() {
             const item = items[index];
             const stateEl = bulkSubtitleList.querySelector(`[data-bulk-state-for="${String(item.episodeId)}"]`);
 
-            bulkSubtitleStatus.textContent = `Downloading ${downloaded + failed}/${items.length} completed · ${Math.min(JIMAKU_DOWNLOAD_CONCURRENCY, items.length)} at a time...`;
-            if (stateEl) stateEl.textContent = `downloading...`;
+            bulkSubtitleStatus.textContent = lt("downloadingProgress", { done: downloaded + failed, total: items.length, concurrency: Math.min(JIMAKU_DOWNLOAD_CONCURRENCY, items.length) });
+            if (stateEl) stateEl.textContent = lt("downloadingState");
 
             try {
                 await postSubtitleDownloadWithBackoff(item);
                 downloaded += 1;
-                if (stateEl) stateEl.textContent = "downloaded";
+                if (stateEl) stateEl.textContent = lt("downloadedState");
             } catch (err) {
                 failed += 1;
-                if (stateEl) stateEl.textContent = `failed: ${err.message}`;
+                if (stateEl) stateEl.textContent = lt("failedState", { message: err.message });
             }
 
-            bulkSubtitleStatus.textContent = `Downloading ${downloaded + failed}/${items.length} completed · ${downloaded} downloaded · ${failed} failed`;
+            bulkSubtitleStatus.textContent = lt("downloadingSummary", { done: downloaded + failed, total: items.length, downloaded, failed });
         }
     }
 
     try {
         const workerCount = Math.min(JIMAKU_DOWNLOAD_CONCURRENCY, items.length);
         await Promise.all(Array.from({ length: workerCount }, (_, index) => worker(index)));
-        bulkSubtitleStatus.textContent = `Finished: ${downloaded} downloaded, ${failed} failed.`;
+        bulkSubtitleStatus.textContent = lt("finishedDownloads", { downloaded, failed });
         await openSeries(currentOpenedSeries.id);
         await loadLibrarySeries();
     } finally {
@@ -1008,7 +1156,7 @@ function closeCoverModal() {
 async function openCoverSearchModal(series) {
     currentCoverSeries = series;
 
-    coverModalTitle.textContent = series.coverUrl ? "Change cover" : "Find cover";
+    coverModalTitle.textContent = series.coverUrl ? lt("changeCover") : lt("findCover");
     coverModalSubtitle.textContent = series.title;
     coverSearchInput.value = series.title;
     coverResults.innerHTML = "";
@@ -1024,8 +1172,8 @@ async function searchCoversForCurrentSeries() {
     const query = coverSearchInput.value.trim() || currentCoverSeries.title;
 
     coverSearchBtn.disabled = true;
-    coverSearchBtn.textContent = "Searching...";
-    coverResults.innerHTML = `<div class="cover-message">Searching AniList...</div>`;
+    coverSearchBtn.textContent = lt("searching");
+    coverResults.innerHTML = `<div class="cover-message">${escapeHtml(lt("searchingAniList"))}</div>`;
 
     try {
         const url =
@@ -1035,7 +1183,7 @@ async function searchCoversForCurrentSeries() {
         const { response, data } = await apiJson(url);
 
         if (!response.ok || data.error) {
-            throw new Error(data.error || "Cover search failed");
+            throw new Error(data.error || lt("coverSearchFailed"));
         }
 
         renderCoverResults(data.results || []);
@@ -1043,7 +1191,7 @@ async function searchCoversForCurrentSeries() {
         coverResults.innerHTML = `<div class="cover-message error">${escapeHtml(err.message)}</div>`;
     } finally {
         coverSearchBtn.disabled = false;
-        coverSearchBtn.textContent = "Search";
+        coverSearchBtn.textContent = lt("search");
     }
 }
 
@@ -1051,7 +1199,7 @@ function renderCoverResults(results) {
     coverResults.innerHTML = "";
 
     if (!results.length) {
-        coverResults.innerHTML = `<div class="cover-message">No results found.</div>`;
+        coverResults.innerHTML = `<div class="cover-message">${escapeHtml(lt("noResultsFound"))}</div>`;
         return;
     }
 
@@ -1063,13 +1211,13 @@ function renderCoverResults(results) {
         const meta = [
             result.format,
             result.seasonYear,
-            result.episodes ? `${result.episodes} eps` : null,
+            result.episodes ? `${result.episodes} ${lt("eps")}` : null,
         ].filter(Boolean).join(" · ");
 
         item.innerHTML = `
             <img src="${escapeHtml(result.coverUrl)}" alt="">
             <div class="cover-result-info">
-                <div class="cover-result-title">${escapeHtml(result.title || result.preferredTitle || "Untitled")}</div>
+                <div class="cover-result-title">${escapeHtml(result.title || result.preferredTitle || lt("untitled"))}</div>
                 <div class="cover-result-subtitle">${escapeHtml(result.englishTitle || result.nativeTitle || "")}</div>
                 <div class="cover-result-meta">${escapeHtml(meta)}</div>
             </div>
@@ -1105,7 +1253,7 @@ async function selectCoverResult(result) {
         );
 
         if (!response.ok || data.error) {
-            throw new Error(data.error || "Could not save cover");
+            throw new Error(data.error || lt("couldNotSaveCover"));
         }
 
         closeCoverModal();
@@ -1119,13 +1267,13 @@ async function selectCoverResult(result) {
 
 scanLibraryBtn.addEventListener("click", async () => {
     scanLibraryBtn.disabled = true;
-    scanLibraryBtn.textContent = "Scanning...";
+    scanLibraryBtn.textContent = lt("scanning");
 
     try {
         const { response, data } = await apiJson("/library/scan");
 
         if (!response.ok || data.error) {
-            throw new Error(data.error || "Scan failed");
+            throw new Error(data.error || lt("scanFailed"));
         }
 
         await loadLibrarySeries();
@@ -1133,7 +1281,7 @@ scanLibraryBtn.addEventListener("click", async () => {
         alert(err.message);
     } finally {
         scanLibraryBtn.disabled = false;
-        scanLibraryBtn.textContent = "Scan library";
+        scanLibraryBtn.textContent = lt("scanLibrary");
     }
 });
 
@@ -1253,11 +1401,11 @@ bulkSubtitleList.addEventListener("change", (event) => {
         if (candidate) {
             item.selected = candidate;
             item.status = "ready";
-            item.message = "Selected manually";
+            item.message = lt("selectedManually");
         } else {
             item.selected = null;
             item.status = item.candidates?.length ? "needs-review" : "skipped";
-            item.message = item.candidates?.length ? "Choose one subtitle set or select manually" : "No subtitle selected";
+            item.message = item.candidates?.length ? lt("chooseSubtitleSetOrManual") : lt("noSubtitleSelected");
         }
 
         renderBulkSubtitlePlan(currentBulkSubtitlePlan);
@@ -1273,4 +1421,4 @@ downloadMissingSubtitlesBtn.addEventListener("click", () => {
     prepareMissingSubtitlesForCurrentSeries();
 });
 
-
+applyLibraryLanguage();
