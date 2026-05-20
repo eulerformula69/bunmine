@@ -24,7 +24,7 @@ load_env_file(PROJECT_DIR / ".env")
 DEFAULT_BASE_DIR = PROJECT_DIR
 BASE_DIR = Path(os.getenv("PLAYER_SERVER_BASE_DIR", str(DEFAULT_BASE_DIR))).resolve()
 
-PLAYER_DIR = BASE_DIR / "Player"
+FRONTEND_DIR = BASE_DIR / "frontend"
 VIDEO_DIR = BASE_DIR / "UploadedVideos"
 ANKI_HIGHLIGHT_CACHE_DIR = BASE_DIR / "anki_highlight_cache"
 
@@ -51,6 +51,7 @@ ALLOWED_SUBTITLE_EXTENSIONS = {".srt", ".ass", ".vtt"}
 
 DEDUPE_INDEX_PATH = BASE_DIR / "dedupe_index.json"
 LIBRARY_DB_PATH = BASE_DIR / "library.sqlite3"
-LIBRARY_COVERS_DIR = BASE_DIR / "LibraryCovers"
+LIBRARY_COVERS_DIR = FRONTEND_DIR / "LibraryCovers"
+FONTS_DIR = FRONTEND_DIR / "fonts"
 PORT = int(os.getenv("PORT", "5000"))
 

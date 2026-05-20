@@ -10,6 +10,7 @@ from backend.config import (
     ALLOWED_VIDEO_EXTENSIONS,
     AUDIO_DIR,
     BASE_DIR,
+    FONTS_DIR,
     LIBRARY_DB_PATH,
     MEDIA_LIBRARY_DIR,
     SCREENSHOT_DIR,
@@ -169,7 +170,7 @@ def screenshot():
 
     img = Image.open(raw_screenshot)
     draw = ImageDraw.Draw(img)
-    font_path = BASE_DIR / "fonts" / "NotoSansJP-Bold.ttf"
+    font_path = FONTS_DIR / "NotoSansJP-Bold.ttf"
     try:
         font = ImageFont.truetype(str(font_path), font_size)
     except Exception:
@@ -249,7 +250,7 @@ Dialogue: 0,0:00:00.00,{duration_ass},Default,,0,0,0,,{ass_text}
     Path(ass_path).write_text(ass_content, encoding="utf-8")
 
     ass_filter_path = ass_path.replace("\\", "/").replace(":", "\\:")
-    fonts_dir_filter = str(BASE_DIR / "fonts").replace("\\", "/").replace(":", "\\:")
+    fonts_dir_filter = str(FONTS_DIR).replace("\\", "/").replace(":", "\\:")
     cmd = [
         "ffmpeg", "-y", "-ss", str(start_f), "-t", str(duration), "-i", str(video_path_obj),
         "-vf", f"subtitles='{ass_filter_path}':fontsdir='{fonts_dir_filter}',scale=480:-2:flags=lanczos,fps=10",

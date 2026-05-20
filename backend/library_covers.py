@@ -122,7 +122,7 @@ def download_cover_file(covers_dir: Path, series_id: int, source: str, external_
 
 def save_series_cover(db_path: Path, covers_dir: Path, series_id: int, source: str, external_id: str | int, cover_url: str) -> dict:
     cover_path = download_cover_file(covers_dir, series_id, source, external_id, cover_url)
-    relative_path = str(cover_path.relative_to(covers_dir.parent))
+    relative_path = str(cover_path.relative_to(covers_dir.parent.parent))
     with get_db(db_path) as conn:
         series = conn.execute("SELECT id FROM series WHERE id = ?", (series_id,)).fetchone()
         if not series:

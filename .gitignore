@@ -1,6 +1,6 @@
 .env
 UploadedVideos/
-Player/temp/
+frontend/temp/
 anki_highlight_cache/
 __pycache__/
 *.mp4

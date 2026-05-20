@@ -4,7 +4,7 @@ import time
 from flask import Blueprint, jsonify, request
 
 from backend import app_state
-from backend.config import ANKI_HIGHLIGHT_CACHE_DIR, PLAYER_DIR
+from backend.config import ANKI_HIGHLIGHT_CACHE_DIR, FRONTEND_DIR
 from backend.utils_validation import safe_cache_key
 
 misc_bp = Blueprint("misc", __name__)
@@ -52,7 +52,7 @@ def save_anki_highlight_cache(cache_key):
 
 @misc_bp.route("/known-basic-words", methods=["GET"])
 def get_known_basic_words():
-    words_path = PLAYER_DIR / "known-basic-words.json"
+    words_path = FRONTEND_DIR / "known-basic-words.json"
     if not words_path.exists():
         return jsonify({"words": [], "source": str(words_path), "exists": False})
 
@@ -69,7 +69,7 @@ def get_known_basic_words():
 
 @misc_bp.route("/known-basic-words/add", methods=["POST"])
 def add_known_basic_word():
-    words_path = PLAYER_DIR / "known-basic-words.json"
+    words_path = FRONTEND_DIR / "known-basic-words.json"
     data = request.get_json(silent=True) or {}
     word = str(data.get("word", "")).strip()
     if not word:
