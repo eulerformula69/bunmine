@@ -81,7 +81,12 @@ const i18n = {
 			toastRuntimeHighlighterFailed: "Ошибка подсветки Anki: {message}",
 			toastResetSubtitleDepthQuestion: "Сбросить глубину субтитров на стандартную?",
 			toastResetSubtitleDepthYes: "Да",
-			toastResetSubtitleDepthNo: "Нет"			
+			toastResetSubtitleDepthNo: "Нет",
+			libraryAutoCompleteQuestion: "Похоже, серия досмотрена. Отметить её просмотренной?",
+			libraryAutoCompleteConfirm: "Отметить",
+			libraryAutoCompleteDismiss: "Не сейчас",
+			libraryAutoCompleteSaved: "Серия отмечена как просмотренная",
+			libraryAutoCompleteSaveFailed: "Не удалось отметить серию просмотренной: {message}"	
         }
     },
     en: {
@@ -167,7 +172,12 @@ const i18n = {
 			toastRuntimeHighlighterFailed: "Runtime Anki highlighter failed: {message}",
 			toastResetSubtitleDepthQuestion: "Reset subtitle depth to default?",
 			toastResetSubtitleDepthYes: "Yes",
-			toastResetSubtitleDepthNo: "No"		
+			toastResetSubtitleDepthNo: "No",
+			libraryAutoCompleteQuestion: "Looks like you finished this episode. Mark it as watched?",
+			libraryAutoCompleteConfirm: "Mark watched",
+			libraryAutoCompleteDismiss: "Not now",
+			libraryAutoCompleteSaved: "Episode marked as watched",
+			libraryAutoCompleteSaveFailed: "Could not mark episode as watched: {message}"
 			
         }
     },
@@ -253,7 +263,12 @@ const i18n = {
 			toastRuntimeHighlighterFailed: "Anki ハイライトに失敗しました: {message}",
 			toastResetSubtitleDepthQuestion: "字幕の深さを標準にリセットしますか？",
 			toastResetSubtitleDepthYes: "はい",
-			toastResetSubtitleDepthNo: "いいえ"		
+			toastResetSubtitleDepthNo: "いいえ",
+			libraryAutoCompleteQuestion: "このエピソードを最後まで見たようです。視聴済みにしますか？",
+			libraryAutoCompleteConfirm: "視聴済みにする",
+			libraryAutoCompleteDismiss: "今はしない",
+			libraryAutoCompleteSaved: "エピソードを視聴済みにしました",
+			libraryAutoCompleteSaveFailed: "エピソードを視聴済みにできませんでした: {message}"
 			
         }
     }
