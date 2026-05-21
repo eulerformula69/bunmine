@@ -1330,35 +1330,36 @@ document.getElementById("refreshAnkiHighlighterBtn")?.addEventListener("click", 
 
     if (refreshBtn) {
         refreshBtn.disabled = true;
-        refreshBtn.textContent = "Refreshing…";
+        refreshBtn.textContent = t("ankiHighlightRefreshButtonRefreshing");
     }
-    setAnkiHighlightRefreshStatus("Refreshing Anki highlight index…", "info");
+    setAnkiHighlightRefreshStatus(t("ankiHighlightRefreshStatusRefreshing"), "info");
 
     let result;
     try {
-        showToast?.("Refreshing Anki highlight index...", "info", 2500);
+        showToast?.(t("ankiHighlightRefreshStatusRefreshing"), "info", 2500);
         result = await refreshKnownAnkiWordsFromAnki?.();
     } catch (err) {
         const message = err?.message || String(err);
         console.error("Anki highlight refresh failed:", err);
-        setAnkiHighlightRefreshStatus(`Refresh failed: ${message}`, "error");
+        setAnkiHighlightRefreshStatus(t("ankiHighlightRefreshStatusFailed", { message }), "error");
         showToast?.(t("toastRuntimeHighlighterFailed", { message }), "error", 8000);
         return;
     } finally {
         if (refreshBtn) {
             refreshBtn.disabled = false;
-            refreshBtn.textContent = oldButtonText.trim() || "Refresh Highlight Words";
+            refreshBtn.textContent = oldButtonText.trim() || t("refreshHighlightWords");
         }
     }
 
     const count = result?.count || 0;
     const cardsChecked = result?.cardsChecked || 0;
+    const notesFound = result?.notesFound || result?.notesChecked || 0;
     const importedWords = result?.importedWords || 0;
     const preservedLockedWords = result?.preservedLockedWords || 0;
-    const message = `Done: ${count} words in known-anki-words.json; checked ${cardsChecked} cards; imported/updated ${importedWords}; preserved locked ${preservedLockedWords}.`;
+    const message = t("ankiHighlightRefreshStatusDone", { count, notesFound, cardsChecked, importedWords, preservedLockedWords });
 
     setAnkiHighlightRefreshStatus(message, "success");
-    showToast?.(`Anki highlight index refreshed: ${count} words`, "success", 5000);
+    showToast?.(t("ankiHighlightRefreshToastDone", { count }), "success", 5000);
 
     const sub = getCurrentSubtitle?.();
 
@@ -1366,7 +1367,7 @@ document.getElementById("refreshAnkiHighlighterBtn")?.addEventListener("click", 
         ensureStatusesForSubtitleText(sub.text).catch((err) => {
             const message = err?.message || String(err);
             console.error("Snapshot highlighter failed:", err);
-            setAnkiHighlightRefreshStatus(`Index refreshed, but subtitle repaint failed: ${message}`, "error");
+            setAnkiHighlightRefreshStatus(t("ankiHighlightRefreshStatusRepaintFailed", { message }), "error");
             showToast?.(t("toastRuntimeHighlighterFailed", { message }), "error", 6000);
         });
     }

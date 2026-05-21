@@ -1064,3 +1064,10 @@ body.subtitle-depth-dragging * {
   opacity: 1;
   font-weight: 600;
 }
+
+.anki-highlight-refresh-status {
+  display: block;
+  width: 100%;
+  margin: 0.45rem auto 0.35rem;
+  text-align: center;
+}

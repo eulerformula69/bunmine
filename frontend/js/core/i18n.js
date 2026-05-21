@@ -86,7 +86,19 @@ const i18n = {
 			libraryAutoCompleteConfirm: "Отметить",
 			libraryAutoCompleteDismiss: "Не сейчас",
 			libraryAutoCompleteSaved: "Серия отмечена как просмотренная",
-			libraryAutoCompleteSaveFailed: "Не удалось отметить серию просмотренной: {message}"	
+			libraryAutoCompleteSaveFailed: "Не удалось отметить серию просмотренной: {message}",
+            ankiHighlightAutoRefreshLabel: "Автообновление известных слов Anki:",
+            ankiHighlightAutoRefreshDaily: "Каждый день",
+            ankiHighlightAutoRefreshWeekly: "Каждую неделю",
+            ankiHighlightAutoRefreshOff: "Выкл.",
+            refreshHighlightWords: "Обновить слова подсветки",
+            ankiHighlightRefreshButtonRefreshing: "Обновление…",
+            ankiHighlightRefreshStatusRefreshing: "Обновляю индекс подсветки Anki…",
+            ankiHighlightRefreshStatusFailed: "Ошибка обновления: {message}",
+            ankiHighlightRefreshStatusDone: "Готово: {count} слов в known-anki-words.json; проверено карточек: {cardsChecked}; импортировано/обновлено: {importedWords}; locked сохранено: {preservedLockedWords}.",
+            ankiHighlightRefreshToastDone: "Индекс подсветки Anki обновлён: {count} слов",
+            ankiHighlightRefreshStatusRepaintFailed: "Индекс обновлён, но перерисовка субтитров упала: {message}"			
+			
         }
     },
     en: {
@@ -177,7 +189,18 @@ const i18n = {
 			libraryAutoCompleteConfirm: "Mark watched",
 			libraryAutoCompleteDismiss: "Not now",
 			libraryAutoCompleteSaved: "Episode marked as watched",
-			libraryAutoCompleteSaveFailed: "Could not mark episode as watched: {message}"
+			libraryAutoCompleteSaveFailed: "Could not mark episode as watched: {message}",
+            ankiHighlightAutoRefreshLabel: "Auto-refresh known Anki words:",
+            ankiHighlightAutoRefreshDaily: "Daily",
+            ankiHighlightAutoRefreshWeekly: "Weekly",
+            ankiHighlightAutoRefreshOff: "Off",
+            refreshHighlightWords: "Refresh Highlight Words",
+            ankiHighlightRefreshButtonRefreshing: "Refreshing…",
+            ankiHighlightRefreshStatusRefreshing: "Refreshing Anki highlight index…",
+            ankiHighlightRefreshStatusFailed: "Refresh failed: {message}",
+            ankiHighlightRefreshStatusDone: "Done: {count} words in known-anki-words.json; checked {cardsChecked} cards; imported/updated {importedWords}; preserved locked {preservedLockedWords}.",
+            ankiHighlightRefreshToastDone: "Anki highlight index refreshed: {count} words",
+            ankiHighlightRefreshStatusRepaintFailed: "Index refreshed, but subtitle repaint failed: {message}"
 			
         }
     },
@@ -268,7 +291,18 @@ const i18n = {
 			libraryAutoCompleteConfirm: "視聴済みにする",
 			libraryAutoCompleteDismiss: "今はしない",
 			libraryAutoCompleteSaved: "エピソードを視聴済みにしました",
-			libraryAutoCompleteSaveFailed: "エピソードを視聴済みにできませんでした: {message}"
+			libraryAutoCompleteSaveFailed: "エピソードを視聴済みにできませんでした: {message}",
+            ankiHighlightAutoRefreshLabel: "Anki既知語の自動更新:",
+            ankiHighlightAutoRefreshDaily: "毎日",
+            ankiHighlightAutoRefreshWeekly: "毎週",
+            ankiHighlightAutoRefreshOff: "オフ",
+            refreshHighlightWords: "ハイライト単語を更新",
+            ankiHighlightRefreshButtonRefreshing: "更新中…",
+            ankiHighlightRefreshStatusRefreshing: "Ankiハイライト索引を更新中…",
+            ankiHighlightRefreshStatusFailed: "更新失敗: {message}",
+            ankiHighlightRefreshStatusDone: "完了: known-anki-words.json に {count} 語; 確認カード: {cardsChecked}; 取り込み/更新: {importedWords}; locked保持: {preservedLockedWords}.",
+            ankiHighlightRefreshToastDone: "Ankiハイライト索引を更新しました: {count} 語",
+            ankiHighlightRefreshStatusRepaintFailed: "索引は更新されましたが、字幕の再描画に失敗しました: {message}"			
 			
         }
     }

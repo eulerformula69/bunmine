@@ -252,6 +252,33 @@ def _build_deck_query(deck_names: list[str]) -> str:
     return " OR ".join(f'deck:"{_escape_anki_search_value(deck)}"' for deck in deck_names if deck)
 
 
+def _extract_words_from_note(note: dict, word_fields: list[str]) -> list[str]:
+    fields = note.get("fields") if isinstance(note.get("fields"), dict) else {}
+    words: list[str] = []
+    seen: set[str] = set()
+
+    for field_name in word_fields:
+        field = fields.get(field_name) if isinstance(fields.get(field_name), dict) else {}
+        word = _normalize_highlight_word(field.get("value"))
+        if not word or word in seen:
+            continue
+        seen.add(word)
+        words.append(word)
+
+    return words
+
+
+def _note_card_ids(note: dict) -> list[int]:
+    cards = note.get("cards") if isinstance(note.get("cards"), list) else []
+    result: list[int] = []
+    for raw_card_id in cards:
+        try:
+            result.append(int(raw_card_id))
+        except (TypeError, ValueError):
+            continue
+    return result
+
+
 def _refresh_known_anki_words_from_anki(payload: dict) -> dict:
     anki_url = str(payload.get("ankiUrl") or "").strip()
     deck_names = [str(item).strip() for item in payload.get("decks") or [] if str(item).strip()]
@@ -281,62 +308,112 @@ def _refresh_known_anki_words_from_anki(payload: dict) -> dict:
         "lastAutoRefreshAt": checked_at if payload.get("autoRun") else saved_settings.get("lastAutoRefreshAt"),
         "lastAutoRefreshError": None,
     })
+
     previous = _read_known_anki_data()
     previous_words = previous.get("words", {}) if isinstance(previous.get("words"), dict) else {}
     next_words = {} if full_rebuild else dict(previous_words)
 
+    # Fast path:
+    #   1. findNotes is cheaper than findCards for discovery.
+    #   2. notesInfo gives fields and card ids together.
+    #   3. cardsInfo is requested only for notes that contain new/non-locked words.
+    # Locked mature words are preserved without status re-checks unless fullRebuild is requested.
     deck_query = _build_deck_query(deck_names)
-    card_ids = _anki_request(anki_url, "findCards", {"query": f"({deck_query})"}) or []
+    note_ids = _anki_request(anki_url, "findNotes", {"query": f"({deck_query})"}) or []
 
-    note_status_map: dict[str, str] = {}
-    for card_chunk in _chunked(card_ids, 500):
-        cards_info = _anki_request(anki_url, "cardsInfo", {"cards": card_chunk}) or []
-        for card in cards_info:
-            note_id = str(card.get("note") or "").strip()
-            if not note_id:
-                continue
-            note_status_map[note_id] = _pick_better_status(note_status_map.get(note_id), _card_status(card))
-
-    note_ids = []
-    for raw_note_id in note_status_map.keys():
-        try:
-            note_ids.append(int(raw_note_id))
-        except ValueError:
-            continue
-
-    imported_words = 0
+    note_words: dict[str, list[str]] = {}
+    note_cards: dict[str, list[int]] = {}
+    card_to_note: dict[int, str] = {}
+    candidate_card_ids: list[int] = []
+    discovered_words = 0
     preserved_locked_words = 0
 
     for note_chunk in _chunked(note_ids, 250):
         notes_info = _anki_request(anki_url, "notesInfo", {"notes": note_chunk}) or []
         for note in notes_info:
-            note_id = note.get("noteId")
-            status = note_status_map.get(str(note_id), "unknown")
-            fields = note.get("fields") if isinstance(note.get("fields"), dict) else {}
+            note_id = str(note.get("noteId") or "").strip()
+            if not note_id:
+                continue
 
-            for field_name in word_fields:
-                field = fields.get(field_name) if isinstance(fields.get(field_name), dict) else {}
-                word = _normalize_highlight_word(field.get("value"))
-                if not word:
-                    continue
+            words = _extract_words_from_note(note, word_fields)
+            if not words:
+                continue
 
-                old_info = previous_words.get(word) if isinstance(previous_words.get(word), dict) else {}
-                if old_info.get("locked") is True and old_info.get("status") == "mature" and not full_rebuild:
-                    next_words[word] = old_info
-                    preserved_locked_words += 1
-                    continue
+            card_ids = _note_card_ids(note)
+            note_words[note_id] = words
+            note_cards[note_id] = card_ids
+            discovered_words += len(words)
 
-                old_next_info = next_words.get(word) if isinstance(next_words.get(word), dict) else {}
-                best_status = _pick_better_status(old_next_info.get("status"), status)
+            needs_status_check = full_rebuild
+            if not needs_status_check:
+                for word in words:
+                    old_info = previous_words.get(word) if isinstance(previous_words.get(word), dict) else {}
+                    if old_info.get("locked") is True and old_info.get("status") == "mature":
+                        next_words[word] = old_info
+                        preserved_locked_words += 1
+                    else:
+                        needs_status_check = True
 
-                next_words[word] = {
-                    **old_next_info,
-                    "status": best_status,
-                    "noteId": int(note_id) if note_id is not None else None,
-                    "lastCheckedAt": checked_at,
-                    "locked": best_status == "mature",
-                }
-                imported_words += 1
+            if not needs_status_check:
+                continue
+
+            for card_id in card_ids:
+                card_to_note[card_id] = note_id
+                candidate_card_ids.append(card_id)
+
+    note_status_map: dict[str, str] = {}
+    for card_chunk in _chunked(candidate_card_ids, 500):
+        cards_info = _anki_request(anki_url, "cardsInfo", {"cards": card_chunk}) or []
+        for card in cards_info:
+            try:
+                card_id = int(card.get("cardId") or card.get("cardId") or card.get("id"))
+            except (TypeError, ValueError):
+                # Some AnkiConnect versions omit cardId in cardsInfo. Fall back to the note id in payload.
+                card_id = None
+
+            note_id = ""
+            if card_id is not None:
+                note_id = card_to_note.get(card_id, "")
+            if not note_id:
+                note_id = str(card.get("note") or "").strip()
+            if not note_id:
+                continue
+
+            note_status_map[note_id] = _pick_better_status(note_status_map.get(note_id), _card_status(card))
+
+    imported_words = 0
+    skipped_locked_words = 0
+    status_checked_notes = 0
+
+    for note_id, words in note_words.items():
+        if note_id not in note_status_map:
+            skipped_locked_words += len(words)
+            continue
+
+        status_checked_notes += 1
+        status = note_status_map.get(note_id, "unknown")
+        for word in words:
+            old_info = previous_words.get(word) if isinstance(previous_words.get(word), dict) else {}
+            if old_info.get("locked") is True and old_info.get("status") == "mature" and not full_rebuild:
+                next_words[word] = old_info
+                continue
+
+            old_next_info = next_words.get(word) if isinstance(next_words.get(word), dict) else {}
+            best_status = _pick_better_status(old_next_info.get("status"), status)
+
+            try:
+                normalized_note_id = int(note_id)
+            except ValueError:
+                normalized_note_id = None
+
+            next_words[word] = {
+                **old_next_info,
+                "status": best_status,
+                "noteId": normalized_note_id,
+                "lastCheckedAt": checked_at,
+                "locked": best_status == "mature",
+            }
+            imported_words += 1
 
     result_data = _write_known_anki_data({
         "updatedAt": checked_at,
@@ -350,18 +427,17 @@ def _refresh_known_anki_words_from_anki(payload: dict) -> dict:
         "updatedAt": checked_at,
         "source": str(_known_anki_words_path()),
         "count": len(result_data["words"]),
-        "cardsChecked": len(card_ids),
-        "notesChecked": len(note_ids),
+        "notesFound": len(note_ids),
+        "notesChecked": status_checked_notes,
+        "cardsChecked": len(candidate_card_ids),
+        "discoveredWords": discovered_words,
         "importedWords": imported_words,
         "preservedLockedWords": preserved_locked_words,
+        "skippedLockedWords": skipped_locked_words,
         "fullRebuild": full_rebuild,
+        "optimized": True,
     }
 
-
-@misc_bp.route("/heartbeat", methods=["POST"])
-def heartbeat():
-    app_state.last_heartbeat = time.time()
-    return jsonify({"status": "alive"})
 
 
 @misc_bp.route("/anki-highlight-cache/<cache_key>", methods=["GET"])

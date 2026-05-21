@@ -164,17 +164,17 @@
 		<label data-i18n="highlightWordField">Highlight Word Field:</label>
 		<input type="text" id="highlightWordField" value="Word">
 
-		<label for="ankiHighlightAutoRefreshInterval">Auto-refresh known Anki words:</label>
+		<label for="ankiHighlightAutoRefreshInterval" data-i18n="ankiHighlightAutoRefreshLabel">Auto-refresh known Anki words:</label>
 		<select id="ankiHighlightAutoRefreshInterval">
-		  <option value="daily" selected>Daily</option>
-		  <option value="weekly">Weekly</option>
-		  <option value="off">Off</option>
+		  <option value="daily" selected data-i18n="ankiHighlightAutoRefreshDaily">Daily</option>
+		  <option value="weekly" data-i18n="ankiHighlightAutoRefreshWeekly">Weekly</option>
+		  <option value="off" data-i18n="ankiHighlightAutoRefreshOff">Off</option>
 		</select>
 
 		<button id="refreshAnkiHighlighterBtn" class="settings-action-btn" data-i18n="refreshHighlightWords">
 		  Refresh Highlight Words
 		</button>
-		<div id="ankiHighlightRefreshStatus" class="settings-help-text" aria-live="polite"></div>		
+		<div id="ankiHighlightRefreshStatus" class="settings-help-text anki-highlight-refresh-status" aria-live="polite"></div>		
 
       </div>
 
