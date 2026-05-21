@@ -2,7 +2,7 @@ import json
 import time
 import urllib.error
 import urllib.request
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from flask import Blueprint, jsonify, request
 
@@ -109,6 +109,7 @@ def _write_anki_highlight_settings(payload: dict) -> dict:
         "lastManualRefreshAt": payload.get("lastManualRefreshAt"),
         "lastAutoRefreshAt": payload.get("lastAutoRefreshAt"),
         "lastAutoRefreshError": payload.get("lastAutoRefreshError"),
+        "lastStartupStaleCheckAt": payload.get("lastStartupStaleCheckAt"),
     }
     if settings["autoRefresh"] not in {"off", "daily", "weekly"}:
         settings["autoRefresh"] = "daily"
@@ -124,6 +125,41 @@ def _merge_refresh_payload_with_saved_settings(payload: dict) -> dict:
     merged.update({key: value for key, value in payload.items() if value is not None})
     return merged
 
+
+
+def _parse_utc_iso(value: str | None):
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except (TypeError, ValueError):
+        return None
+
+
+def _settings_refresh_anchor(settings: dict):
+    auto_at = _parse_utc_iso(settings.get("lastAutoRefreshAt"))
+    manual_at = _parse_utc_iso(settings.get("lastManualRefreshAt"))
+    candidates = [item for item in [auto_at, manual_at] if item is not None]
+    return max(candidates) if candidates else None
+
+
+def _is_auto_refresh_stale(settings: dict) -> bool:
+    mode = str(settings.get("autoRefresh") or "off").strip().lower()
+    if mode == "off":
+        return False
+    if mode not in {"daily", "weekly"}:
+        return False
+
+    # First startup after selecting daily/weekly should run once, because there is no saved anchor yet.
+    anchor = _settings_refresh_anchor(settings)
+    if anchor is None:
+        return True
+
+    interval = timedelta(days=7 if mode == "weekly" else 1)
+    now = datetime.now(timezone.utc)
+    if anchor.tzinfo is None:
+        anchor = anchor.replace(tzinfo=timezone.utc)
+    return now - anchor >= interval
 
 def _default_known_anki_data():
     return {
@@ -553,6 +589,33 @@ def get_known_anki_auto_refresh_settings():
         return jsonify({"error": str(err)}), 500
 
 
+@misc_bp.route("/known-anki-words/auto-refresh-settings", methods=["POST"])
+def save_known_anki_auto_refresh_settings():
+    payload = request.get_json(silent=True) or {}
+    if not isinstance(payload, dict):
+        return jsonify({"error": "Invalid auto-refresh settings payload"}), 400
+
+    saved = _read_anki_highlight_settings()
+    merged = {**saved}
+
+    if "ankiUrl" in payload:
+        merged["ankiUrl"] = str(payload.get("ankiUrl") or "").strip()
+    if "decks" in payload:
+        merged["decks"] = [str(item).strip() for item in payload.get("decks") or [] if str(item).strip()]
+    if "wordFields" in payload:
+        merged["wordFields"] = [str(item).strip() for item in payload.get("wordFields") or [] if str(item).strip()]
+    if "autoRefresh" in payload:
+        merged["autoRefresh"] = str(payload.get("autoRefresh") or "off").strip().lower()
+
+    try:
+        settings = _write_anki_highlight_settings(merged)
+        safe_settings = {key: value for key, value in settings.items() if key != "ankiUrl"}
+        safe_settings["hasAnkiUrl"] = bool(settings.get("ankiUrl"))
+        return jsonify({"ok": True, "settings": safe_settings, "source": str(_anki_highlight_settings_path())})
+    except Exception as err:
+        return jsonify({"error": str(err)}), 500
+
+
 def refresh_known_anki_words_auto() -> dict:
     payload = _merge_refresh_payload_with_saved_settings({
         "fullRebuild": False,
@@ -569,6 +632,19 @@ def refresh_known_anki_words_auto() -> dict:
             "lastAutoRefreshError": str(err),
         })
         raise
+
+
+def refresh_known_anki_words_if_stale_on_startup() -> dict:
+    settings = _read_anki_highlight_settings()
+    checked_at = _utc_now_iso()
+    _write_anki_highlight_settings({**settings, "lastStartupStaleCheckAt": checked_at})
+
+    if not _is_auto_refresh_stale(settings):
+        return {"ok": True, "skipped": True, "reason": "Auto-refresh is not stale."}
+
+    result = refresh_known_anki_words_auto()
+    result["startupStaleCheck"] = True
+    return result
 
 
 @misc_bp.route("/known-anki-words/refresh", methods=["POST"])

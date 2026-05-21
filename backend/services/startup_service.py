@@ -1,12 +1,7 @@
 import os
 import threading
-import time
-from datetime import datetime, timedelta
 
 from backend.config import (
-    ANKI_HIGHLIGHT_AUTO_REFRESH,
-    ANKI_HIGHLIGHT_AUTO_REFRESH_HOUR,
-    ANKI_HIGHLIGHT_AUTO_REFRESH_MINUTE,
     ANKI_HIGHLIGHT_DIR,
     DEDUPE_INDEX_PATH,
     FONTS_DIR,
@@ -16,58 +11,34 @@ from backend.config import (
     VIDEO_DIR,
 )
 from backend.library_db import get_db, init_library_db
-from backend.routes.misc_routes import ensure_anki_highlight_files, refresh_known_anki_words_auto
+from backend.routes.misc_routes import ensure_anki_highlight_files, refresh_known_anki_words_if_stale_on_startup
 
-_auto_refresh_thread_started = False
-
-
-def _seconds_until_next_auto_refresh() -> float:
-    now = datetime.now()
-    target = now.replace(
-        hour=max(0, min(23, ANKI_HIGHLIGHT_AUTO_REFRESH_HOUR)),
-        minute=max(0, min(59, ANKI_HIGHLIGHT_AUTO_REFRESH_MINUTE)),
-        second=0,
-        microsecond=0,
-    )
-
-    if target <= now:
-        target += timedelta(days=1)
-
-    if ANKI_HIGHLIGHT_AUTO_REFRESH == "weekly":
-        # Monday local time. If today is Monday and the target time is still ahead, use today.
-        days_until_monday = (0 - target.weekday()) % 7
-        if days_until_monday:
-            target += timedelta(days=days_until_monday)
-
-    return max(60.0, (target - now).total_seconds())
+_startup_stale_check_started = False
 
 
-def _anki_highlight_auto_refresh_loop() -> None:
-    while True:
-        time.sleep(_seconds_until_next_auto_refresh())
+def start_anki_highlight_startup_stale_check() -> None:
+    """Run one stale auto-refresh check after backend startup.
+
+    This intentionally replaces the old always-running timer. The app is often
+    started only when the user wants to watch something, so daily/weekly refresh
+    should mean: "when the server starts, refresh once if the saved Anki index is
+    older than the selected interval".
+    """
+    global _startup_stale_check_started
+    if _startup_stale_check_started:
+        return
+    _startup_stale_check_started = True
+
+    def worker() -> None:
         try:
-            result = refresh_known_anki_words_auto()
-            print(f"Anki highlight auto-refresh result: {result}")
+            result = refresh_known_anki_words_if_stale_on_startup()
+            print(f"Anki highlight startup stale-check result: {result}")
         except Exception as err:
-            print(f"Anki highlight auto-refresh failed: {err}")
+            # Startup must not fail just because Anki is closed.
+            print(f"Anki highlight startup stale-check skipped/failed: {err}")
 
-
-def start_anki_highlight_auto_refresh() -> None:
-    global _auto_refresh_thread_started
-    if _auto_refresh_thread_started:
-        return
-    if ANKI_HIGHLIGHT_AUTO_REFRESH not in {"daily", "weekly"}:
-        print("Anki highlight auto-refresh disabled")
-        return
-
-    _auto_refresh_thread_started = True
-    thread = threading.Thread(target=_anki_highlight_auto_refresh_loop, daemon=True)
+    thread = threading.Thread(target=worker, daemon=True)
     thread.start()
-    print(
-        "Anki highlight auto-refresh enabled: "
-        f"{ANKI_HIGHLIGHT_AUTO_REFRESH} at "
-        f"{ANKI_HIGHLIGHT_AUTO_REFRESH_HOUR:02d}:{ANKI_HIGHLIGHT_AUTO_REFRESH_MINUTE:02d}"
-    )
 
 
 def ensure_directories() -> None:
@@ -101,7 +72,7 @@ def cleanup_on_startup() -> None:
 def initialize_backend() -> None:
     ensure_directories()
     ensure_anki_highlight_files()
-    start_anki_highlight_auto_refresh()
+    start_anki_highlight_startup_stale_check()
     cleanup_on_startup()
     init_library_db(LIBRARY_DB_PATH)
     migrate_cover_paths()

@@ -60,11 +60,44 @@ function saveSettings() {
 		highlightColorSuspended: document.getElementById("highlightColorSuspended")?.value || "#999999",
 		highlightColorUnknown: document.getElementById("highlightColorUnknown")?.value || "#ffffff",
 		highlightDeckNames: document.getElementById("highlightDeckNames")?.value || "",
-		highlightWordField: document.getElementById("highlightWordField")?.value || "Word"
+		highlightWordField: document.getElementById("highlightWordField")?.value || "Word",
+		ankiHighlightAutoRefreshInterval: document.getElementById("ankiHighlightAutoRefreshInterval")?.value || "off"
 		
     };
     localStorage.setItem("subtitlePlayerSettings", JSON.stringify(settings));
+    saveAnkiHighlightAutoRefreshSettings(settings).catch((err) => {
+        console.warn("Failed to save Anki highlight auto-refresh settings:", err);
+        showToast?.(err?.message || String(err), "error", 6000);
+    });
     showToast("Settings saved", "success");
+}
+
+async function saveAnkiHighlightAutoRefreshSettings(settings) {
+    if (typeof apiJson !== "function") return;
+
+    const decks = String(settings.highlightDeckNames || "")
+        .split(/[,\n]/)
+        .map((item) => item.trim())
+        .filter(Boolean);
+    const wordFields = String(settings.highlightWordField || "Word")
+        .split(/[,\n]/)
+        .map((item) => item.trim())
+        .filter(Boolean);
+
+    const { response, data } = await apiJson("/known-anki-words/auto-refresh-settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            ankiUrl: settings.ankiUrl || "",
+            decks,
+            wordFields,
+            autoRefresh: settings.ankiHighlightAutoRefreshInterval || "off"
+        })
+    });
+
+    if (!response.ok || data?.error) {
+        throw new Error(data?.error || "Failed to save Anki highlight auto-refresh settings");
+    }
 }
 
 function loadSettings() {
@@ -129,6 +162,11 @@ function loadSettings() {
 	const highlightWordField = document.getElementById("highlightWordField");
 	if (highlightWordField) {
 		highlightWordField.value = settings.highlightWordField || "Word";
+	}
+
+	const ankiHighlightAutoRefreshInterval = document.getElementById("ankiHighlightAutoRefreshInterval");
+	if (ankiHighlightAutoRefreshInterval) {
+		ankiHighlightAutoRefreshInterval.value = settings.ankiHighlightAutoRefreshInterval || settings.ankiHighlightAutoRefresh || "daily";
 	}
 
     const mapping = {
@@ -216,8 +254,3 @@ const langSelect = document.getElementById("interfaceLangSelect");
 if (langSelect) {
     langSelect.onchange = (e) => applyLanguage(e.target.value);
 }
-
-
-
-
-
