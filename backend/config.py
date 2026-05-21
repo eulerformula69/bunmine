@@ -26,7 +26,8 @@ BASE_DIR = Path(os.getenv("PLAYER_SERVER_BASE_DIR", str(DEFAULT_BASE_DIR))).reso
 
 FRONTEND_DIR = BASE_DIR / "frontend"
 VIDEO_DIR = BASE_DIR / "UploadedVideos"
-ANKI_HIGHLIGHT_CACHE_DIR = BASE_DIR / "anki_highlight_cache"
+ANKI_HIGHLIGHT_DIR = BASE_DIR / "anki_highlight"
+ANKI_HIGHLIGHT_CACHE_DIR = ANKI_HIGHLIGHT_DIR  # Backward-compatible alias
 
 anki_media_dir_raw = os.getenv("ANKI_MEDIA_DIR")
 if not anki_media_dir_raw:
@@ -56,6 +57,8 @@ FONTS_DIR = FRONTEND_DIR / "fonts"
 PORT = int(os.getenv("PORT", "5000"))
 JIMAKU_API_TOKEN = os.getenv("JIMAKU_API_TOKEN", "").strip()
 
-
-
+# Automatic Anki highlight refresh. Values: off, daily, weekly.
+ANKI_HIGHLIGHT_AUTO_REFRESH = os.getenv("ANKI_HIGHLIGHT_AUTO_REFRESH", "daily").strip().lower()
+ANKI_HIGHLIGHT_AUTO_REFRESH_HOUR = int(os.getenv("ANKI_HIGHLIGHT_AUTO_REFRESH_HOUR", "4"))
+ANKI_HIGHLIGHT_AUTO_REFRESH_MINUTE = int(os.getenv("ANKI_HIGHLIGHT_AUTO_REFRESH_MINUTE", "0"))
 

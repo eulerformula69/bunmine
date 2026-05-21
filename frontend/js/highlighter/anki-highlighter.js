@@ -1,10 +1,12 @@
 const ankiRuntimeWordStatusMap = new Map();
 
 let knownBasicWordsLoaded = false;
+let knownAnkiWordsLoaded = false;
 
 function clearRuntimeWordStatuses() {
     ankiRuntimeWordStatusMap.clear();
     knownBasicWordsLoaded = false;
+    knownAnkiWordsLoaded = false;
 }
 
 function getCardStatus(card) {
@@ -127,6 +129,107 @@ async function loadKnownBasicWords({ force = false } = {}) {
     } catch (err) {
         console.warn("Known basic words load failed:", err);
     }
+}
+
+async function loadKnownAnkiWords({ force = false } = {}) {
+    if (knownAnkiWordsLoaded && !force) return;
+
+    try {
+        const { response, data } = await apiJson("/known-anki-words");
+
+        if (!response.ok || data.error) {
+            throw new Error(data.error || "Known Anki words load failed");
+        }
+
+        const words = data?.data?.words && typeof data.data.words === "object"
+            ? data.data.words
+            : {};
+
+        let loadedCount = 0;
+
+        for (const [rawWord, rawInfo] of Object.entries(words)) {
+            const word = normalizeHighlightWord(rawWord);
+            if (!word) continue;
+
+            const info = rawInfo && typeof rawInfo === "object" ? rawInfo : {};
+            const status = info.status || "unknown";
+            const prev = ankiRuntimeWordStatusMap.get(word);
+
+            ankiRuntimeWordStatusMap.set(word, {
+                ...(prev || {}),
+                ...info,
+                status: pickBetterStatus(prev?.status, status),
+                source: prev?.source === "known-basic" ? "known-basic" : "known-anki"
+            });
+
+            loadedCount += 1;
+        }
+
+        knownAnkiWordsLoaded = true;
+        console.log(`Known Anki words loaded: ${loadedCount}`);
+    } catch (err) {
+        console.warn("Known Anki words load failed:", err);
+    }
+}
+
+async function loadHighlightWordIndexes({ force = false } = {}) {
+    await loadKnownAnkiWords({ force });
+    await loadKnownBasicWords({ force });
+}
+
+function chunkArray(items, size) {
+    const chunks = [];
+    for (let i = 0; i < items.length; i += size) {
+        chunks.push(items.slice(i, i + size));
+    }
+    return chunks;
+}
+
+async function refreshKnownAnkiWordsFromAnki({ fullRebuild = false } = {}) {
+    const ankiUrl = document.getElementById("ankiUrl")?.value?.trim();
+    const autoRefresh = document.getElementById("ankiHighlightAutoRefreshInterval")?.value || "daily";
+    const wordFields = getHighlightWordFieldNames();
+    const deckNames = getHighlightDeckNames();
+
+    if (!ankiUrl || !deckNames.length || !wordFields.length) {
+        throw new Error("Set AnkiConnect URL, highlight decks and word fields first.");
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 120000);
+
+    let response;
+    let data;
+    try {
+        ({ response, data } = await apiJson("/known-anki-words/refresh", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            signal: controller.signal,
+            body: JSON.stringify({
+                ankiUrl,
+                decks: deckNames,
+                wordFields,
+                autoRefresh,
+                fullRebuild
+            })
+        }));
+    } catch (err) {
+        if (err?.name === "AbortError") {
+            throw new Error("Anki highlight refresh timed out after 120 seconds. Check that Anki is open and AnkiConnect is responding.");
+        }
+        throw err;
+    } finally {
+        clearTimeout(timeoutId);
+    }
+
+    if (!response.ok || data.error) {
+        throw new Error(data.error || "Failed to refresh known-anki-words.json");
+    }
+
+    clearRuntimeWordStatuses();
+    await loadHighlightWordIndexes({ force: true });
+
+    return data;
 }
 
 function normalizeJapaneseNumberText(value) {
@@ -374,121 +477,12 @@ function collectSubtitleCandidates(text) {
 }
 
 async function ensureStatusesForSubtitleText(text, { rerender = true, silent = false } = {}) {
-    const ankiUrl = document.getElementById("ankiUrl")?.value?.trim();
-    const wordFields = getHighlightWordFieldNames();
-    const deckQuery = buildCurrentDeckQuery();
-
-    await loadKnownBasicWords();
-
-    if (!ankiUrl || !deckQuery || !wordFields.length || !text) {
-        if (rerender) rerenderCurrentSubtitleWithAnkiHighlighter();
-        return;
-    }
-
-    if (typeof getJapaneseTokenizer === "function") {
-        await getJapaneseTokenizer();
-    }
-
-    const candidates = collectSubtitleCandidates(text)
-        .filter((candidate) => !ankiRuntimeWordStatusMap.has(candidate));
-
-    if (!candidates.length) {
-        if (rerender) rerenderCurrentSubtitleWithAnkiHighlighter();
-        return;
-    }
+    await loadHighlightWordIndexes();
 
     if (!silent) {
-        console.log("Runtime highlighter candidates:", candidates);
-    }
-
-    const fieldQueries = [];
-
-    for (const candidate of candidates) {
-        const escapedCandidate = escapeAnkiSearchValue(candidate);
-
-        for (const fieldName of wordFields) {
-            fieldQueries.push(`${fieldName}:"${escapedCandidate}"`);
-        }
-    }
-
-    const query = `(${deckQuery}) (${fieldQueries.join(" OR ")})`;
-
-    const cardIds = await ankiRequest(
-        ankiUrl,
-        "findCards",
-        { query }
-    );
-
-    if (!cardIds.length) {
-        for (const candidate of candidates) {
-            ankiRuntimeWordStatusMap.set(candidate, {
-                status: "unknown",
-                source: "runtime-anki-miss"
-            });
-        }
-
-        if (rerender) rerenderCurrentSubtitleWithAnkiHighlighter();
-        return;
-    }
-
-    const cardsInfo = await ankiRequest(
-        ankiUrl,
-        "cardsInfo",
-        { cards: cardIds }
-    );
-
-    const noteStatusMap = new Map();
-
-    for (const card of cardsInfo) {
-        const noteId = String(card.note);
-        const status = getCardStatus(card);
-        const prev = noteStatusMap.get(noteId);
-
-        noteStatusMap.set(noteId, pickBetterStatus(prev, status));
-    }
-
-    const noteIds = [...noteStatusMap.keys()].map(Number);
-
-    const notesInfo = await ankiRequest(
-        ankiUrl,
-        "notesInfo",
-        { notes: noteIds }
-    );
-
-    const candidateSet = new Set(candidates);
-    const foundCandidates = new Set();
-
-    for (const note of notesInfo) {
-        const status = noteStatusMap.get(String(note.noteId)) || "unknown";
-
-        for (const fieldName of wordFields) {
-            const word = normalizeHighlightWord(note.fields?.[fieldName]?.value);
-
-            if (!word || !candidateSet.has(word)) continue;
-
-            ankiRuntimeWordStatusMap.set(word, {
-                status,
-                noteId: Number(note.noteId),
-                source: "runtime-anki"
-            });
-
-            foundCandidates.add(word);
-        }
-    }
-
-    for (const candidate of candidates) {
-        if (!foundCandidates.has(candidate)) {
-            ankiRuntimeWordStatusMap.set(candidate, {
-                status: "unknown",
-                source: "runtime-anki-miss"
-            });
-        }
-    }
-
-    if (!silent) {
-        console.log(
-            `Runtime highlighter loaded ${foundCandidates.size}/${candidates.length} subtitle words`
-        );
+        const candidates = collectSubtitleCandidates(text);
+        const knownCount = candidates.filter((candidate) => ankiRuntimeWordStatusMap.has(candidate)).length;
+        console.log(`Snapshot highlighter matched ${knownCount}/${candidates.length} subtitle candidates`);
     }
 
     if (rerender) {
@@ -497,102 +491,12 @@ async function ensureStatusesForSubtitleText(text, { rerender = true, silent = f
 }
 
 async function ensureStatusesForCandidates(candidates, { silent = false } = {}) {
-    const ankiUrl = document.getElementById("ankiUrl")?.value?.trim();
-    const wordFields = getHighlightWordFieldNames();
-    const deckQuery = buildCurrentDeckQuery();
-
-    await loadKnownBasicWords();
-
-    const missingCandidates = [...new Set(candidates)]
-        .filter(Boolean)
-        .filter((candidate) => !ankiRuntimeWordStatusMap.has(candidate));
-
-    if (!missingCandidates.length) return;
-
-    if (!ankiUrl || !deckQuery || !wordFields.length) {
-        for (const candidate of missingCandidates) {
-            ankiRuntimeWordStatusMap.set(candidate, {
-                status: "unknown",
-                source: "runtime-no-anki"
-            });
-        }
-        return;
-    }
+    await loadHighlightWordIndexes();
 
     if (!silent) {
-        console.log(`Runtime batch candidates: ${missingCandidates.length}`);
-    }
-
-    const fieldQueries = [];
-
-    for (const candidate of missingCandidates) {
-        const escapedCandidate = escapeAnkiSearchValue(candidate);
-
-        for (const fieldName of wordFields) {
-            fieldQueries.push(`${fieldName}:"${escapedCandidate}"`);
-        }
-    }
-
-    const query = `(${deckQuery}) (${fieldQueries.join(" OR ")})`;
-
-    const cardIds = await ankiRequest(ankiUrl, "findCards", { query });
-
-    if (!cardIds.length) {
-        for (const candidate of missingCandidates) {
-            ankiRuntimeWordStatusMap.set(candidate, {
-                status: "unknown",
-                source: "runtime-anki-miss"
-            });
-        }
-        return;
-    }
-
-    const cardsInfo = await ankiRequest(ankiUrl, "cardsInfo", { cards: cardIds });
-    const noteStatusMap = new Map();
-
-    for (const card of cardsInfo) {
-        const noteId = String(card.note);
-        const status = getCardStatus(card);
-        const prev = noteStatusMap.get(noteId);
-
-        noteStatusMap.set(noteId, pickBetterStatus(prev, status));
-    }
-
-    const noteIds = [...noteStatusMap.keys()].map(Number);
-    const notesInfo = await ankiRequest(ankiUrl, "notesInfo", { notes: noteIds });
-
-    const candidateSet = new Set(missingCandidates);
-    const foundCandidates = new Set();
-
-    for (const note of notesInfo) {
-        const status = noteStatusMap.get(String(note.noteId)) || "unknown";
-
-        for (const fieldName of wordFields) {
-            const word = normalizeHighlightWord(note.fields?.[fieldName]?.value);
-
-            if (!word || !candidateSet.has(word)) continue;
-
-            ankiRuntimeWordStatusMap.set(word, {
-                status,
-                noteId: Number(note.noteId),
-                source: "runtime-anki"
-            });
-
-            foundCandidates.add(word);
-        }
-    }
-
-    for (const candidate of missingCandidates) {
-        if (!foundCandidates.has(candidate)) {
-            ankiRuntimeWordStatusMap.set(candidate, {
-                status: "unknown",
-                source: "runtime-anki-miss"
-            });
-        }
-    }
-
-    if (!silent) {
-        console.log(`Runtime batch loaded ${foundCandidates.size}/${missingCandidates.length}`);
+        const uniqueCandidates = [...new Set(candidates)].filter(Boolean);
+        const knownCount = uniqueCandidates.filter((candidate) => ankiRuntimeWordStatusMap.has(candidate)).length;
+        console.log(`Snapshot batch matched ${knownCount}/${uniqueCandidates.length} candidates`);
     }
 }
 
@@ -697,7 +601,3 @@ function addRuntimeKnownBasicWord(word) {
         source: "known-basic"
     });
 }
-
-
-
-

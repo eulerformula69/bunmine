@@ -1047,6 +1047,20 @@ body.subtitle-depth-dragging * {
   padding: 0 2px;
 }
 
+.settings-help-text {
+  min-height: 1.4em;
+  margin-top: -0.35rem;
+  margin-bottom: 0.35rem;
+  font-size: 0.82rem;
+  opacity: 0.82;
+  line-height: 1.35;
+}
 
+.settings-help-text[data-status="success"] {
+  opacity: 1;
+}
 
-
+.settings-help-text[data-status="error"] {
+  opacity: 1;
+  font-weight: 600;
+}

@@ -164,9 +164,17 @@
 		<label data-i18n="highlightWordField">Highlight Word Field:</label>
 		<input type="text" id="highlightWordField" value="Word">
 
+		<label for="ankiHighlightAutoRefreshInterval">Auto-refresh known Anki words:</label>
+		<select id="ankiHighlightAutoRefreshInterval">
+		  <option value="daily" selected>Daily</option>
+		  <option value="weekly">Weekly</option>
+		  <option value="off">Off</option>
+		</select>
+
 		<button id="refreshAnkiHighlighterBtn" class="settings-action-btn" data-i18n="refreshHighlightWords">
 		  Refresh Highlight Words
-		</button>		
+		</button>
+		<div id="ankiHighlightRefreshStatus" class="settings-help-text" aria-live="polite"></div>		
 
       </div>
 
@@ -292,7 +300,3 @@
 
 </body>
 </html>
-
-
-
-

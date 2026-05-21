@@ -251,7 +251,7 @@ async function prefetchRuntimeStatusesForAllSubtitles({
     const subtitleWindowSize = 20;
 
     try {
-        await loadKnownBasicWords?.();
+        await loadHighlightWordIndexes?.();
 
         if (typeof getJapaneseTokenizer === "function") {
             await getJapaneseTokenizer();
@@ -1288,7 +1288,7 @@ window.addEventListener("load", () => {
 		});
 
     getJapaneseTokenizer?.()
-        .then(() => loadKnownBasicWords?.())
+        .then(() => loadHighlightWordIndexes?.())
         .then(() => {
             const sub = getCurrentSubtitle?.();
 
@@ -1309,26 +1309,69 @@ window.addEventListener("load", () => {
         });
 });
 
-document.getElementById("refreshAnkiHighlighterBtn")?.addEventListener("click", () => {
-    runtimePrefetchAllRunId += 1;
-	
-		runtimePrefetchWindowStart = -1;
-		runtimePrefetchWindowEnd = -1;
-		runtimeNextPrefetchStart = 0;
-		runtimeHighlightPrefetchReady = false;
+function setAnkiHighlightRefreshStatus(message, kind = "info") {
+    const statusEl = document.getElementById("ankiHighlightRefreshStatus");
+    if (!statusEl) return;
 
-		clearRuntimeWordStatuses?.();
-		
+    statusEl.textContent = message || "";
+    statusEl.dataset.status = kind;
+}
+
+document.getElementById("refreshAnkiHighlighterBtn")?.addEventListener("click", async () => {
+    runtimePrefetchAllRunId += 1;
+
+    runtimePrefetchWindowStart = -1;
+    runtimePrefetchWindowEnd = -1;
+    runtimeNextPrefetchStart = 0;
+    runtimeHighlightPrefetchReady = false;
+
+    const refreshBtn = document.getElementById("refreshAnkiHighlighterBtn");
+    const oldButtonText = refreshBtn?.textContent || "Refresh Highlight Words";
+
+    if (refreshBtn) {
+        refreshBtn.disabled = true;
+        refreshBtn.textContent = "Refreshing…";
+    }
+    setAnkiHighlightRefreshStatus("Refreshing Anki highlight index…", "info");
+
+    let result;
+    try {
+        showToast?.("Refreshing Anki highlight index...", "info", 2500);
+        result = await refreshKnownAnkiWordsFromAnki?.();
+    } catch (err) {
+        const message = err?.message || String(err);
+        console.error("Anki highlight refresh failed:", err);
+        setAnkiHighlightRefreshStatus(`Refresh failed: ${message}`, "error");
+        showToast?.(t("toastRuntimeHighlighterFailed", { message }), "error", 8000);
+        return;
+    } finally {
+        if (refreshBtn) {
+            refreshBtn.disabled = false;
+            refreshBtn.textContent = oldButtonText.trim() || "Refresh Highlight Words";
+        }
+    }
+
+    const count = result?.count || 0;
+    const cardsChecked = result?.cardsChecked || 0;
+    const importedWords = result?.importedWords || 0;
+    const preservedLockedWords = result?.preservedLockedWords || 0;
+    const message = `Done: ${count} words in known-anki-words.json; checked ${cardsChecked} cards; imported/updated ${importedWords}; preserved locked ${preservedLockedWords}.`;
+
+    setAnkiHighlightRefreshStatus(message, "success");
+    showToast?.(`Anki highlight index refreshed: ${count} words`, "success", 5000);
+
     const sub = getCurrentSubtitle?.();
 
     if (sub?.text) {
-		ensureStatusesForSubtitleText(sub.text).catch((err) => {
-		  console.error("Runtime Anki highlighter failed:", err);
-		  showToast(t("toastRuntimeHighlighterFailed", { message: err.message }), "error", 6000);
-		});
+        ensureStatusesForSubtitleText(sub.text).catch((err) => {
+            const message = err?.message || String(err);
+            console.error("Snapshot highlighter failed:", err);
+            setAnkiHighlightRefreshStatus(`Index refreshed, but subtitle repaint failed: ${message}`, "error");
+            showToast?.(t("toastRuntimeHighlighterFailed", { message }), "error", 6000);
+        });
     }
 
-	prefetchRuntimeStatusesForAllSubtitles({ silent: true });
+    prefetchRuntimeStatusesForAllSubtitles({ silent: true });
 });
 
 document.addEventListener("visibilitychange", () => {
@@ -1415,9 +1458,3 @@ document.addEventListener("selectionchange", () => {
         showAddKnownBasicButtonForSelection();
     });
 });
-
-
-
-
-
-
