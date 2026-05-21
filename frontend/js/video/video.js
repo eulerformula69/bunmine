@@ -327,6 +327,10 @@ async function loadLibraryEpisodePlayback(playback) {
             video.currentTime = startTime;
         }
 
+		requestAnimationFrame(() => {
+			restoreSubtitleFromCurrentTime();
+		});
+
         console.log(
             `Library episode loaded: ${playback.seriesTitle} / ${playback.episodeTitle}`
         );

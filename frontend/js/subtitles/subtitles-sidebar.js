@@ -148,7 +148,9 @@ function setSubtitleContextDepths({
     subtitleContextBackDepth = normalizeSubtitleContextDepth(backDepth);
     subtitleContextForwardDepth = normalizeSubtitleContextDepth(forwardDepth);
 
-    renderSubtitles();
+	requestAnimationFrame(() => {
+		restoreSubtitleFromCurrentTime();
+	});
 }
 
 function resetSubtitleContextDepths() {
@@ -906,6 +908,22 @@ function syncSubtitleStyle(idx) {
             div.classList.remove("active");
         }
     });
+}
+
+function restoreSubtitleFromCurrentTime() {
+    if (!subtitles.length || !Number.isFinite(video.currentTime)) return;
+
+    const time = video.currentTime - globalSubDelay;
+
+    let idx = subtitles.findIndex((s) => time >= s.start && time <= s.end);
+
+    if (idx === -1) {
+        idx = subtitles.findIndex((s) => s.start > time);
+    }
+
+    if (idx === -1) return;
+
+    syncSubtitleStyle(idx);
 }
 
 
