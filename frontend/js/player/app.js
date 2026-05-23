@@ -1130,7 +1130,16 @@ ankiAllBtn.onclick = async () => {
 		runtimeNextPrefetchStart = 0;
 		runtimeHighlightPrefetchReady = false;
 
-		clearRuntimeWordStatuses?.();
+		try {
+			await refreshKnownAnkiWordFromNote?.({
+				noteId: targetNoteId,
+				word: targetWord,
+				wordFields: getHighlightWordFieldNames?.()
+			});
+		} catch (err) {
+			console.warn("Could not refresh known-anki-words.json for updated card:", err);
+			clearRuntimeWordStatuses?.();
+		}
 
 		ensureStatusesForSubtitleText(combinedText)
 			.then(() => {
@@ -1288,7 +1297,8 @@ window.addEventListener("load", () => {
 		});
 
     getJapaneseTokenizer?.()
-        .then(() => loadHighlightWordIndexes?.())
+        .then(() => checkKnownAnkiWordsStaleOnPlayerOpen?.({ silent: false }))
+        .then(() => loadHighlightWordIndexes?.({ force: true }))
         .then(() => {
             const sub = getCurrentSubtitle?.();
 
@@ -1459,3 +1469,5 @@ document.addEventListener("selectionchange", () => {
         showAddKnownBasicButtonForSelection();
     });
 });
+
+

@@ -177,6 +177,36 @@ async function loadHighlightWordIndexes({ force = false } = {}) {
     await loadKnownBasicWords({ force });
 }
 
+async function checkKnownAnkiWordsStaleOnPlayerOpen({ silent = true } = {}) {
+    if (typeof apiJson !== "function") return null;
+
+    try {
+        const { response, data } = await apiJson("/known-anki-words/stale-check", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ context: "player" })
+        });
+
+        if (!response.ok || data?.error) {
+            throw new Error(data?.error || "Anki highlight stale-check failed");
+        }
+
+        if (!data?.skipped) {
+            clearRuntimeWordStatuses();
+            await loadHighlightWordIndexes({ force: true });
+        }
+
+        if (!silent) {
+            console.log("Anki highlight player stale-check:", data);
+        }
+
+        return data;
+    } catch (err) {
+        console.warn("Anki highlight player stale-check failed:", err);
+        return { ok: false, error: err?.message || String(err) };
+    }
+}
+
 function chunkArray(items, size) {
     const chunks = [];
     for (let i = 0; i < items.length; i += size) {
@@ -231,6 +261,42 @@ async function refreshKnownAnkiWordsFromAnki({ fullRebuild = false } = {}) {
 
     return data;
 }
+
+async function refreshKnownAnkiWordFromNote({ noteId, word = "", wordFields = null } = {}) {
+    const ankiUrl = document.getElementById("ankiUrl")?.value?.trim();
+    const fields = Array.isArray(wordFields) && wordFields.length
+        ? wordFields
+        : getHighlightWordFieldNames();
+
+    if (!ankiUrl) {
+        throw new Error("Set AnkiConnect URL first.");
+    }
+    if (!noteId && !word) {
+        throw new Error("noteId or word is required.");
+    }
+
+    const { response, data } = await apiJson("/known-anki-words/refresh-note", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            ankiUrl,
+            noteId,
+            word,
+            wordFields: fields
+        })
+    });
+
+    if (!response.ok || data?.error) {
+        throw new Error(data?.error || "Failed to refresh Anki highlight word");
+    }
+
+    clearRuntimeWordStatuses();
+    await loadHighlightWordIndexes({ force: true });
+    rerenderCurrentSubtitleWithAnkiHighlighter();
+
+    return data;
+}
+
 
 function normalizeJapaneseNumberText(value) {
     return String(value || "")
@@ -601,3 +667,5 @@ function addRuntimeKnownBasicWord(word) {
         source: "known-basic"
     });
 }
+
+
