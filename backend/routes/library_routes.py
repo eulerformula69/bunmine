@@ -22,6 +22,7 @@ from backend.library_subtitles import (
     search_jimaku_subtitles,
 )
 from backend.library_db import (
+    delete_library_series,
     get_episode_playback,
     get_library_db_status,
     get_library_file_by_id,
@@ -30,12 +31,30 @@ from backend.library_db import (
     get_library_series_files_debug,
     get_library_series_list,
     save_episode_progress,
+    relink_library_series_files,
     set_episode_completed,
 )
 from backend.library_scanner import scan_library
 from backend.utils_validation import is_within, to_float
 
 library_bp = Blueprint("library", __name__)
+
+
+def _choose_folder_dialog(initial_dir: Path) -> str | None:
+    try:
+        import tkinter as tk
+        from tkinter import filedialog
+    except Exception as err:
+        raise RuntimeError(f"Folder dialog is not available: {err}") from err
+
+    root = tk.Tk()
+    root.withdraw()
+    root.attributes("-topmost", True)
+    try:
+        selected = filedialog.askdirectory(initialdir=str(initial_dir), mustexist=True)
+    finally:
+        root.destroy()
+    return selected or None
 
 
 @library_bp.route("/library/config", methods=["GET"])
@@ -66,6 +85,53 @@ def library_scan():
     return jsonify(result), status_code
 
 
+
+
+@library_bp.route("/library/dialog/folder", methods=["POST"])
+def library_choose_folder_dialog():
+    data = request.get_json(silent=True) or {}
+    raw_initial = str(data.get("initialPath") or "").strip()
+
+    initial_path = MEDIA_LIBRARY_DIR
+    if raw_initial:
+        candidate = Path(raw_initial).expanduser().resolve()
+        if candidate.exists():
+            initial_path = candidate if candidate.is_dir() else candidate.parent
+
+    try:
+        selected = _choose_folder_dialog(initial_path)
+    except Exception as err:
+        return jsonify({"error": str(err)}), 500
+
+    if not selected:
+        return jsonify({"cancelled": True, "path": None})
+
+    return jsonify({"cancelled": False, "path": selected})
+
+
+@library_bp.route("/library/scan-path", methods=["POST"])
+def library_scan_path():
+    data = request.get_json(silent=True) or {}
+    raw_path = str(data.get("path") or "").strip()
+    if not raw_path:
+        return jsonify({"error": "path is required"}), 400
+
+    target_path = Path(raw_path).expanduser().resolve()
+    if not target_path.exists() or not target_path.is_dir():
+        return jsonify({"error": "Path must be an existing directory"}), 400
+    if not is_within(MEDIA_LIBRARY_DIR, target_path):
+        return jsonify({"error": "Path must be inside MEDIA_LIBRARY_DIR"}), 403
+
+    result = scan_library(
+        db_path=LIBRARY_DB_PATH,
+        media_root=target_path,
+        video_extensions=ALLOWED_VIDEO_EXTENSIONS,
+        subtitle_extensions=ALLOWED_SUBTITLE_EXTENSIONS,
+    )
+    status_code = 200 if result.get("ok") else 400
+    return jsonify(result), status_code
+
+
 @library_bp.route("/library/debug/series", methods=["GET"])
 def library_debug_series():
     return jsonify({"series": get_library_series_debug(LIBRARY_DB_PATH)})
@@ -88,6 +154,18 @@ def library_series_detail(series_id):
     result = get_library_series_detail(LIBRARY_DB_PATH, series_id)
     status_code = 200 if result.get("found") else 404
     return jsonify(result), status_code
+
+
+@library_bp.route("/library/series/<int:series_id>", methods=["DELETE"])
+def library_series_delete(series_id):
+    try:
+        result = delete_library_series(LIBRARY_DB_PATH, series_id)
+    except Exception as err:
+        return jsonify({"error": str(err)}), 500
+
+    if not result.get("found"):
+        return jsonify({"error": "Series not found"}), 404
+    return jsonify({"ok": True, **result})
 
 
 @library_bp.route("/library/episodes/<int:episode_id>/playback", methods=["GET"])
@@ -300,6 +378,32 @@ def library_series_subtitles_download_missing(series_id):
     return jsonify({"ok": True, **result})
 
 
+@library_bp.route("/library/series/<int:series_id>/relink", methods=["POST"])
+def library_series_relink(series_id):
+    data = request.get_json(silent=True) or {}
+    raw_path = str(data.get("path") or "").strip()
+    if not raw_path:
+        return jsonify({"error": "path is required"}), 400
+
+    target_path = Path(raw_path).expanduser().resolve()
+    if not target_path.exists():
+        return jsonify({"error": "Path does not exist"}), 400
+
+    try:
+        result = relink_library_series_files(
+            db_path=LIBRARY_DB_PATH,
+            series_id=series_id,
+            new_base=target_path,
+            media_root=MEDIA_LIBRARY_DIR,
+        )
+    except Exception as err:
+        return jsonify({"error": str(err)}), 500
+
+    if not result.get("found"):
+        return jsonify({"error": "Series not found"}), 404
+    return jsonify({"ok": True, **result})
+
+
 @library_bp.route("/library/file/<int:file_id>", methods=["GET"])
 def serve_library_file(file_id):
     result = get_library_file_by_id(LIBRARY_DB_PATH, file_id)
@@ -371,7 +475,3 @@ def library_series_cover(series_id):
         return jsonify({"error": "Cover file is missing"}), 404
 
     return send_from_directory(str(cover_path.parent), cover_path.name, as_attachment=False)
-
-
-
-

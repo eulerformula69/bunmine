@@ -300,6 +300,29 @@ button:hover,
   font-size: 13px;
 }
 
+.series-detail-header {
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 12px;
+  align-items: stretch;
+}
+
+.series-detail-header > div:first-child {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  min-width: 0;
+}
+
+.series-detail-header h2 {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.series-detail-header p {
+  line-height: 1.35;
+}
+
 #closeSeriesPanelBtn {
   flex: 0 0 auto;
 }
@@ -424,6 +447,14 @@ body.modal-open {
   z-index: 2;
 }
 
+
+.cover-search-label {
+  display: block;
+  margin: 0 0 6px;
+  color: #ddd;
+  font-size: 13px;
+}
+
 .cover-search-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -523,9 +554,10 @@ body.modal-open {
 
 .series-panel-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   align-items: center;
-  flex: 0 0 auto;
+  width: 100%;
 }
 
 #changeSeriesCoverBtn {
@@ -781,4 +813,94 @@ body.modal-open {
 .bulk-subtitle-item.needs-review {
   border-color: #8a6f2a;
 }
+.add-anime-card .series-cover {
+  display: grid;
+  place-items: center;
+  border-style: dashed;
+  background: linear-gradient(145deg, #171020, #241236);
+}
 
+.add-anime-card:hover .series-cover {
+  background: var(--panel-hover);
+}
+
+.add-anime-plus {
+  width: 72px;
+  height: 72px;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--accent-soft);
+  border-radius: 999px;
+  color: var(--accent-text);
+  font-size: 54px;
+  line-height: 1;
+  font-weight: 300;
+}
+
+#relinkSeriesFilesBtn {
+  background: #333;
+  border-color: #555;
+  color: white;
+  font-weight: 400;
+}
+
+#relinkSeriesFilesBtn:hover:not(:disabled) {
+  background: #444;
+  border-color: var(--accent-soft);
+  color: white;
+}
+
+.series-delete-card-btn {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border-radius: 999px;
+  border: 2px solid white;
+  background: #c62828;
+  color: white;
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1;
+  z-index: 3;
+  opacity: 0;
+  transform: scale(0.92);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.45);
+}
+
+.series-card:hover .series-delete-card-btn,
+.series-delete-card-btn:focus-visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.series-delete-card-btn:hover {
+  background: #e53935;
+  border-color: white;
+}
+
+.danger-button,
+#deleteSeriesBtn {
+  background: #3a1717;
+  border-color: #8f3a3a;
+  color: #ffd3d3;
+}
+
+.danger-button:hover,
+#deleteSeriesBtn:hover {
+  background: #5a2020;
+  border-color: #ff8a8a;
+  color: white;
+}
+
+@media (max-width: 620px) {
+  .series-detail-header > div:first-child {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+}

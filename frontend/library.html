@@ -24,7 +24,7 @@
 
 	<div id="seriesModal" class="library-modal hidden">
 	  <section id="seriesPanel" class="series-panel" role="dialog" aria-modal="true" aria-labelledby="seriesTitle">
-		<div class="series-panel-header">
+		<div class="series-panel-header series-detail-header">
 		  <div>
 			<h2 id="seriesTitle"></h2>
 			<p id="seriesStats"></p>
@@ -33,6 +33,8 @@
 		  <div class="series-panel-actions">
 			<button id="downloadMissingSubtitlesBtn" type="button" data-i18n="downloadMissingJpSubs">Download missing JP subs</button>
 			<button id="changeSeriesCoverBtn" type="button" data-i18n="changeCover">Change cover</button>
+			<button id="relinkSeriesFilesBtn" type="button" data-i18n="relinkFiles">Relink files</button>
+			<button id="deleteSeriesBtn" class="danger-button" type="button" data-i18n="deleteSeries">Delete</button>
 			<button id="closeSeriesPanelBtn" type="button" data-i18n="close">Close</button>
 		  </div>
 		</div>
@@ -53,7 +55,13 @@
       <button id="closeBulkSubtitleModalBtn" type="button" data-i18n="close">Close</button>
     </div>
 
-    <div id="bulkSubtitleStatus" class="cover-message" data-i18n="preparingDownloadPlan">Preparing download plan...</div>
+    <label class="cover-search-label" for="bulkSubtitleSearchInput" data-i18n="subtitleSearchTitle">Subtitle search title (query)</label>
+    <div class="cover-search-row">
+      <input id="bulkSubtitleSearchInput" type="text" />
+      <button id="bulkSubtitleSearchBtn" type="button" data-i18n="search">Search</button>
+    </div>
+
+    <div id="bulkSubtitleStatus" class="cover-message" data-i18n="subtitleQueryHint">Edit the Jimaku query, then press Search.</div>
     <div id="bulkSubtitleSets" class="bulk-subtitle-sets"></div>
     <div id="bulkSubtitleList" class="bulk-subtitle-list"></div>
 

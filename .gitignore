@@ -2,6 +2,7 @@
 UploadedVideos/
 frontend/temp/
 anki_highlight/
+frontend/LibraryCovers/
 __pycache__/
 *.mp4
 *.mkv
@@ -18,3 +19,4 @@ dedupe_index.json
 known-basic-words.json
 NEXT.md
 library.sqlite3
+library.backup.db
