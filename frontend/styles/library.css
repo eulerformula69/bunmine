@@ -156,34 +156,6 @@ button:hover,
   z-index: 1;
 }
 
-.link-badge {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  min-width: 30px;
-  height: 30px;
-  display: grid;
-  place-items: center;
-  border-radius: 999px;
-  color: white;
-  font-size: 18px;
-  font-weight: 700;
-  border: 2px solid white;
-  z-index: 2;
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.45);
-}
-
-.link-badge.linked {
-  background: var(--linked);
-}
-
-.link-badge.partial {
-  background: var(--partial);
-}
-
-.link-badge.missing {
-  background: var(--missing);
-}
 
 .series-title {
   margin-top: 8px;
@@ -292,6 +264,18 @@ button:hover,
   margin: 0 0 6px;
   color: white;
   font-size: 22px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  line-height: 1.2;
+}
+
+.series-title-status-icon {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  display: block;
+  object-fit: contain;
 }
 
 .series-panel-header p {
@@ -369,7 +353,9 @@ button:hover,
 .episode-actions {
   display: flex;
   align-items: center;
+  gap: 10px;
 }
+
 
 .open-episode-link {
   display: inline-flex;

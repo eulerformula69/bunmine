@@ -155,6 +155,59 @@ function watchedTextForEpisode(episode) {
     return lt("notWatched");
 }
 
+const LINK_STATUS_ICON_PATHS = {
+    linked: "/icons/chain-ok.svg",
+    partial: "/icons/chain-missing.svg",
+    missing: "/icons/chain-broken.svg",
+};
+
+function statusIconPath(status) {
+    return LINK_STATUS_ICON_PATHS[status] || LINK_STATUS_ICON_PATHS.missing;
+}
+
+function renderSeriesTitle(series) {
+    const status = series?.linkStatus || "missing";
+    const title = series?.title || "";
+    seriesTitle.innerHTML = `
+        <img
+            class="series-title-status-icon"
+            src="${escapeHtml(statusIconPath(status))}"
+            alt="${escapeHtml(statusTitle(status))}"
+            title="${escapeHtml(statusTitle(status))}"
+            data-series-link-status-icon
+        >
+        <span>${escapeHtml(title)}</span>
+    `;
+}
+
+function recomputeSeriesLinkStatusFromEpisodes(episodes) {
+    const items = Array.isArray(episodes) ? episodes : [];
+    if (!items.length) return "missing";
+
+    const episodesWithVideo = items.filter((episode) => episode.hasVideo).length;
+    const episodesWithSubtitle = items.filter((episode) => episode.hasSubtitle).length;
+
+    if (episodesWithVideo <= 0 && episodesWithSubtitle <= 0) return "missing";
+    if (episodesWithVideo === items.length && episodesWithSubtitle === items.length) return "linked";
+    return "partial";
+}
+
+function refreshCurrentSeriesLinkStatus() {
+    if (!currentOpenedSeries) return;
+
+    currentOpenedSeries.linkStatus = recomputeSeriesLinkStatusFromEpisodes(currentOpenedEpisodes);
+    currentOpenedSeries.episodesWithVideo = currentOpenedEpisodes.filter((episode) => episode.hasVideo).length;
+    currentOpenedSeries.episodesWithSubtitle = currentOpenedEpisodes.filter((episode) => episode.hasSubtitle).length;
+
+    renderSeriesTitle(currentOpenedSeries);
+    seriesStats.textContent = lt("seriesStats", {
+        videos: currentOpenedSeries.episodesWithVideo,
+        episodes: currentOpenedSeries.episodesCount,
+        subtitles: currentOpenedSeries.episodesWithSubtitle,
+        status: statusLabel(currentOpenedSeries.linkStatus)
+    });
+}
+
 function statusLabel(status) {
     if (status === "linked") return lt("allLinked");
     if (status === "partial") return lt("partiallyLinked");
@@ -211,6 +264,7 @@ const cancelBulkSubtitleDownloadBtn = document.getElementById("cancelBulkSubtitl
 let currentCoverSeries = null;
 let currentSubtitleEpisode = null;
 let currentOpenedSeries = null;
+let currentOpenedEpisodes = [];
 let currentBulkSubtitlePlan = null;
 let currentBulkSubtitleSetKey = null;
 let isBulkSubtitleDownloading = false;
@@ -412,9 +466,6 @@ function renderSeriesCard(item) {
     card.innerHTML = `
         <div class="series-cover">
             ${coverHtml}
-            <div class="link-badge ${escapeHtml(item.linkStatus)}" title="${escapeHtml(statusTitle(item.linkStatus))}">
-                ${escapeHtml(statusIcon(item.linkStatus))}
-            </div>
         </div>
 
         <div class="series-title">${escapeHtml(item.title)}</div>
@@ -442,6 +493,7 @@ async function openSeries(seriesId) {
     seriesTitle.textContent = lt("loading");
     seriesStats.textContent = "";
     episodeList.innerHTML = "";
+    currentOpenedEpisodes = [];
 
     const { response, data } = await apiJson(`/library/series/${encodeURIComponent(seriesId)}`);
 
@@ -453,12 +505,13 @@ async function openSeries(seriesId) {
 
     const series = data.series;
     const episodes = Array.isArray(data.episodes) ? data.episodes : [];
+    currentOpenedEpisodes = episodes;
 	currentOpenedSeries = {
 		...series,
 		completedEpisodes: episodes.filter((episode) => episode.completed).length
 	};
 
-    seriesTitle.textContent = series.title;
+    renderSeriesTitle(series);
     seriesStats.textContent =
         lt("seriesStats", { videos: series.episodesWithVideo, episodes: series.episodesCount, subtitles: series.episodesWithSubtitle, status: statusLabel(series.linkStatus) });
 
@@ -473,7 +526,6 @@ function renderEpisodeRow(episode) {
     const row = document.createElement("div");
     row.className = "episode-row";
 
-    const status = episode.linkStatus;
     const canOpen = Boolean(episode.hasVideo);
 
     const watched = watchedTextForEpisode(episode);
@@ -709,6 +761,8 @@ async function selectSubtitleResult(result) {
 
         const btn = row.querySelector(".find-subtitles-btn");
         if (btn) btn.textContent = lt("changeJpSubs");
+
+        refreshCurrentSeriesLinkStatus();
 
         closeSubtitleModal();
     } catch (err) {
@@ -1473,6 +1527,8 @@ function openSeriesModal() {
 function closeSeriesModal() {
     seriesModal.classList.add("hidden");
     document.body.classList.remove("modal-open");
+    currentOpenedSeries = null;
+    currentOpenedEpisodes = [];
 }
 
 closeCoverModalBtn.addEventListener("click", () => {
