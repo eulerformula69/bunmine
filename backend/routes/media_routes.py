@@ -231,7 +231,15 @@ def animated_webp():
     final_path = os.path.join(SCREENSHOT_DIR, webp_filename)
     ass_path = os.path.join(VIDEO_DIR, f"temp_{webp_key[:12]}.ass")
 
-    ass_text = text.replace("\\", "\\\\").replace("{", "\\{").replace("}", "\\}").replace("\n", "\\N")
+    # Wrap long subtitle text for WebP, similar to screenshot()
+    wrapped_text = "\n".join(textwrap.wrap(text, width=15))
+    ass_text = (
+        wrapped_text
+        .replace("\\", "\\\\")
+        .replace("{", "\\{")
+        .replace("}", "\\}")
+        .replace("\n", "\\N")
+    )
     duration_ass = f"0:00:{duration:05.2f}"
     ass_content = f"""[Script Info]
 ScriptType: v4.00+
