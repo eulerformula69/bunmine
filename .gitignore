@@ -20,3 +20,4 @@ known-basic-words.json
 NEXT.md
 library.sqlite3
 library.backup.db
+tests/

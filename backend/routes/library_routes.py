@@ -35,6 +35,7 @@ from backend.library_db import (
     set_episode_completed,
 )
 from backend.library_scanner import scan_library
+from backend.services.job_service import get_job, start_job
 from backend.utils_validation import is_within, to_float
 
 library_bp = Blueprint("library", __name__)
@@ -75,14 +76,24 @@ def library_db_status():
 
 @library_bp.route("/library/scan", methods=["GET"])
 def library_scan():
-    result = scan_library(
-        db_path=LIBRARY_DB_PATH,
-        media_root=MEDIA_LIBRARY_DIR,
-        video_extensions=ALLOWED_VIDEO_EXTENSIONS,
-        subtitle_extensions=ALLOWED_SUBTITLE_EXTENSIONS,
+    job = start_job(
+        "library-scan",
+        lambda: scan_library(
+            db_path=LIBRARY_DB_PATH,
+            media_root=MEDIA_LIBRARY_DIR,
+            video_extensions=ALLOWED_VIDEO_EXTENSIONS,
+            subtitle_extensions=ALLOWED_SUBTITLE_EXTENSIONS,
+        ),
     )
-    status_code = 200 if result.get("ok") else 400
-    return jsonify(result), status_code
+    return jsonify({"ok": True, "job": job}), 202
+
+
+@library_bp.route("/library/jobs/<job_id>", methods=["GET"])
+def library_job_status(job_id):
+    job = get_job(job_id)
+    if not job:
+        return jsonify({"error": "Job not found"}), 404
+    return jsonify({"ok": True, "job": job})
 
 
 
@@ -122,14 +133,16 @@ def library_scan_path():
     if not is_within(MEDIA_LIBRARY_DIR, target_path):
         return jsonify({"error": "Path must be inside MEDIA_LIBRARY_DIR"}), 403
 
-    result = scan_library(
-        db_path=LIBRARY_DB_PATH,
-        media_root=target_path,
-        video_extensions=ALLOWED_VIDEO_EXTENSIONS,
-        subtitle_extensions=ALLOWED_SUBTITLE_EXTENSIONS,
+    job = start_job(
+        "library-scan-path",
+        lambda: scan_library(
+            db_path=LIBRARY_DB_PATH,
+            media_root=target_path,
+            video_extensions=ALLOWED_VIDEO_EXTENSIONS,
+            subtitle_extensions=ALLOWED_SUBTITLE_EXTENSIONS,
+        ),
     )
-    status_code = 200 if result.get("ok") else 400
-    return jsonify(result), status_code
+    return jsonify({"ok": True, "job": job}), 202
 
 
 @library_bp.route("/library/debug/series", methods=["GET"])

@@ -38,9 +38,12 @@ async function fetchWithRetry(url, options, {
         }
     }
 
-    throw lastError;
+    const message = lastError?.message || String(lastError || "Unknown error");
+    if (String(label).toLowerCase().includes("ankiconnect")) {
+        throw new Error(`${label} failed. Make sure Anki is open and AnkiConnect is installed. Details: ${message}`);
+    }
+    throw new Error(`${label} failed: ${message}`);
 }
-
 
 
 

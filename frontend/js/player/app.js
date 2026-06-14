@@ -32,6 +32,14 @@ const {
 
 video.volume = volume.value;
 
+volume.addEventListener("input", () => {
+    const nextVolume = Math.max(0, Math.min(1, parseFloat(volume.value) || 0));
+    video.volume = nextVolume;
+    if (typeof audioManager !== "undefined" && audioManager.externalAudio) {
+        audioManager.externalAudio.volume = nextVolume;
+    }
+});
+
 video.addEventListener("timeupdate", () => {
     const sub = getCurrentSubtitle();
 
@@ -421,7 +429,7 @@ async function fetchDeckNoteIds(ankiUrl, deckName) {
 			}
 		})
 	}, {
-		retries: 500,
+		retries: 3,
 		delayMs: 1000,
 		label: "AnkiConnect findNotes"
 	});
@@ -628,7 +636,7 @@ async function fetchNotesInfo(ankiUrl, noteIds) {
 			}
 		})
 	}, {
-		retries: 500,
+		retries: 3,
 		delayMs: 1000,
 		label: "AnkiConnect notesInfo"
 	});
@@ -1180,6 +1188,8 @@ videoContainer.addEventListener("wheel", (e) => {
 
     video.volume = newVolume;
     volume.value = newVolume;
+    volume.dispatchEvent(new Event("input", { bubbles: true }));
+    volume.dispatchEvent(new Event("change", { bubbles: true }));
 
     if (audioManager.externalAudio) audioManager.externalAudio.volume = newVolume;
 }, { passive: false });
@@ -1469,5 +1479,3 @@ document.addEventListener("selectionchange", () => {
         showAddKnownBasicButtonForSelection();
     });
 });
-
-

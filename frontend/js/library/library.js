@@ -419,6 +419,45 @@ async function chooseLocalFolder(initialPath = "") {
     return String(data.path);
 }
 
+async function startAndPollLibraryJob(requestPath, requestOptions = {}, failureMessage = lt("scanFailed")) {
+    const { response, data } = await apiJson(requestPath, requestOptions);
+
+    if (!response.ok || data.error) {
+        throw new Error(data.error || failureMessage);
+    }
+
+    const jobId = data.job?.id;
+    if (!jobId) {
+        return data;
+    }
+
+    while (true) {
+        const { response: statusResponse, data: statusData } = await apiJson(`/library/jobs/${encodeURIComponent(jobId)}`);
+
+        if (!statusResponse.ok || statusData.error) {
+            throw new Error(statusData.error || failureMessage);
+        }
+
+        const job = statusData.job || {};
+        const result = job.result || {};
+
+        if (job.status === "completed") {
+            return result;
+        }
+
+        if (job.status === "failed") {
+            throw new Error(job.error || result.error || failureMessage);
+        }
+
+        const found = Number(result.filesFound || 0);
+        librarySummary.textContent = found
+            ? `${lt("scanning")} ${found} files found...`
+            : lt("scanning");
+
+        await sleep(700);
+    }
+}
+
 async function addAnimeFromPath() {
     let path = null;
     try {
@@ -432,12 +471,11 @@ async function addAnimeFromPath() {
     scanLibraryBtn.disabled = true;
     scanLibraryBtn.textContent = lt("scanning");
     try {
-        const { response, data } = await apiJson("/library/scan-path", {
+        await startAndPollLibraryJob("/library/scan-path", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ path: path.trim() })
-        });
-        if (!response.ok || data.error) throw new Error(data.error || lt("addAnimeFailed"));
+        }, lt("addAnimeFailed"));
         await loadLibrarySeries();
     } catch (err) {
         alert(`${lt("addAnimeFailed")}: ${err.message}`);
@@ -1480,12 +1518,7 @@ scanLibraryBtn.addEventListener("click", async () => {
     scanLibraryBtn.textContent = lt("scanning");
 
     try {
-        const { response, data } = await apiJson("/library/scan");
-
-        if (!response.ok || data.error) {
-            throw new Error(data.error || lt("scanFailed"));
-        }
-
+        await startAndPollLibraryJob("/library/scan", {}, lt("scanFailed"));
         await loadLibrarySeries();
     } catch (err) {
         alert(err.message);

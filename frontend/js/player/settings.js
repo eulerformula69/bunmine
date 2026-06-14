@@ -35,13 +35,14 @@ function enableWheelOnSettings() {
     }, { passive: false });
 }
 
-function saveSettings() {
-    const settings = {
+function collectSettings() {
+    return {
         language: currentLang,
         fontSize: document.getElementById("fontSizeRange").value,
         offsetStart: document.getElementById("subOffsetStart").value,
         offsetEnd: document.getElementById("subOffsetEnd").value,
         audioVol: document.getElementById("audioVol").value,
+        playerVolume: document.getElementById("volume")?.value || "1",
         ankiUrl: document.getElementById("ankiUrl").value,
         deckName: document.getElementById("deckName").value,
         screenshotMode: document.getElementById("screenshotMode").value,
@@ -64,7 +65,17 @@ function saveSettings() {
 		ankiHighlightAutoRefreshInterval: document.getElementById("ankiHighlightAutoRefreshInterval")?.value || "off"
 		
     };
+}
+
+function saveSettingsLocal({ silent = false } = {}) {
+    const settings = collectSettings();
     localStorage.setItem("subtitlePlayerSettings", JSON.stringify(settings));
+    if (!silent) showToast("Settings saved", "success");
+    return settings;
+}
+
+function saveSettings() {
+    const settings = saveSettingsLocal({ silent: true });
     saveAnkiHighlightAutoRefreshSettings(settings).catch((err) => {
         console.warn("Failed to save Anki highlight auto-refresh settings:", err);
         showToast?.(err?.message || String(err), "error", 6000);
@@ -174,6 +185,7 @@ function loadSettings() {
         subOffsetStart: settings.offsetStart,
         subOffsetEnd: settings.offsetEnd,
         audioVol: settings.audioVol,
+        volume: settings.playerVolume,
         ankiUrl: settings.ankiUrl,
         deckName: settings.deckName,
 		globalSubDelay: settings.globalSubDelay,
@@ -199,6 +211,11 @@ function loadSettings() {
 	if (includeImageSubtitleEl) {
 		includeImageSubtitleEl.checked = settings.includeImageSubtitle !== false;
 	}
+
+    const playerVolumeEl = document.getElementById("volume");
+    if (playerVolumeEl && typeof video !== "undefined") {
+        video.volume = Math.max(0, Math.min(1, parseFloat(playerVolumeEl.value) || 1));
+    }
 
 }
 
@@ -240,11 +257,63 @@ function initLangSelector() {
         langSelect.appendChild(opt);
     });
     langSelect.value = currentLang;
-    langSelect.onchange = (e) => applyLanguage(e.target.value);
+    langSelect.onchange = (e) => {
+        applyLanguage(e.target.value);
+        queueSettingsAutosave();
+    };
+}
+
+let settingsAutosaveTimer = null;
+
+function queueSettingsAutosave() {
+    clearTimeout(settingsAutosaveTimer);
+    settingsAutosaveTimer = setTimeout(() => {
+        try {
+            saveSettingsLocal({ silent: true });
+        } catch (err) {
+            console.warn("Settings autosave failed:", err);
+        }
+    }, 250);
+}
+
+function initSettingsAutosave() {
+    [
+        "fontSizeRange",
+        "subOffsetStart",
+        "subOffsetEnd",
+        "audioVol",
+        "volume",
+        "ankiUrl",
+        "deckName",
+        "screenshotMode",
+        "globalSubDelay",
+        "sentenceField",
+        "sentenceFuriganaField",
+        "pictureField",
+        "audioField",
+        "includeImageSubtitle",
+        "subtitleHighlightEnabled",
+        "highlightColorNew",
+        "highlightColorLearning",
+        "highlightColorYoung",
+        "highlightColorMature",
+        "highlightColorSuspended",
+        "highlightColorUnknown",
+        "highlightDeckNames",
+        "highlightWordField",
+        "ankiHighlightAutoRefreshInterval",
+        "interfaceLangSelect"
+    ].forEach((id) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener("input", queueSettingsAutosave);
+        el.addEventListener("change", queueSettingsAutosave);
+    });
 }
 
 document.getElementById("saveSettingsBtn").onclick = saveSettings;
 window.addEventListener("load", loadSettings);
+window.addEventListener("load", initSettingsAutosave);
 enableWheelOnSettings();
 
 initLangSelector();
@@ -252,5 +321,8 @@ applyLanguage(currentLang);
 
 const langSelect = document.getElementById("interfaceLangSelect");
 if (langSelect) {
-    langSelect.onchange = (e) => applyLanguage(e.target.value);
+    langSelect.onchange = (e) => {
+        applyLanguage(e.target.value);
+        queueSettingsAutosave();
+    };
 }
