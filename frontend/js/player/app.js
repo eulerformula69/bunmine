@@ -441,6 +441,28 @@ async function fetchDeckNoteIds(ankiUrl, deckName) {
     return Array.isArray(findData.result) ? findData.result : [];
 }
 
+async function fetchNoteIdsByQuery(ankiUrl, query, label = "AnkiConnect findNotes") {
+	const findRes = await fetchWithRetry(ankiUrl, {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify({
+			action: "findNotes",
+			version: 6,
+			params: { query }
+		})
+	}, {
+		retries: 3,
+		delayMs: 1000,
+		label
+	});
+
+    const findData = await findRes.json();
+
+    if (findData.error) throw new Error(findData.error);
+
+    return Array.isArray(findData.result) ? findData.result : [];
+}
+
 function stripHtml(input) {
     return String(input || "")
         .replace(/<[^>]*>/g, " ")
@@ -927,14 +949,61 @@ function maybePromptSubtitleDepthReset() {
     );
 }
 
-ankiAllBtn.onclick = async () => {
-	
-	const initialVideoPayload = getCurrentVideoPayload();
+let pendingAutoAttachNextCard = null;
+let autoAttachStatusToast = null;
+let autoAttachArmTimer = null;
+let autoAttachSelectionClearTimer = null;
+let lastAutoAttachArmKey = "";
 
-	if (!initialVideoPayload) {
-		showToast(t("toastVideoNotUploaded"), "error", 4000);
-		return;
-	}
+class AutoAttachCancelledError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = "AutoAttachCancelledError";
+    }
+}
+
+function getActiveSubtitleIndex() {
+    return subtitles.findIndex((s) => {
+        return (video.currentTime - globalSubDelay) >= s.start &&
+            (video.currentTime - globalSubDelay) <= s.end;
+    });
+}
+
+function getSubtitleIndexFromSelection(selection = window.getSelection()) {
+    if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
+        return -1;
+    }
+
+    const anchorNode = selection.anchorNode;
+    const focusNode = selection.focusNode;
+    const anchorElement = anchorNode?.nodeType === Node.TEXT_NODE
+        ? anchorNode.parentElement
+        : anchorNode;
+    const focusElement = focusNode?.nodeType === Node.TEXT_NODE
+        ? focusNode.parentElement
+        : focusNode;
+
+    const sidebarSubtitle = anchorElement?.closest?.(".subtitle[data-index]")
+        || focusElement?.closest?.(".subtitle[data-index]");
+
+    if (sidebarSubtitle) {
+        const idx = Number(sidebarSubtitle.dataset.index);
+        return Number.isInteger(idx) ? idx : -1;
+    }
+
+    if (overlay?.contains(anchorElement) || overlay?.contains(focusElement)) {
+        return getActiveSubtitleIndex();
+    }
+
+    return -1;
+}
+
+function buildCurrentAnkiMediaSnapshot({ subtitleIndex = null } = {}) {
+    const videoPayload = getCurrentVideoPayload();
+
+    if (!videoPayload) {
+        throw new Error(t("toastVideoNotUploaded"));
+    }
 
     const offsetStart = parseFloat(document.getElementById("subOffsetStart").value) || 0;
     const offsetEnd = parseFloat(document.getElementById("subOffsetEnd").value) || 0;
@@ -949,18 +1018,18 @@ ankiAllBtn.onclick = async () => {
 	const sentenceFuriganaField = document.getElementById("sentenceFuriganaField")?.value.trim();
 
 	if (!pictureField || !audioField) {
-	  showToast(t("toastRequiredFields"), "error", 4000);
-	  return;
+        throw new Error(t("toastRequiredFields"));
 	}
 
-    const currentIdx = subtitles.findIndex((s) => {
-        return (video.currentTime - globalSubDelay) >= s.start &&
-            (video.currentTime - globalSubDelay) <= s.end;
-    });
+    if (!ankiUrl || !deckName) {
+        throw new Error(t("toastAnkiSettingsRequired"));
+    }
 
+    const currentIdx = Number.isInteger(subtitleIndex)
+        ? subtitleIndex
+        : getActiveSubtitleIndex();
 	if (currentIdx === -1) {
-	  showToast(t("toastNoActiveSubtitle"), "error", 4000);
-	  return;
+        throw new Error(t("toastNoActiveSubtitle"));
 	}
 
     let targetTime;
@@ -989,180 +1058,431 @@ ankiAllBtn.onclick = async () => {
     const includeImageSubtitle = document.getElementById("includeImageSubtitle")?.checked !== false;
     const imageSubtitleText = includeImageSubtitle ? combinedText : "";
 
-    try {
-		
-		const videoPayload = getCurrentVideoPayload();
+    return {
+        videoPayload,
+        offsetStart,
+        offsetEnd,
+        volumeLevel,
+        ankiUrl,
+        deckName,
+        screenshotMode,
+        sentenceField,
+        pictureField,
+        audioField,
+        sentenceFuriganaField,
+        currentIdx,
+        targetTime,
+        audioStart,
+        audioEnd,
+        combinedText,
+        imageSubtitleText,
+        fontSize: document.getElementById("fontSizeRange").value,
+        trackIndex: audioTrackSelect.value === "default" ? "a:0" : audioTrackSelect.value
+    };
+}
 
-		if (!videoPayload) {
-			showToast("Video is not selected", "error", 6000);
-			return;
-		}		
-				
-        const pictureEndpoint = screenshotMode === "webp"
-            ? "/animated-webp"
-            : "/screenshot";
+async function updateAnkiNoteWithSnapshot(targetNoteId, snapshot) {
+    const {
+        videoPayload,
+        volumeLevel,
+        ankiUrl,
+        screenshotMode,
+        sentenceField,
+        pictureField,
+        audioField,
+        sentenceFuriganaField,
+        targetTime,
+        audioStart,
+        audioEnd,
+        combinedText,
+        imageSubtitleText,
+        fontSize,
+        trackIndex
+    } = snapshot;
 
-		const picturePayload = screenshotMode === "webp"
-			? {
-				...videoPayload,
-				start: audioStart,
-				end: audioEnd,
-				text: imageSubtitleText,
-				fontSize: document.getElementById("fontSizeRange").value
-			}
-			: {
-				...videoPayload,
-				time: targetTime,
-				text: imageSubtitleText,
-				fontSize: document.getElementById("fontSizeRange").value
-			};
+    const pictureEndpoint = screenshotMode === "webp"
+        ? "/animated-webp"
+        : "/screenshot";
 
-		console.log("picturePayload", pictureEndpoint, picturePayload);
+    const picturePayload = screenshotMode === "webp"
+        ? {
+            ...videoPayload,
+            start: audioStart,
+            end: audioEnd,
+            text: imageSubtitleText,
+            fontSize
+        }
+        : {
+            ...videoPayload,
+            time: targetTime,
+            text: imageSubtitleText,
+            fontSize
+        };
 
-        const [sRes, aRes] = await Promise.all([
-            fetch(buildApiUrl(pictureEndpoint), {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(picturePayload)
-            }),
-            fetch(buildApiUrl("/audio-to-anki"), {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-					...videoPayload,
-					start: audioStart,
-					end: audioEnd,
-                    trackIndex: audioTrackSelect.value === "default" ? "a:0" : audioTrackSelect.value,
-                    volume: volumeLevel
-                })
+    console.log("picturePayload", pictureEndpoint, picturePayload);
+
+    const [sRes, aRes] = await Promise.all([
+        fetch(buildApiUrl(pictureEndpoint), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(picturePayload)
+        }),
+        fetch(buildApiUrl("/audio-to-anki"), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                ...videoPayload,
+                start: audioStart,
+                end: audioEnd,
+                trackIndex,
+                volume: volumeLevel
             })
-        ]);
+        })
+    ]);
 
-        const sData = await sRes.json();
-        const aData = await aRes.json();
+    const sData = await sRes.json();
+    const aData = await aRes.json();
 
-        if (!sRes.ok || !aRes.ok) {
-            throw new Error(sData.error || aData.error || "Media server error");
+    if (!sRes.ok || !aRes.ok) {
+        throw new Error(sData.error || aData.error || "Media server error");
+    }
+
+    const sName = sData.filename;
+    const aName = aData.filename;
+    const [targetNoteInfo] = await fetchNotesInfo(ankiUrl, [targetNoteId]);
+    const targetWord = getNoteWord(targetNoteInfo);
+
+    const combinedTextForAnki = targetWord
+        ? boldWordInText(combinedText, targetWord)
+        : combinedText;
+
+    let combinedTextFuriganaForAnki = "";
+
+    if (sentenceFuriganaField) {
+        try {
+            combinedTextFuriganaForAnki = boldWordInText(
+                await Promise.race([
+                    buildSentenceFurigana(combinedText),
+                    new Promise((_, reject) => {
+                        setTimeout(() => {
+                            reject(new Error("Furigana generation timeout"));
+                        }, 1500);
+                    })
+                ]),
+                targetWord
+            );
+        } catch (err) {
+            console.warn("Furigana generation skipped:", err);
+            combinedTextFuriganaForAnki = "";
+        }
+    }
+
+    const updateController = new AbortController();
+    const updateTimeoutId = setTimeout(() => {
+        updateController.abort();
+    }, 5000);
+
+    let updateRes;
+
+    try {
+        updateRes = await fetch(ankiUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            signal: updateController.signal,
+            body: JSON.stringify({
+                action: "updateNoteFields",
+                version: 6,
+                params: {
+                    note: {
+                        id: targetNoteId,
+                        fields: (() => {
+                            const fieldsToUpdate = {};
+
+                            if (sentenceField) {
+                                fieldsToUpdate[sentenceField] = combinedTextForAnki;
+                            }
+
+                            if (sentenceFuriganaField) {
+                                fieldsToUpdate[sentenceFuriganaField] = combinedTextFuriganaForAnki;
+                            }
+
+                            fieldsToUpdate[pictureField] = `<img src="${sName}">`;
+                            fieldsToUpdate[audioField] = `[sound:${aName}]`;
+
+                            return fieldsToUpdate;
+                        })()
+                    }
+                }
+            })
+        });
+    } finally {
+        clearTimeout(updateTimeoutId);
+    }
+
+    const updateData = await updateRes.json();
+
+    if (!updateRes.ok || updateData.error) {
+        throw new Error(updateData.error || `Anki update failed: HTTP ${updateRes.status}`);
+    }
+
+    runtimePrefetchWindowStart = -1;
+    runtimePrefetchWindowEnd = -1;
+    runtimeNextPrefetchStart = 0;
+    runtimeHighlightPrefetchReady = false;
+
+    try {
+        await refreshKnownAnkiWordFromNote?.({
+            noteId: targetNoteId,
+            word: targetWord,
+            wordFields: getHighlightWordFieldNames?.()
+        });
+    } catch (err) {
+        console.warn("Could not refresh known-anki-words.json for updated card:", err);
+    }
+
+    ensureStatusesForSubtitleText(combinedText)
+        .then(() => {
+            prefetchRuntimeStatusesForAllSubtitles({ silent: true });
+        })
+        .catch((err) => {
+            console.warn("Could not update runtime highlight status:", err);
+        });
+
+    return { targetWord };
+}
+
+async function updateCurrentOrSelectedAnkiCard() {
+    const snapshot = buildCurrentAnkiMediaSnapshot();
+    const noteIds = await fetchDeckNoteIds(snapshot.ankiUrl, snapshot.deckName);
+
+    if (!noteIds.length) {
+        throw new Error(`Error: There are no cards in "${snapshot.deckName}"!`);
+    }
+
+    const selectedId = Number(targetNoteSelect?.value || 0);
+    const targetNoteId = selectedId > 0 ? selectedId : noteIds[noteIds.length - 1];
+
+    await updateAnkiNoteWithSnapshot(targetNoteId, snapshot);
+
+    showToast(t("toastCardUpdated"), "success");
+
+    if (targetNoteSelect) targetNoteSelect.value = "";
+
+    refreshTargetNoteList({ preserveSelection: false });
+    maybePromptSubtitleDepthReset();
+}
+
+async function waitForNextAnkiNote(snapshot, previousNoteIds) {
+    const previous = new Set((previousNoteIds || []).map((id) => String(id)));
+    const timeoutMs = 60000;
+    const pollMs = 1000;
+    const deadline = Date.now() + timeoutMs;
+
+    while (Date.now() < deadline) {
+        if (pendingAutoAttachNextCard?.cancelled) {
+            throw new AutoAttachCancelledError(t("toastAutoAttachCancelled"));
         }
 
-        const sName = sData.filename;
-        const aName = aData.filename;
+        const noteIds = await fetchDeckNoteIds(snapshot.ankiUrl, snapshot.deckName);
+        const recentIds = await fetchNoteIdsByQuery(
+            snapshot.ankiUrl,
+            "added:1",
+            "AnkiConnect find recent notes"
+        );
+        const mergedIds = [...new Set([...noteIds, ...recentIds])];
+        const newIds = mergedIds
+            .filter((id) => !previous.has(String(id)))
+            .sort((a, b) => Number(a) - Number(b));
 
-        const noteIds = await fetchDeckNoteIds(ankiUrl, deckName);
+        if (newIds.length) {
+            const infoList = await fetchNotesInfo(snapshot.ankiUrl, newIds.slice(-10));
+            const selectedWord = stripHtml(snapshot.selectedWord).toLowerCase();
 
-        if (!noteIds.length) {
-            throw new Error(`Error: There are no cards in "${deckName}"!`);
+            if (selectedWord) {
+                const matchingNote = infoList.find((note) => {
+                    const fields = note?.fields || {};
+                    return Object.values(fields).some((field) => {
+                        return stripHtml(field?.value).toLowerCase().includes(selectedWord);
+                    });
+                });
+
+                if (matchingNote?.noteId) {
+                    return Number(matchingNote.noteId);
+                }
+            }
+
+            const latestInfo = infoList[infoList.length - 1];
+            return Number(latestInfo?.noteId || newIds[newIds.length - 1]);
         }
 
-        const selectedId = Number(targetNoteSelect?.value || 0);
-        const targetNoteId = selectedId > 0 ? selectedId : noteIds[noteIds.length - 1];
-		const [targetNoteInfo] = await fetchNotesInfo(ankiUrl, [targetNoteId]);
-		const targetWord = getNoteWord(targetNoteInfo);
+        await sleep(pollMs);
+    }
 
-		const combinedTextForAnki = targetWord
-			? boldWordInText(combinedText, targetWord)
-			: combinedText;
+    throw new Error(t("toastAutoAttachNoNewCard"));
+}
 
-		let combinedTextFuriganaForAnki = "";
+function cancelPendingAutoAttachNextCard() {
+    if (pendingAutoAttachNextCard) {
+        pendingAutoAttachNextCard.cancelled = true;
+    }
 
-		if (sentenceFuriganaField) {
-			try {
-				combinedTextFuriganaForAnki = boldWordInText(
-					await Promise.race([
-						buildSentenceFurigana(combinedText),
-						new Promise((_, reject) => {
-							setTimeout(() => {
-								reject(new Error("Furigana generation timeout"));
-							}, 1500);
-						})
-					]),
-					targetWord
-				);
-			} catch (err) {
-				console.warn("Furigana generation skipped:", err);
-				combinedTextFuriganaForAnki = "";
-			}
-		}
+    closeAutoAttachStatusToast();
+    clearTimeout(autoAttachSelectionClearTimer);
+}
 
+function setAutoAttachStatus(message, type = "info", { persistent = true } = {}) {
+    if (!autoAttachStatusToast || !document.body.contains(autoAttachStatusToast)) {
+        autoAttachStatusToast = showActionToast(
+            message,
+            [
+                {
+                    label: t("toastAutoAttachCancel"),
+                    onClick: () => {
+                        cancelPendingAutoAttachNextCard();
+                    }
+                }
+            ],
+            type,
+            persistent ? 0 : 3500
+        );
+        return;
+    }
 
-		const updateController = new AbortController();
-		const updateTimeoutId = setTimeout(() => {
-			updateController.abort();
-		}, 5000);
+    const messageEl = autoAttachStatusToast.querySelector(".mp-toast-action-message");
+    if (messageEl) messageEl.textContent = message;
+    autoAttachStatusToast.className = `mp-toast mp-toast-${type} mp-toast-action`;
+}
 
-		let updateRes;
+function closeAutoAttachStatusToast() {
+    if (!autoAttachStatusToast) return;
+    autoAttachStatusToast.classList.add("mp-toast-removing");
+    const toast = autoAttachStatusToast;
+    autoAttachStatusToast = null;
+    setTimeout(() => {
+        toast.remove();
+    }, 180);
+}
 
-		try {
-			updateRes = await fetch(ankiUrl, {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				signal: updateController.signal,
-				body: JSON.stringify({
-					action: "updateNoteFields",
-					version: 6,
-					params: {
-						note: {
-							id: targetNoteId,
-							fields: (() => {
-								const fieldsToUpdate = {};
+function scheduleAutoAttachCancelIfSelectionCleared() {
+    clearTimeout(autoAttachSelectionClearTimer);
 
-								if (sentenceField) {
-									fieldsToUpdate[sentenceField] = combinedTextForAnki;
-								}
+    if (!pendingAutoAttachNextCard) return;
 
-								if (sentenceFuriganaField) {
-									fieldsToUpdate[sentenceFuriganaField] = combinedTextFuriganaForAnki;
-								}
+    autoAttachSelectionClearTimer = setTimeout(() => {
+        const selection = window.getSelection();
+        const selectedText = selection && !selection.isCollapsed
+            ? selection.toString().trim()
+            : "";
 
-								fieldsToUpdate[pictureField] = `<img src="${sName}">`;
-								fieldsToUpdate[audioField] = `[sound:${aName}]`;
+        if (selectedText) return;
 
-								return fieldsToUpdate;
-							})()
-						}
-					}
-				})
-			});
-		} finally {
-			clearTimeout(updateTimeoutId);
-		}
+        cancelPendingAutoAttachNextCard();
+    }, 1200);
+}
 
-		const updateData = await updateRes.json();
+function clearAutoAttachSelectionCancelTimer() {
+    clearTimeout(autoAttachSelectionClearTimer);
+}
 
-		if (!updateRes.ok || updateData.error) {
-			throw new Error(updateData.error || `Anki update failed: HTTP ${updateRes.status}`);
-		}
-				
-		runtimePrefetchWindowStart = -1;
-		runtimePrefetchWindowEnd = -1;
-		runtimeNextPrefetchStart = 0;
-		runtimeHighlightPrefetchReady = false;
+function isAutoAttachNextCardEnabled() {
+    return document.getElementById("autoAttachNextCardEnabled")?.checked === true;
+}
 
-		try {
-			await refreshKnownAnkiWordFromNote?.({
-				noteId: targetNoteId,
-				word: targetWord,
-				wordFields: getHighlightWordFieldNames?.()
-			});
-		} catch (err) {
-			console.warn("Could not refresh known-anki-words.json for updated card:", err);
-		}
+async function startAutoAttachNextCard(word, { copyWord = false, subtitleIndex = null } = {}) {
+    if (pendingAutoAttachNextCard) {
+        return;
+    }
 
-		ensureStatusesForSubtitleText(combinedText)
-			.then(() => {
-				prefetchRuntimeStatusesForAllSubtitles({ silent: true });
-			})
-			.catch((err) => {
-				console.warn("Could not update runtime highlight status:", err);
-			});
+    const selectedWord = String(word || getCleanSelectedText() || "").trim();
 
-		showToast(t("toastCardUpdated"), "success");
+    if (!selectedWord) {
+        showToast(t("toastNoWordSelected"), "error", 3000);
+        return;
+    }
 
-		if (targetNoteSelect) targetNoteSelect.value = "";
+    let snapshot;
+    let previousNoteIds;
+    pendingAutoAttachNextCard = { cancelled: false };
+    setAutoAttachStatus(t("toastAutoAttachPreparing", { word: selectedWord }), "info");
 
-		refreshTargetNoteList({ preserveSelection: false });
-		maybePromptSubtitleDepthReset();
-		
+    try {
+        snapshot = buildCurrentAnkiMediaSnapshot({ subtitleIndex });
+        snapshot.selectedWord = selectedWord;
+        setAutoAttachStatus(t("toastAutoAttachSnapshotReady", { word: selectedWord }), "info");
+        const deckNoteIds = await fetchDeckNoteIds(snapshot.ankiUrl, snapshot.deckName);
+        const recentNoteIds = await fetchNoteIdsByQuery(
+            snapshot.ankiUrl,
+            "added:1",
+            "AnkiConnect find recent notes"
+        );
+        previousNoteIds = [...new Set([...deckNoteIds, ...recentNoteIds])];
+    } catch (err) {
+        pendingAutoAttachNextCard = null;
+        closeAutoAttachStatusToast();
+        showToast(t("toastError", { message: err.message }), "error", 6000);
+        return;
+    }
+
+    try {
+        if (copyWord) {
+            await copyWordForYomitan(selectedWord);
+        }
+        setAutoAttachStatus(t("toastAutoAttachListening", { word: selectedWord }), "info");
+
+        const targetNoteId = await waitForNextAnkiNote(snapshot, previousNoteIds);
+        setAutoAttachStatus(t("toastAutoAttachAdding"), "info");
+        await updateAnkiNoteWithSnapshot(targetNoteId, snapshot);
+
+        closeAutoAttachStatusToast();
+        clearAutoAttachSelectionCancelTimer();
+        showToast(t("toastAutoAttachDone"), "success", 5000);
+        refreshTargetNoteList({ preserveSelection: false });
+        maybePromptSubtitleDepthReset();
+    } catch (err) {
+        closeAutoAttachStatusToast();
+        clearAutoAttachSelectionCancelTimer();
+        if (err instanceof AutoAttachCancelledError) {
+            return;
+        }
+
+        console.warn("Auto attach next Anki card failed:", err);
+        showToast(t("toastAutoAttachFailed", { message: err.message }), "error", 7000);
+    } finally {
+        pendingAutoAttachNextCard = null;
+    }
+}
+
+async function copyWordAndAttachNextCard(word) {
+    await startAutoAttachNextCard(word, {
+        copyWord: true,
+        subtitleIndex: getSubtitleIndexFromSelection()
+    });
+}
+
+function armAutoAttachForSelection(word, subtitleIndex) {
+    if (!isAutoAttachNextCardEnabled()) return;
+    if (pendingAutoAttachNextCard) return;
+    if (!word || !Number.isInteger(subtitleIndex) || subtitleIndex < 0) return;
+
+    const armKey = `${subtitleIndex}:${word}`;
+    if (armKey === lastAutoAttachArmKey) return;
+
+    clearTimeout(autoAttachArmTimer);
+    autoAttachArmTimer = setTimeout(() => {
+        if (!isAutoAttachNextCardEnabled()) return;
+        if (pendingAutoAttachNextCard) return;
+
+        lastAutoAttachArmKey = armKey;
+        startAutoAttachNextCard(word, {
+            copyWord: false,
+            subtitleIndex
+        });
+    }, 250);
+}
+
+ankiAllBtn.onclick = async () => {
+    try {
+        await updateCurrentOrSelectedAnkiCard();
 	} catch (err) {
 	  console.error("Update error:", err);
 	  showToast(t("toastError", { message: err.message }), "error", 6000);
@@ -1292,6 +1612,16 @@ document.addEventListener("fullscreenchange", () => {
     updateFullscreenButtonText();
 });
 
+document.getElementById("autoAttachNextCardEnabled")?.addEventListener("change", (event) => {
+    showToast(
+        event.target.checked
+            ? t("toastAutoAttachEnabled")
+            : t("toastAutoAttachDisabled"),
+        "info",
+        3000
+    );
+});
+
 window.addEventListener("load", () => {
     initTargetNoteDropdown();
     refreshTargetNoteList({ preserveSelection: true });
@@ -1415,15 +1745,47 @@ addKnownBasicBtn?.addEventListener("click", async (e) => {
     await addWordToKnownBasic(selectedKnownBasicWord);
 });
 
-addCardToDeck?.addEventListener("mousedown", (e) => {
-    e.preventDefault();
-});
+let addCardToDeckPointerHandled = false;
 
-addCardToDeck?.addEventListener("click", async (e) => {
+async function handleAddCardToDeckAction(e) {
     e.preventDefault();
     e.stopPropagation();
 
-    await copyWordForYomitan(selectedKnownBasicWord);
+    if (pendingAutoAttachNextCard) {
+        showToast(t("toastAutoAttachAlreadyWaiting"), "info", 4000);
+        return;
+    }
+
+    const selectedWord = String(selectedKnownBasicWord || getCleanSelectedText() || "").trim();
+    const autoAttachEnabled = isAutoAttachNextCardEnabled();
+
+    if (autoAttachEnabled) {
+        await copyWordAndAttachNextCard(selectedWord);
+        return;
+    }
+
+    await copyWordForYomitan(selectedWord);
+}
+
+addCardToDeck?.addEventListener("pointerdown", async (e) => {
+    addCardToDeckPointerHandled = true;
+    await handleAddCardToDeckAction(e);
+});
+
+addCardToDeck?.addEventListener("mousedown", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+});
+
+addCardToDeck?.addEventListener("click", async (e) => {
+    if (addCardToDeckPointerHandled) {
+        addCardToDeckPointerHandled = false;
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+    }
+
+    await handleAddCardToDeckAction(e);
 });
 
 document.addEventListener("mousedown", (e) => {
@@ -1437,6 +1799,7 @@ document.addEventListener("mousedown", (e) => {
     const selection = window.getSelection();
 
     if (!selection || selection.isCollapsed) {
+        scheduleAutoAttachCancelIfSelectionCleared();
         hideAddKnownBasicButton();
     }
 });
@@ -1450,6 +1813,7 @@ document.addEventListener("selectionchange", () => {
     const selection = window.getSelection();
 
     if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
+        scheduleAutoAttachCancelIfSelectionCleared();
         hideAddKnownBasicButton();
         return;
     }
@@ -1470,9 +1834,12 @@ document.addEventListener("selectionchange", () => {
         overlay?.contains(focusElement);
 
     if (!isSubtitleSelection) {
+        scheduleAutoAttachCancelIfSelectionCleared();
         hideAddKnownBasicButton();
         return;
     }
+
+    clearAutoAttachSelectionCancelTimer();
 
     requestAnimationFrame(() => {
         showAddKnownBasicButtonForSelection();

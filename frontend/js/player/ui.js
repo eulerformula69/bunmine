@@ -203,6 +203,10 @@ function showAddKnownBasicButtonForSelection() {
 
     selectedKnownBasicWord = word;
 
+    if (typeof armAutoAttachForSelection === "function") {
+        armAutoAttachForSelection(word, getSubtitleIndexFromSelection?.() ?? -1);
+    }
+
     const main = document.getElementById("main");
     const mainRect = main.getBoundingClientRect();
 
@@ -231,7 +235,6 @@ function hideAddKnownBasicButton() {
     addCardToDeck?.classList.add("hidden");
     selectedKnownBasicWord = "";
 }
-
 
 
 

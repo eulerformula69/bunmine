@@ -4,6 +4,8 @@ frontend/temp/
 anki_highlight/
 frontend/LibraryCovers/
 __pycache__/
+.pytest_cache/
+.tmp_pytest/
 *.mp4
 *.mkv
 *.webm

@@ -62,7 +62,8 @@ function collectSettings() {
 		highlightColorUnknown: document.getElementById("highlightColorUnknown")?.value || "#ffffff",
 		highlightDeckNames: document.getElementById("highlightDeckNames")?.value || "",
 		highlightWordField: document.getElementById("highlightWordField")?.value || "Word",
-		ankiHighlightAutoRefreshInterval: document.getElementById("ankiHighlightAutoRefreshInterval")?.value || "off"
+		ankiHighlightAutoRefreshInterval: document.getElementById("ankiHighlightAutoRefreshInterval")?.value || "off",
+        autoAttachNextCardEnabled: document.getElementById("autoAttachNextCardEnabled")?.checked ?? false
 		
     };
 }
@@ -212,6 +213,11 @@ function loadSettings() {
 		includeImageSubtitleEl.checked = settings.includeImageSubtitle !== false;
 	}
 
+    const autoAttachNextCardEnabled = document.getElementById("autoAttachNextCardEnabled");
+    if (autoAttachNextCardEnabled) {
+        autoAttachNextCardEnabled.checked = settings.autoAttachNextCardEnabled === true;
+    }
+
     const playerVolumeEl = document.getElementById("volume");
     if (playerVolumeEl && typeof video !== "undefined") {
         video.volume = Math.max(0, Math.min(1, parseFloat(playerVolumeEl.value) || 1));
@@ -302,6 +308,7 @@ function initSettingsAutosave() {
         "highlightDeckNames",
         "highlightWordField",
         "ankiHighlightAutoRefreshInterval",
+        "autoAttachNextCardEnabled",
         "interfaceLangSelect"
     ].forEach((id) => {
         const el = document.getElementById(id);
