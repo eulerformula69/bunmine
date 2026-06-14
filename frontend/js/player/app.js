@@ -1146,7 +1146,6 @@ ankiAllBtn.onclick = async () => {
 			});
 		} catch (err) {
 			console.warn("Could not refresh known-anki-words.json for updated card:", err);
-			clearRuntimeWordStatuses?.();
 		}
 
 		ensureStatusesForSubtitleText(combinedText)

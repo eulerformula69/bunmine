@@ -34,6 +34,25 @@ function pickBetterStatus(oldStatus, newStatus) {
     return priority[newStatus] > priority[oldStatus] ? newStatus : oldStatus;
 }
 
+function updateRuntimeKnownAnkiWords(words, status, extraInfo = {}) {
+    const normalizedStatus = status || "unknown";
+
+    for (const rawWord of words || []) {
+        const word = normalizeHighlightWord(rawWord);
+
+        if (!word) continue;
+
+        const prev = ankiRuntimeWordStatusMap.get(word);
+
+        ankiRuntimeWordStatusMap.set(word, {
+            ...(prev || {}),
+            ...extraInfo,
+            status: pickBetterStatus(prev?.status, normalizedStatus),
+            source: prev?.source === "known-basic" ? "known-basic" : "known-anki"
+        });
+    }
+}
+
 async function ankiRequest(ankiUrl, action, params = {}) {
     const res = await fetchWithRetry(ankiUrl, {
         method: "POST",
@@ -290,8 +309,13 @@ async function refreshKnownAnkiWordFromNote({ noteId, word = "", wordFields = nu
         throw new Error(data?.error || "Failed to refresh Anki highlight word");
     }
 
-    clearRuntimeWordStatuses();
-    await loadHighlightWordIndexes({ force: true });
+    updateRuntimeKnownAnkiWords(data.words || [word], data.status, {
+        noteId: data.noteId,
+        lastCheckedAt: data.updatedAt,
+        locked: data.status === "mature"
+    });
+
+    knownAnkiWordsLoaded = false;
     rerenderCurrentSubtitleWithAnkiHighlighter();
 
     return data;
@@ -667,5 +691,4 @@ function addRuntimeKnownBasicWord(word) {
         source: "known-basic"
     });
 }
-
 
