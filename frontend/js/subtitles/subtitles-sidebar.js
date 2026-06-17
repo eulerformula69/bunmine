@@ -364,6 +364,42 @@ function goToNextSubtitle() {
     audioManager?.sync?.();
 }
 
+function replayCurrentSubtitle() {
+    if (!subtitles.length) return;
+
+    clearSearchMatches();
+
+    const currentIndex = getCurrentSubtitleIndexForNavigation();
+    const targetSub = subtitles[currentIndex];
+
+    if (!targetSub) return;
+
+    video.currentTime = Math.max(0, targetSub.start + globalSubDelay + 0.01);
+
+    renderSubtitleOverlay({
+        overlay,
+        text: targetSub.text,
+        highlighter: ankiSubtitleHighlighter
+    });
+
+    syncSubtitleStyle(currentIndex);
+    audioManager?.sync?.();
+    video.play();
+}
+
+function focusSubtitleWordSearch() {
+    if (sidebar?.classList.contains("hidden")) {
+        toggleBtn?.click();
+    }
+
+    requestAnimationFrame(() => {
+        const wordInput = document.getElementById("subtitleWordSearchInput");
+
+        wordInput?.focus();
+        wordInput?.select();
+    });
+}
+
 function updateSubtitleSearchPanelLanguage() {
     const dict = i18n?.[currentLang]?.dict || i18n?.en?.dict || {};
 
@@ -1032,5 +1068,4 @@ function restoreSubtitleFromCurrentTime() {
 
     syncSubtitleStyle(idx);
 }
-
 
