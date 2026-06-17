@@ -7,7 +7,26 @@ function buildApiUrl(path) {
 async function apiJson(path, options = {}) {
     const response = await fetch(buildApiUrl(path), options);
     const data = await response.json();
+    normalizeApiPayload(data);
     return { response, data };
+}
+
+function normalizeApiPayload(data) {
+    if (!data || typeof data !== "object") return data;
+
+    if (data.ok === false && data.error && typeof data.error === "object") {
+        data.errorInfo = data.error;
+        data.error = data.error.message || "Request failed";
+    }
+
+    return data;
+}
+
+function getApiErrorMessage(data, fallback = "Request failed") {
+    if (!data || typeof data !== "object") return fallback;
+    if (typeof data.error === "string" && data.error) return data.error;
+    if (data.errorInfo?.message) return data.errorInfo.message;
+    return fallback;
 }
 
 function sleep(ms) {
@@ -44,7 +63,6 @@ async function fetchWithRetry(url, options, {
     }
     throw new Error(`${label} failed: ${message}`);
 }
-
 
 
 

@@ -1,64 +1,28 @@
-import os
-from pathlib import Path
+from backend.settings import Settings, load_settings
 
 
-def load_env_file(path: Path) -> None:
-    if not path.exists():
-        return
+_SETTINGS = load_settings()
 
-    for raw_line in path.read_text(encoding="utf-8").splitlines():
-        line = raw_line.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-
-        key, value = line.split("=", 1)
-        key = key.strip()
-        value = value.strip().strip('"').strip("'")
-        if key and key not in os.environ:
-            os.environ[key] = value
-
-
-PROJECT_DIR = Path(__file__).resolve().parent.parent
-load_env_file(PROJECT_DIR / ".env")
-
-DEFAULT_BASE_DIR = PROJECT_DIR
-BASE_DIR = Path(os.getenv("PLAYER_SERVER_BASE_DIR", str(DEFAULT_BASE_DIR))).resolve()
-
-FRONTEND_DIR = BASE_DIR / "frontend"
-VIDEO_DIR = BASE_DIR / "UploadedVideos"
-ANKI_HIGHLIGHT_DIR = BASE_DIR / "anki_highlight"
-ANKI_HIGHLIGHT_CACHE_DIR = ANKI_HIGHLIGHT_DIR  # Backward-compatible alias
-
-anki_media_dir_raw = os.getenv("ANKI_MEDIA_DIR")
-if not anki_media_dir_raw:
-    raise RuntimeError(
-        "ANKI_MEDIA_DIR is not set. Create .env from .env.example and set your Anki collection.media path."
-    )
-ANKI_MEDIA_DIR = Path(anki_media_dir_raw).expanduser().resolve()
-
-SCREENSHOT_DIR = ANKI_MEDIA_DIR
-AUDIO_DIR = ANKI_MEDIA_DIR
-
-MEDIA_LIBRARY_DIR_RAW = os.getenv("MEDIA_LIBRARY_DIR")
-if not MEDIA_LIBRARY_DIR_RAW:
-    raise RuntimeError(
-        "MEDIA_LIBRARY_DIR is not set. Add MEDIA_LIBRARY_DIR to .env, for example: MEDIA_LIBRARY_DIR=D:\\Anime"
-    )
-MEDIA_LIBRARY_DIR = Path(MEDIA_LIBRARY_DIR_RAW).expanduser().resolve()
-
-ALLOWED_ORIGIN = os.getenv("ALLOWED_ORIGIN")
-ALLOWED_VIDEO_EXTENSIONS = {".mp4", ".mkv", ".avi", ".mov", ".webm"}
-ALLOWED_SUBTITLE_EXTENSIONS = {".srt", ".ass", ".vtt"}
-
-DEDUPE_INDEX_PATH = BASE_DIR / "dedupe_index.json"
-LIBRARY_DB_PATH = BASE_DIR / "library.sqlite3"
-LIBRARY_COVERS_DIR = FRONTEND_DIR / "LibraryCovers"
-FONTS_DIR = FRONTEND_DIR / "fonts"
-PORT = int(os.getenv("PORT", "5000"))
-JIMAKU_API_TOKEN = os.getenv("JIMAKU_API_TOKEN", "").strip()
-
-# Automatic Anki highlight refresh. Values: off, daily, weekly.
-ANKI_HIGHLIGHT_AUTO_REFRESH = os.getenv("ANKI_HIGHLIGHT_AUTO_REFRESH", "daily").strip().lower()
-ANKI_HIGHLIGHT_AUTO_REFRESH_HOUR = int(os.getenv("ANKI_HIGHLIGHT_AUTO_REFRESH_HOUR", "4"))
-ANKI_HIGHLIGHT_AUTO_REFRESH_MINUTE = int(os.getenv("ANKI_HIGHLIGHT_AUTO_REFRESH_MINUTE", "0"))
-
+PROJECT_DIR = _SETTINGS.project_dir
+BASE_DIR = _SETTINGS.base_dir
+DATA_DIR = _SETTINGS.data_dir
+FRONTEND_DIR = _SETTINGS.frontend_dir
+VIDEO_DIR = _SETTINGS.video_dir
+ANKI_HIGHLIGHT_DIR = _SETTINGS.anki_highlight_dir
+ANKI_HIGHLIGHT_CACHE_DIR = ANKI_HIGHLIGHT_DIR
+ANKI_MEDIA_DIR = _SETTINGS.anki_media_dir
+SCREENSHOT_DIR = _SETTINGS.screenshot_dir
+AUDIO_DIR = _SETTINGS.audio_dir
+MEDIA_LIBRARY_DIR = _SETTINGS.media_library_dir
+ALLOWED_ORIGIN = _SETTINGS.allowed_origin
+ALLOWED_VIDEO_EXTENSIONS = _SETTINGS.allowed_video_extensions
+ALLOWED_SUBTITLE_EXTENSIONS = _SETTINGS.allowed_subtitle_extensions
+DEDUPE_INDEX_PATH = _SETTINGS.dedupe_index_path
+LIBRARY_DB_PATH = _SETTINGS.library_db_path
+LIBRARY_COVERS_DIR = _SETTINGS.library_covers_dir
+FONTS_DIR = _SETTINGS.fonts_dir
+PORT = _SETTINGS.port
+JIMAKU_API_TOKEN = _SETTINGS.jimaku_api_token
+ANKI_HIGHLIGHT_AUTO_REFRESH = _SETTINGS.anki_highlight_auto_refresh
+ANKI_HIGHLIGHT_AUTO_REFRESH_HOUR = _SETTINGS.anki_highlight_auto_refresh_hour
+ANKI_HIGHLIGHT_AUTO_REFRESH_MINUTE = _SETTINGS.anki_highlight_auto_refresh_minute

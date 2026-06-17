@@ -1,12 +1,15 @@
 from pathlib import Path
 from typing import Optional
 
-from backend.config import LIBRARY_DB_PATH, MEDIA_LIBRARY_DIR, VIDEO_DIR
 from backend.library_db import get_library_file_by_id
+from backend.settings import Settings
 from backend.utils_validation import is_within, safe_media_name
 
 
-def resolve_video_path_from_payload(data: dict) -> tuple[Optional[Path], Optional[dict], Optional[tuple]]:
+def resolve_video_path_from_payload(
+    data: dict,
+    settings: Settings,
+) -> tuple[Optional[Path], Optional[dict], Optional[tuple]]:
     if not isinstance(data, dict):
         return None, None, ({"error": "Invalid JSON payload"}, 400)
 
@@ -18,7 +21,7 @@ def resolve_video_path_from_payload(data: dict) -> tuple[Optional[Path], Optiona
         except (TypeError, ValueError):
             return None, None, ({"error": "Invalid videoFileId"}, 400)
 
-        result = get_library_file_by_id(LIBRARY_DB_PATH, file_id)
+        result = get_library_file_by_id(settings.library_db_path, file_id)
         if not result.get("found"):
             return None, None, ({"error": "Library video file not found"}, 404)
 
@@ -27,7 +30,7 @@ def resolve_video_path_from_payload(data: dict) -> tuple[Optional[Path], Optiona
             return None, None, ({"error": "Library file is not a video"}, 400)
 
         video_path = Path(file_info["path"]).resolve()
-        if not is_within(MEDIA_LIBRARY_DIR, video_path):
+        if not is_within(settings.media_library_dir, video_path):
             return None, None, ({"error": "Video file is outside MEDIA_LIBRARY_DIR"}, 403)
         if not video_path.exists() or not video_path.is_file():
             return None, None, ({"error": "Video file is missing"}, 404)
@@ -47,8 +50,8 @@ def resolve_video_path_from_payload(data: dict) -> tuple[Optional[Path], Optiona
     except ValueError as err:
         return None, None, ({"error": str(err)}, 400)
 
-    video_path = (VIDEO_DIR / safe_filename).resolve()
-    if not is_within(VIDEO_DIR, video_path):
+    video_path = (settings.video_dir / safe_filename).resolve()
+    if not is_within(settings.video_dir, video_path):
         return None, None, ({"error": "Video file is outside VIDEO_DIR"}, 403)
     if not video_path.exists() or not video_path.is_file():
         return None, None, ({"error": "Video file not found"}, 404)
@@ -58,7 +61,6 @@ def resolve_video_path_from_payload(data: dict) -> tuple[Optional[Path], Optiona
         "filename": safe_filename,
         "path": str(video_path),
     }, None
-
 
 
 

@@ -1,11 +1,13 @@
 .env
 UploadedVideos/
+data/
 frontend/temp/
 anki_highlight/
 frontend/LibraryCovers/
 __pycache__/
 .pytest_cache/
 .tmp_pytest/
+.tmp_pytest_run/
 *.mp4
 *.mkv
 *.webm

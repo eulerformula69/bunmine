@@ -1,39 +1,43 @@
-let currentLang = "en";
+window.BunmineState = {
+    currentLang: "en",
+    isResizing: false,
+    subtitles: [],
+    globalSubDelay: 0,
+    subtitleElements: [],
+    currentVideoFile: null,
+    currentLibraryEpisodeId: null,
+    currentLibraryVideoFileId: null,
+    currentLibrarySubtitleFileId: null,
+    lastClickedSubtitleIdx: null,
+    lastSidebarWidth: "",
+    lastRuntimeSubtitleText: "",
+    runtimePrefetchAllRunId: 0,
+    runtimePrefetchAllInProgress: false,
+    selectedKnownBasicWord: "",
+    subtitleSearchQuery: "",
+    subtitleSearchMatches: [],
+    subtitleSearchIndex: -1,
+    subtitleSearchMode: "word",
+    subtitleSearchTimeSeconds: null,
+    subtitleContextBackDepth: 0,
+    subtitleContextForwardDepth: 0,
+    subtitleContextDragState: null,
+    deckNoteRefreshTimer: null,
+    runtimeHighlightPrefetchReady: false,
+    runtimePrefetchWindowStart: -1,
+    runtimePrefetchWindowEnd: -1,
+    runtimeNextPrefetchStart: 0,
+    lastPrefetchSubtitleIndex: -1
+};
 
-let isResizing = false;
-let subtitles = [];
-let globalSubDelay = 0;
-let subtitleElements = [];
-let currentVideoFile = null;
-let currentLibraryEpisodeId = null;
-let currentLibraryVideoFileId = null;
-let currentLibrarySubtitleFileId = null;
-let lastClickedSubtitleIdx = null;
-let lastSidebarWidth = "";
-let lastRuntimeSubtitleText = "";
-let runtimePrefetchAllRunId = 0;
-let runtimePrefetchAllInProgress = false;
-let selectedKnownBasicWord = "";
-
-let subtitleSearchQuery = "";
-let subtitleSearchMatches = [];
-let subtitleSearchIndex = -1;
-let subtitleSearchMode = "word";
-let subtitleSearchTimeSeconds = null;
-let subtitleContextBackDepth = 0;
-let subtitleContextForwardDepth = 0;
-let subtitleContextDragState = null;
-
-let deckNoteRefreshTimer = null;
-
-let runtimeHighlightPrefetchReady = false;
-let runtimePrefetchWindowStart = -1;
-let runtimePrefetchWindowEnd = -1;
-let runtimeNextPrefetchStart = 0;
-let lastPrefetchSubtitleIndex = -1;	
-
-
-
-
-
-
+for (const key of Object.keys(window.BunmineState)) {
+    Object.defineProperty(window, key, {
+        configurable: true,
+        get() {
+            return window.BunmineState[key];
+        },
+        set(value) {
+            window.BunmineState[key] = value;
+        }
+    });
+}
