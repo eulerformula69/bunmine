@@ -57,6 +57,10 @@ interface LibrarySeries {
     posterUrl?: string | null;
     episodesCount?: number;
     linkStatus?: string;
+    completedEpisodes?: number;
+    totalEpisodes?: number;
+    videoCount?: number;
+    subtitleCount?: number;
 }
 
 interface LibraryEpisode {
@@ -67,6 +71,9 @@ interface LibraryEpisode {
     subtitleFileId?: number | null;
     completed?: boolean;
     progressSeconds?: number;
+    currentTimeSeconds?: number;
+    watchedSeconds?: number;
+    durationSeconds?: number;
 }
 
 interface LibrarySeriesListResponse extends ApiPayload {
@@ -89,6 +96,33 @@ interface JobResponse extends ApiPayload {
     jobId?: string;
     status?: "queued" | "running" | "done" | "failed" | string;
     result?: unknown;
+}
+
+interface LibraryFolderDialogResponse extends ApiPayload {
+    path?: string;
+}
+
+interface LibraryJobStatusResponse extends JobResponse {
+    progress?: unknown;
+}
+
+interface LibrarySubtitleSearchResponse extends ApiPayload {
+    results?: unknown[];
+}
+
+interface LibrarySubtitlePlanResponse extends ApiPayload {
+    plan?: unknown;
+}
+
+interface LibraryCoverSearchResponse extends ApiPayload {
+    results?: unknown[];
+}
+
+interface LibraryMutationResponse extends ApiPayload {
+    series?: LibrarySeries;
+    episode?: LibraryEpisode;
+    count?: number;
+    unresolved?: number;
 }
 
 interface KnownWordsResponse extends ApiPayload {

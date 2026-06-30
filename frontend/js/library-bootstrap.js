@@ -1,5 +1,6 @@
 const scripts = [
     "js/core/api.js",
+    "js/library/library-api.js",
     "js/library/library.js"
 ];
 
