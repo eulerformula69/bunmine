@@ -691,11 +691,7 @@ async function searchSubtitlesForCurrentEpisode() {
     subtitleResults.innerHTML = `<div class="cover-message">${escapeHtml(lt("searchingJimaku"))}</div>`;
 
     try {
-        const url =
-            `/library/episodes/${encodeURIComponent(episode.id)}/subtitles/search` +
-            `?q=${encodeURIComponent(query)}`;
-
-        const { response, data } = await apiJson(url);
+        const { response, data } = await librarySearchEpisodeSubtitles(episode.id, query);
 
         if (!response.ok || data.error) {
             throw new Error(data.error || lt("subtitleSearchFailed"));
@@ -752,21 +748,12 @@ async function selectSubtitleResult(result) {
     subtitleResults.classList.add("is-loading");
 
     try {
-        const { response, data } = await apiJson(
-            `/library/episodes/${encodeURIComponent(episode.id)}/subtitles/select`,
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    source: result.source,
-                    entryId: result.entryId,
-                    filename: result.filename,
-                    downloadUrl: result.downloadUrl
-                })
-            }
-        );
+        const { response, data } = await librarySelectEpisodeSubtitle(episode.id, {
+            source: result.source,
+            entryId: result.entryId,
+            filename: result.filename,
+            downloadUrl: result.downloadUrl
+        });
 
         if (!response.ok || data.error) {
             throw new Error(data.error || lt("couldNotSaveSubtitle"));
@@ -880,16 +867,7 @@ async function analyzeMissingSubtitlesForCurrentSeries() {
 
 async function requestSeriesSubtitleAnalysisWithBackoff(seriesId, query) {
     for (let attempt = 0; attempt <= JIMAKU_429_MAX_RETRIES; attempt += 1) {
-        const { response, data } = await apiJson(
-            `/library/series/${encodeURIComponent(seriesId)}/subtitles/analyze`,
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({ query })
-            }
-        );
+        const { response, data } = await libraryAnalyzeSeriesSubtitles(seriesId, query);
 
         if (response.status !== 429) {
             if (!response.ok || data.error) {
@@ -1056,18 +1034,7 @@ function applyBulkSubtitleSet(releaseKey) {
 
 async function requestEpisodeSubtitlePlanWithBackoff(item) {
     for (let attempt = 0; attempt <= JIMAKU_429_MAX_RETRIES; attempt += 1) {
-        const { response, data } = await apiJson(
-            `/library/episodes/${encodeURIComponent(item.episodeId)}/subtitles/plan`,
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    query: currentOpenedSeries.title
-                })
-            }
-        );
+        const { response, data } = await libraryPlanEpisodeSubtitle(item.episodeId, currentOpenedSeries.title);
 
         if (response.status !== 429) {
             if (!response.ok || data.error) {
@@ -1228,21 +1195,12 @@ async function postSubtitleDownloadWithBackoff(item) {
     const selected = item.selected;
 
     for (let attempt = 0; attempt <= JIMAKU_429_MAX_RETRIES; attempt += 1) {
-        const { response, data } = await apiJson(
-            `/library/episodes/${encodeURIComponent(item.episodeId)}/subtitles/select`,
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    source: selected.source,
-                    entryId: selected.entryId,
-                    filename: selected.filename,
-                    downloadUrl: selected.downloadUrl
-                })
-            }
-        );
+        const { response, data } = await librarySelectEpisodeSubtitle(item.episodeId, {
+            source: selected.source,
+            entryId: selected.entryId,
+            filename: selected.filename,
+            downloadUrl: selected.downloadUrl
+        });
 
         if (response.status !== 429) {
             if (!response.ok || data.error) {
@@ -1350,11 +1308,7 @@ async function searchCoversForCurrentSeries() {
     coverResults.innerHTML = `<div class="cover-message">${escapeHtml(lt("searchingAniList"))}</div>`;
 
     try {
-        const url =
-            `/library/series/${encodeURIComponent(currentCoverSeries.id)}/cover/search` +
-            `?q=${encodeURIComponent(query)}`;
-
-        const { response, data } = await apiJson(url);
+        const { response, data } = await librarySearchSeriesCover(currentCoverSeries.id, query);
 
         if (!response.ok || data.error) {
             throw new Error(data.error || lt("coverSearchFailed"));
@@ -1411,20 +1365,11 @@ async function selectCoverResult(result) {
     coverResults.classList.add("is-loading");
 
     try {
-        const { response, data } = await apiJson(
-            `/library/series/${encodeURIComponent(currentCoverSeries.id)}/cover/select`,
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    source: result.source,
-                    externalId: result.externalId,
-                    coverUrl: result.coverUrl
-                })
-            }
-        );
+        const { response, data } = await librarySelectSeriesCover(currentCoverSeries.id, {
+            source: result.source,
+            externalId: result.externalId,
+            coverUrl: result.coverUrl
+        });
 
         if (!response.ok || data.error) {
             throw new Error(data.error || lt("couldNotSaveCover"));

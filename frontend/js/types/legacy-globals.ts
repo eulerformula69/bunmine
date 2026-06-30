@@ -90,6 +90,15 @@ declare let currentLibrarySubtitleFileId: string | number | null;
 
 declare function t(key: string, params?: Record<string, unknown>): string;
 declare function getApiErrorMessage(data: ApiPayload | null | undefined, fallback?: string): string;
+declare function fetchWithRetry(
+    url: string,
+    options: RequestInit | undefined,
+    settings?: {
+        retries?: number;
+        delayMs?: number;
+        label?: string;
+    }
+): Promise<Response>;
 declare function showToast(message: string, type?: ToastType, duration?: number): void;
 declare function showActionToast(
     message: string,
@@ -105,6 +114,8 @@ declare function renderSubtitleOverlay(options: {
 }): void;
 declare function parseSRT(data: string): SubtitleCue[];
 declare function parseASS(data: string): SubtitleCue[];
+declare function tokenizeJapaneseText(text: string): Promise<JapaneseToken[]>;
+declare function tokenizeJapaneseTextSync(text: string): JapaneseToken[] | null;
 declare function restoreSubtitleFromCurrentTime(): void;
 declare function prefetchRuntimeStatusesForAllSubtitles(options?: {
     silent?: boolean;
