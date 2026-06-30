@@ -3,6 +3,7 @@ const scripts = [
     "js/core/i18n.js",
     "js/core/api.js",
     "js/core/state.js",
+    "js/player/context.js",
     "js/player/ui.js",
     "js/video/video.js",
     "libs/kuromoji/kuromoji.js",
