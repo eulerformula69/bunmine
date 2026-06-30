@@ -27,7 +27,7 @@ const {
     addKnownBasicBtn,
     addCardToDeck,
     volume
-} = dom;
+} = playerContext.dom;
 
 
 video.volume = volume.value;
