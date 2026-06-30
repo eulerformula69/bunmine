@@ -71,10 +71,13 @@ declare const video: HTMLVideoElement;
 declare const volume: HTMLInputElement;
 declare const audioTrackSelect: HTMLSelectElement;
 declare const overlay: HTMLElement | null;
+declare const sidebar: HTMLElement | null;
+declare const toggleBtn: HTMLButtonElement | null;
 declare const dropzone: HTMLElement;
 declare const videoPickerModal: HTMLElement | null;
 declare const videoPickerList: HTMLElement | null;
 
+declare let currentLang: string;
 declare let subtitles: SubtitleCue[];
 declare let globalSubDelay: number;
 declare let lastRuntimeSubtitleText: string;
@@ -109,6 +112,9 @@ declare function prefetchRuntimeStatusesForAllSubtitles(options?: {
 }): void;
 declare function clearRuntimeWordStatuses(): void;
 declare function updatePlayButton(): void;
+declare function clearSearchMatches(): void;
+declare function syncSubtitleStyle(index: number): void;
+declare const ankiSubtitleHighlighter: unknown;
 declare function getSubtitleContextSelection(index: number): {
     startTime: number;
     endTime: number;
