@@ -98,10 +98,10 @@ video.addEventListener("timeupdate", () => {
 	const currentSearchMatch = getCurrentSearchMatch?.();
 
 	if (currentSearchMatch && !video.paused) {
-		const currentSubtitleIndex = subtitles.findIndex((s) => {
-			const t = video.currentTime - globalSubDelay;
-			return t >= s.start && t <= s.end;
-		});
+		const currentSubtitleIndex = findActiveSubtitleIndexAtTime(
+			subtitles,
+			getAdjustedPlaybackTime(video, globalSubDelay)
+		);
 
 		if (
 			currentSubtitleIndex !== -1 &&
@@ -998,10 +998,10 @@ function isAutoAttachBusy() {
 }
 
 function getActiveSubtitleIndex() {
-    return subtitles.findIndex((s) => {
-        return (video.currentTime - globalSubDelay) >= s.start &&
-            (video.currentTime - globalSubDelay) <= s.end;
-    });
+    return findActiveSubtitleIndexAtTime(
+        subtitles,
+        getAdjustedPlaybackTime(video, globalSubDelay)
+    );
 }
 
 function getSubtitleIndexFromSelection(selection = window.getSelection()) {

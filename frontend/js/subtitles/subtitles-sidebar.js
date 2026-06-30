@@ -1,4 +1,4 @@
-
+﻿
 // sidebar bootstrap
 
 function initSubtitleSidebar() {
@@ -130,14 +130,20 @@ function getSubtitleContextSelection(currentIdx = null) {
         };
     }
 
+    const selection = buildSubtitleContextSelection(
+        subtitles,
+        range.currentIdx,
+        range.backDepth,
+        range.forwardDepth
+    );
     const items = subtitles.slice(range.startIdx, range.endIdx + 1);
 
     return {
         ...range,
         items,
-        text: items.map((item) => item.text).join(" "),
-        startTime: items[0]?.start ?? 0,
-        endTime: items[items.length - 1]?.end ?? 0
+        text: selection?.text ?? "",
+        startTime: selection?.startTime ?? 0,
+        endTime: selection?.endTime ?? 0
     };
 }
 
@@ -188,14 +194,14 @@ function initSubtitleSearchPanel() {
             type="text"
             autocomplete="off"
         />
-        <button id="subtitleSearchPrevBtn" type="button">↑</button>
-        <button id="subtitleSearchNextBtn" type="button">↓</button>
+        <button id="subtitleSearchPrevBtn" type="button">в†‘</button>
+        <button id="subtitleSearchNextBtn" type="button">в†“</button>
         <input
             id="subtitleTimeSearchInput"
             type="text"
             autocomplete="off"
         />
-        <button id="subtitleSearchCommitBtn" type="button">↵</button>
+        <button id="subtitleSearchCommitBtn" type="button">в†µ</button>
     `;
 
     sidebar.appendChild(panel);
@@ -450,211 +456,32 @@ function setSearchMatches(matches, index = 0) {
     scrollToSearchMatch(getCurrentSearchMatch());
 }
 
-function normalizeSearchText(value) {
-    return kanaToRomaji(katakanaToHiragana(String(value || "").toLowerCase()));
-}
-
-function getTokenSurface(token) {
-    return token.surface_form || token.surface || token.word || "";
-}
-
-function getTokenReading(token) {
-    return token.reading || token.pronunciation || "";
-}
-
 function findSubtitleTextMatches(query) {
-    const cleanQuery = String(query || "").trim();
-    if (!cleanQuery) return [];
-
-    const qRaw = cleanQuery.toLowerCase();
-    const qKanaRomaji = normalizeSearchText(cleanQuery);
-    const matches = [];
-
-    subtitles.forEach((sub, subtitleIndex) => {
-        const text = String(sub.text || "");
-        const tokens = tokenizeJapaneseTextSync(text) || [];
-
-        let cursor = 0;
-
-        tokens.forEach((token) => {
-            const surface = getTokenSurface(token);
-            if (!surface) return;
-
-            const start = text.indexOf(surface, cursor);
-            if (start === -1) return;
-
-            const end = start + surface.length;
-            cursor = end;
-
-            const surfaceLower = surface.toLowerCase();
-            const reading = getTokenReading(token);
-            const readingHira = katakanaToHiragana(reading);
-            const readingRomaji = kanaToRomaji(readingHira);
-
-            const tokenSearchForms = [
-                surfaceLower,
-                readingHira.toLowerCase(),
-                readingRomaji.toLowerCase()
-            ];
-
-            if (
-                tokenSearchForms.some(form =>
-                    form.includes(qRaw) || form.includes(qKanaRomaji)
-                )
-            ) {
-                matches.push({
-                    type: "word",
-                    subtitleIndex,
-                    start,
-                    end,
-                    query: cleanQuery
-                });
-            }
-        });
-    });
-
-    return matches;
-}
-
-function katakanaToHiragana(text) {
-    return String(text || "").replace(/[\u30a1-\u30f6]/g, ch =>
-        String.fromCharCode(ch.charCodeAt(0) - 0x60)
+    return findSubtitleTextMatchesInCues(
+        subtitles,
+        query,
+        (text) => tokenizeJapaneseTextSync(text) || []
     );
 }
 
-const kanaRomajiMap = {
-    きゃ:"kya", きゅ:"kyu", きょ:"kyo",
-    しゃ:"sha", しゅ:"shu", しょ:"sho",
-    ちゃ:"cha", ちゅ:"chu", ちょ:"cho",
-    にゃ:"nya", にゅ:"nyu", にょ:"nyo",
-    ひゃ:"hya", ひゅ:"hyu", ひょ:"hyo",
-    みゃ:"mya", みゅ:"myu", みょ:"myo",
-    りゃ:"rya", りゅ:"ryu", りょ:"ryo",
-    ぎゃ:"gya", ぎゅ:"gyu", ぎょ:"gyo",
-    じゃ:"ja", じゅ:"ju", じょ:"jo",
-    びゃ:"bya", びゅ:"byu", びょ:"byo",
-    ぴゃ:"pya", ぴゅ:"pyu", ぴょ:"pyo",
-    あ:"a", い:"i", う:"u", え:"e", お:"o",
-    か:"ka", き:"ki", く:"ku", け:"ke", こ:"ko",
-    さ:"sa", し:"shi", す:"su", せ:"se", そ:"so",
-    た:"ta", ち:"chi", つ:"tsu", て:"te", と:"to",
-    な:"na", に:"ni", ぬ:"nu", ね:"ne", の:"no",
-    ん:"n", は:"ha", ひ:"hi", ふ:"fu", へ:"he", ほ:"ho",
-    ま:"ma", み:"mi", む:"mu", め:"me", も:"mo",
-    や:"ya", ゆ:"yu", よ:"yo",
-    ら:"ra", り:"ri", る:"ru", れ:"re", ろ:"ro",
-    わ:"wa", を:"wo",
-    が:"ga", ぎ:"gi", ぐ:"gu", げ:"ge", ご:"go",
-    ざ:"za", じ:"ji", ず:"zu", ぜ:"ze", ぞ:"zo",
-    だ:"da", ぢ:"ji", づ:"zu", で:"de", ど:"do",
-    ば:"ba", び:"bi", ぶ:"bu", べ:"be", ぼ:"bo",
-    ぱ:"pa", ぴ:"pi", ぷ:"pu", ぺ:"pe", ぽ:"po"
-};
-
-function kanaToRomaji(text) {
-    const hira = katakanaToHiragana(text);
-    let out = "";
-
-    for (let i = 0; i < hira.length; i++) {
-        const pair = hira.slice(i, i + 2);
-
-        if (hira[i] === "っ") {
-            const next = kanaRomajiMap[hira.slice(i + 1, i + 3)] || kanaRomajiMap[hira[i + 1]] || "";
-            out += next[0] || "";
-            continue;
-        }
-
-        if (kanaRomajiMap[pair]) {
-            out += kanaRomajiMap[pair];
-            i++;
-            continue;
-        }
-
-        out += kanaRomajiMap[hira[i]] || hira[i];
-    }
-
-    return out;
-}
-
 function getSubtitleSearchHaystack(text) {
-    const raw = String(text || "").toLowerCase();
-    const tokens = tokenizeJapaneseTextSync(raw) || [];
-
-    const readings = tokens
-        .map(t => t.reading || t.pronunciation || "")
-        .filter(Boolean)
-        .join("");
-
-    const kana = katakanaToHiragana(readings);
-    const romaji = kanaToRomaji(kana);
-
-    return `${raw} ${kana} ${romaji}`.toLowerCase();
+    return getSubtitleSearchHaystackForText(
+        text,
+        (value) => tokenizeJapaneseTextSync(value) || []
+    );
 }
 
 function parseSearchTime(value) {
-    const raw = String(value || "").trim();
-
-    if (!raw) return null;
-
-    if (/^\d+(\.\d+)?$/.test(raw)) {
-        return Number(raw);
-    }
-
-    const parts = raw.split(":").map(Number);
-
-    if (parts.some((part) => Number.isNaN(part))) return null;
-
-    if (parts.length === 2) {
-        return parts[0] * 60 + parts[1];
-    }
-
-    if (parts.length === 3) {
-        return parts[0] * 3600 + parts[1] * 60 + parts[2];
-    }
-
-    return null;
+    return parseSubtitleSearchTime(value);
 }
 
 function findSubtitleByTime(seconds) {
-    if (!Number.isFinite(seconds)) return -1;
-
-    const exactIndex = subtitles.findIndex((sub) => {
-        return seconds >= sub.start + globalSubDelay &&
-            seconds <= sub.end + globalSubDelay;
-    });
-
-    if (exactIndex !== -1) return exactIndex;
-
-    let bestIndex = -1;
-    let bestDistance = Infinity;
-
-    subtitles.forEach((sub, index) => {
-        const distance = Math.abs((sub.start + globalSubDelay) - seconds);
-
-        if (distance < bestDistance) {
-            bestDistance = distance;
-            bestIndex = index;
-        }
-    });
-
-    return bestIndex;
+    return findSubtitleIndexByTime(subtitles, seconds, globalSubDelay);
 }
 
 function buildTimeSearchMatches(seconds) {
-    const subtitleIndex = findSubtitleByTime(seconds);
-
-    if (subtitleIndex < 0) return [];
-
-    return [{
-        type: "time",
-        subtitleIndex,
-        start: 0,
-        end: 0,
-        query: "",
-        seconds
-    }];
+    return buildSubtitleTimeSearchMatches(subtitles, seconds, globalSubDelay);
 }
-
 function activateTimeSearch({ commit = false } = {}) {
     const timeInput = document.getElementById("subtitleTimeSearchInput");
     const seconds = parseSearchTime(timeInput?.value);
@@ -1068,4 +895,3 @@ function restoreSubtitleFromCurrentTime() {
 
     syncSubtitleStyle(idx);
 }
-

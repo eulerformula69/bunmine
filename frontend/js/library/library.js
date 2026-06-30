@@ -360,7 +360,7 @@ async function loadLibrarySeries() {
     seriesGrid.innerHTML = "";
     librarySummary.textContent = lt("loading");
 
-    const { response, data } = await apiJson("/library/series");
+    const { response, data } = await libraryListSeries();
 
     if (!response.ok || data.error) {
         throw new Error(data.error || lt("couldNotLoadLibrary"));
@@ -406,11 +406,7 @@ function renderAddAnimeCard() {
 }
 
 async function chooseLocalFolder(initialPath = "") {
-    const { response, data } = await apiJson("/library/dialog/folder", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ initialPath })
-    });
+    const { response, data } = await libraryChooseFolder(initialPath);
 
     if (!response.ok || data.error) {
         throw new Error(data.error || lt("openFolderDialogFailed"));
@@ -420,7 +416,7 @@ async function chooseLocalFolder(initialPath = "") {
 }
 
 async function startAndPollLibraryJob(requestPath, requestOptions = {}, failureMessage = lt("scanFailed")) {
-    const { response, data } = await apiJson(requestPath, requestOptions);
+    const { response, data } = await libraryStartJob(requestPath, requestOptions);
 
     if (!response.ok || data.error) {
         throw new Error(data.error || failureMessage);
@@ -432,7 +428,7 @@ async function startAndPollLibraryJob(requestPath, requestOptions = {}, failureM
     }
 
     while (true) {
-        const { response: statusResponse, data: statusData } = await apiJson(`/library/jobs/${encodeURIComponent(jobId)}`);
+        const { response: statusResponse, data: statusData } = await libraryGetJobStatus(jobId);
 
         if (!statusResponse.ok || statusData.error) {
             throw new Error(statusData.error || failureMessage);
@@ -533,7 +529,7 @@ async function openSeries(seriesId) {
     episodeList.innerHTML = "";
     currentOpenedEpisodes = [];
 
-    const { response, data } = await apiJson(`/library/series/${encodeURIComponent(seriesId)}`);
+    const { response, data } = await libraryGetSeries(seriesId);
 
     if (!response.ok || data.error) {
         seriesTitle.textContent = lt("error");
@@ -618,18 +614,7 @@ completedCheckbox.addEventListener("change", async () => {
     completedCheckbox.disabled = true;
 
     try {
-        const { response, data } = await apiJson(
-            `/library/episodes/${encodeURIComponent(episode.id)}/completed`,
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    completed: nextValue
-                })
-            }
-        );
+        const { response, data } = await librarySetEpisodeCompleted(episode.id, nextValue);
 
         if (!response.ok || data.error) {
             throw new Error(data.error || lt("couldNotUpdateEpisodeStatus"));
@@ -1462,9 +1447,7 @@ async function deleteSeriesFromLibrary(seriesId, title) {
 
     if (deleteSeriesBtn) deleteSeriesBtn.disabled = true;
     try {
-        const { response, data } = await apiJson(`/library/series/${encodeURIComponent(seriesId)}`, {
-            method: "DELETE"
-        });
+        const { response, data } = await libraryDeleteSeries(seriesId);
         if (!response.ok || data.error) throw new Error(data.error || lt("deleteSeriesFailed"));
 
         if (currentOpenedSeries && String(currentOpenedSeries.id) === String(seriesId)) {
@@ -1493,11 +1476,7 @@ async function relinkCurrentSeriesFiles() {
 
     relinkSeriesFilesBtn.disabled = true;
     try {
-        const { response, data } = await apiJson(`/library/series/${encodeURIComponent(currentOpenedSeries.id)}/relink`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ path: path.trim() })
-        });
+        const { response, data } = await libraryRelinkSeries(currentOpenedSeries.id, { path: path.trim() });
         if (!response.ok || data.error) throw new Error(data.error || lt("relinkFailed"));
         seriesStats.textContent = lt("relinkDone", {
             count: Array.isArray(data.relinked) ? data.relinked.length : 0,

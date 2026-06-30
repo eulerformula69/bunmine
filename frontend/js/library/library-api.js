@@ -27,6 +27,13 @@ function libraryPostEpisodeProgress(episodeId, payload) {
         body: JSON.stringify(payload)
     });
 }
+function librarySetEpisodeCompleted(episodeId, completed) {
+    return apiJson(`/library/episodes/${encodeURIComponent(episodeId)}/completed`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ completed })
+    });
+}
 function libraryDeleteSeries(seriesId) {
     return apiJson(`/library/series/${encodeURIComponent(seriesId)}`, {
         method: "DELETE"

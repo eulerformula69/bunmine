@@ -40,6 +40,17 @@ function libraryPostEpisodeProgress(
     });
 }
 
+function librarySetEpisodeCompleted(
+    episodeId: string | number,
+    completed: boolean
+): Promise<ApiResult<LibraryMutationResponse>> {
+    return apiJson<LibraryMutationResponse>(`/library/episodes/${encodeURIComponent(episodeId)}/completed`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ completed })
+    });
+}
+
 function libraryDeleteSeries(seriesId: string | number): Promise<ApiResult<LibraryMutationResponse>> {
     return apiJson<LibraryMutationResponse>(`/library/series/${encodeURIComponent(seriesId)}`, {
         method: "DELETE"

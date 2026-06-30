@@ -22,6 +22,10 @@ const scripts = [
     "js/subtitles/render-model.js",
     "js/subtitles/subtitles.js",
     "js/subtitles/subtitles-sidebar.js",
+    "js/player/playback-loop.js",
+    "js/player/hotkeys.js",
+    "js/player/toast.js",
+    "js/player/anki-actions.js",
     "js/player/app.js",
     "js/video/audio-tracks.js",
     "js/player/settings.js"
