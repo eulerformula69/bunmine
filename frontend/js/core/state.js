@@ -29,7 +29,6 @@ window.BunmineState = {
     runtimeNextPrefetchStart: 0,
     lastPrefetchSubtitleIndex: -1
 };
-
 for (const key of Object.keys(window.BunmineState)) {
     Object.defineProperty(window, key, {
         configurable: true,
@@ -37,7 +36,8 @@ for (const key of Object.keys(window.BunmineState)) {
             return window.BunmineState[key];
         },
         set(value) {
-            window.BunmineState[key] = value;
+            const state = window.BunmineState;
+            state[key] = value;
         }
     });
 }
