@@ -109,8 +109,6 @@ interface AnkiHighlightRefreshResult {
     preservedLockedWords?: number;
 }
 
-declare const ankiRuntimeWordStatusMap: Map<string, RuntimeWordStatusInfo>;
-
 declare function t(key: string, params?: Record<string, unknown>): string;
 declare function getApiErrorMessage(data: ApiPayload | null | undefined, fallback?: string): string;
 declare function fetchWithRetry(
@@ -148,7 +146,6 @@ declare function clearRuntimeWordStatuses(): void;
 declare function updatePlayButton(): void;
 declare function clearSearchMatches(): void;
 declare function syncSubtitleStyle(index: number): void;
-declare const ankiSubtitleHighlighter: unknown;
 declare function getSubtitleContextSelection(index: number): {
     startTime: number;
     endTime: number;
