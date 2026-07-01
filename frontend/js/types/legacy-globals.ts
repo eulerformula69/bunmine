@@ -67,16 +67,6 @@ interface JapaneseToken {
     [key: string]: unknown;
 }
 
-declare const video: HTMLVideoElement;
-declare const volume: HTMLInputElement;
-declare const audioTrackSelect: HTMLSelectElement;
-declare const overlay: HTMLElement | null;
-declare const sidebar: HTMLElement | null;
-declare const toggleBtn: HTMLButtonElement | null;
-declare const dropzone: HTMLElement;
-declare const videoPickerModal: HTMLElement | null;
-declare const videoPickerList: HTMLElement | null;
-
 declare let currentLang: string;
 declare let subtitles: SubtitleCue[];
 declare let globalSubDelay: number;
@@ -87,6 +77,27 @@ declare let currentVideoFile: string | null;
 declare let currentLibraryEpisodeId: string | number | null;
 declare let currentLibraryVideoFileId: string | number | null;
 declare let currentLibrarySubtitleFileId: string | number | null;
+declare let runtimePrefetchWindowStart: number;
+declare let runtimePrefetchWindowEnd: number;
+declare let runtimeNextPrefetchStart: number;
+declare let runtimePrefetchAllInProgress: boolean;
+declare let deckNoteRefreshTimer: ReturnType<typeof setTimeout> | null;
+
+interface RuntimeWordStatusInfo {
+    status?: string;
+    [key: string]: unknown;
+}
+
+interface AnkiHighlightRefreshResult {
+    count?: number;
+    cardsChecked?: number;
+    notesFound?: number;
+    notesChecked?: number;
+    importedWords?: number;
+    preservedLockedWords?: number;
+}
+
+declare const ankiRuntimeWordStatusMap: Map<string, RuntimeWordStatusInfo>;
 
 declare function t(key: string, params?: Record<string, unknown>): string;
 declare function getApiErrorMessage(data: ApiPayload | null | undefined, fallback?: string): string;
@@ -141,3 +152,25 @@ declare function saveLibraryWatchProgress(options?: {
     rethrowErrors?: boolean;
 }): Promise<unknown>;
 declare const kuromoji: NonNullable<Window["kuromoji"]>;
+declare function addRuntimeKnownBasicWord(word: string): void;
+declare function loadHighlightWordIndexes(options?: { force?: boolean }): Promise<unknown>;
+declare function collectSubtitleCandidates(text: string): string[];
+declare function ensureStatusesForCandidates(candidates: string[], options?: { silent?: boolean }): Promise<unknown>;
+declare function ensureStatusesForSubtitleText(
+    text: string,
+    options?: { rerender?: boolean; silent?: boolean }
+): Promise<unknown>;
+declare function rerenderCurrentSubtitleWithAnkiHighlighter(): void;
+declare function refreshKnownAnkiWordFromNote(options?: {
+    noteId?: string | number;
+    word?: string;
+    wordFields?: string[] | null;
+}): Promise<unknown>;
+declare function getHighlightWordFieldNames(): string[];
+declare function refreshKnownAnkiWordsFromAnki(options?: { fullRebuild?: boolean }): Promise<AnkiHighlightRefreshResult>;
+declare function checkKnownAnkiWordsStaleOnPlayerOpen(options?: { silent?: boolean }): Promise<unknown>;
+declare function initSubtitleSidebar(): void;
+declare function getCurrentSearchMatch(): SubtitleSearchMatch | null;
+declare function seekBySubtitle(offset: number): void;
+declare function isSubtitleContextDepthDefault(): boolean;
+declare function resetSubtitleContextDepths(): void;

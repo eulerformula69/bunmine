@@ -3,11 +3,6 @@ interface ToastActionButton {
   onClick?: () => void | Promise<void>;
 }
 
-declare const playPause: HTMLButtonElement;
-declare const fullscreenBtn: HTMLButtonElement | null;
-declare const settingsBtn: HTMLButtonElement | null;
-declare const addKnownBasicBtn: HTMLButtonElement | null;
-declare const addCardToDeck: HTMLButtonElement | null;
 declare let selectedKnownBasicWord: string;
 declare function armAutoAttachForSelection(word: string, subtitleIndex: number): void;
 declare function getSubtitleIndexFromSelection(selection?: Selection | null): number;
@@ -264,4 +259,3 @@ function hideAddKnownBasicButton(): void {
     addCardToDeck?.classList.add("hidden");
     selectedKnownBasicWord = "";
 }
-
