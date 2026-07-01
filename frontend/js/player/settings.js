@@ -1,29 +1,32 @@
+function getSettingsInput(id) {
+    return document.getElementById(id);
+}
+function getSettingsSelect(id) {
+    return document.getElementById(id);
+}
 function enableWheelOnSettings() {
     const settingsInputs = document.querySelectorAll("#settingsModal input[type=\"number\"], #settingsModal input[type=\"range\"]");
     settingsInputs.forEach((input) => {
         input.addEventListener("wheel", (e) => {
             e.preventDefault();
             e.stopPropagation();
-
             const step = parseFloat(input.step) || 1;
             const direction = e.deltaY < 0 ? 1 : -1;
             let val = parseFloat(input.value) || 0;
             let newValue = val + (direction * step);
-
             const minAttr = input.getAttribute("min");
             const maxAttr = input.getAttribute("max");
             const min = minAttr !== null ? parseFloat(minAttr) : -Infinity;
             const max = maxAttr !== null ? parseFloat(maxAttr) : Infinity;
             newValue = Math.max(min, Math.min(max, newValue));
-
-            if (step < 1) input.value = parseFloat(newValue.toFixed(Math.max(0, -Math.log10(step))));
-            else input.value = Math.round(newValue);
-
+            if (step < 1)
+                input.value = String(parseFloat(newValue.toFixed(Math.max(0, -Math.log10(step)))));
+            else
+                input.value = String(Math.round(newValue));
             input.dispatchEvent(new Event("input", { bubbles: true }));
             input.dispatchEvent(new Event("change", { bubbles: true }));
         }, { passive: false });
     });
-
     audioTrackSelect.addEventListener("wheel", (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -34,47 +37,44 @@ function enableWheelOnSettings() {
         audioTrackSelect.dispatchEvent(new Event("change"));
     }, { passive: false });
 }
-
 function collectSettings() {
     return {
         language: currentLang,
-        fontSize: document.getElementById("fontSizeRange").value,
-        offsetStart: document.getElementById("subOffsetStart").value,
-        offsetEnd: document.getElementById("subOffsetEnd").value,
-        audioVol: document.getElementById("audioVol").value,
-        playerVolume: document.getElementById("volume")?.value || "1",
-        ankiUrl: document.getElementById("ankiUrl").value,
-        deckName: document.getElementById("deckName").value,
-        screenshotMode: document.getElementById("screenshotMode").value,
-		globalSubDelay: document.getElementById("globalSubDelay").value,
+        fontSize: getSettingsInput("fontSizeRange").value,
+        offsetStart: getSettingsInput("subOffsetStart").value,
+        offsetEnd: getSettingsInput("subOffsetEnd").value,
+        audioVol: getSettingsInput("audioVol").value,
+        playerVolume: getSettingsInput("volume")?.value || "1",
+        ankiUrl: getSettingsInput("ankiUrl").value,
+        deckName: getSettingsInput("deckName").value,
+        screenshotMode: getSettingsSelect("screenshotMode").value,
+        globalSubDelay: getSettingsInput("globalSubDelay").value,
         sidebarWidth: document.getElementById("sidebar").style.width,
-		sentenceField: document.getElementById("sentenceField").value,
-		sentenceFuriganaField: document.getElementById("sentenceFuriganaField").value,
-		pictureField: document.getElementById("pictureField").value,
-		audioField: document.getElementById("audioField").value,
-		includeImageSubtitle: document.getElementById("includeImageSubtitle").checked,
-		subtitleHighlightEnabled: document.getElementById("subtitleHighlightEnabled")?.checked ?? true,
-		highlightColorNew: document.getElementById("highlightColorNew")?.value || "#ffcc66",
-		highlightColorLearning: document.getElementById("highlightColorLearning")?.value || "#66ccff",
-		highlightColorYoung: document.getElementById("highlightColorYoung")?.value || "#66ccff",
-		highlightColorMature: document.getElementById("highlightColorMature")?.value || "#88ff88",
-		highlightColorSuspended: document.getElementById("highlightColorSuspended")?.value || "#999999",
-		highlightColorUnknown: document.getElementById("highlightColorUnknown")?.value || "#ffffff",
-		highlightDeckNames: document.getElementById("highlightDeckNames")?.value || "",
-		highlightWordField: document.getElementById("highlightWordField")?.value || "Word",
-		ankiHighlightAutoRefreshInterval: document.getElementById("ankiHighlightAutoRefreshInterval")?.value || "off",
-        autoAttachNextCardEnabled: document.getElementById("autoAttachNextCardEnabled")?.checked ?? false
-		
+        sentenceField: getSettingsInput("sentenceField").value,
+        sentenceFuriganaField: getSettingsInput("sentenceFuriganaField").value,
+        pictureField: getSettingsInput("pictureField").value,
+        audioField: getSettingsInput("audioField").value,
+        includeImageSubtitle: getSettingsInput("includeImageSubtitle").checked,
+        subtitleHighlightEnabled: getSettingsInput("subtitleHighlightEnabled")?.checked ?? true,
+        highlightColorNew: getSettingsInput("highlightColorNew")?.value || "#ffcc66",
+        highlightColorLearning: getSettingsInput("highlightColorLearning")?.value || "#66ccff",
+        highlightColorYoung: getSettingsInput("highlightColorYoung")?.value || "#66ccff",
+        highlightColorMature: getSettingsInput("highlightColorMature")?.value || "#88ff88",
+        highlightColorSuspended: getSettingsInput("highlightColorSuspended")?.value || "#999999",
+        highlightColorUnknown: getSettingsInput("highlightColorUnknown")?.value || "#ffffff",
+        highlightDeckNames: getSettingsInput("highlightDeckNames")?.value || "",
+        highlightWordField: getSettingsInput("highlightWordField")?.value || "Word",
+        ankiHighlightAutoRefreshInterval: getSettingsSelect("ankiHighlightAutoRefreshInterval")?.value || "off",
+        autoAttachNextCardEnabled: getSettingsInput("autoAttachNextCardEnabled")?.checked ?? false
     };
 }
-
 function saveSettingsLocal({ silent = false } = {}) {
     const settings = collectSettings();
     localStorage.setItem("subtitlePlayerSettings", JSON.stringify(settings));
-    if (!silent) showToast("Settings saved", "success");
+    if (!silent)
+        showToast("Settings saved", "success");
     return settings;
 }
-
 function saveSettings() {
     const settings = saveSettingsLocal({ silent: true });
     saveAnkiHighlightAutoRefreshSettings(settings).catch((err) => {
@@ -83,10 +83,9 @@ function saveSettings() {
     });
     showToast("Settings saved", "success");
 }
-
 async function saveAnkiHighlightAutoRefreshSettings(settings) {
-    if (typeof apiJson !== "function") return;
-
+    if (typeof apiJson !== "function")
+        return;
     const decks = String(settings.highlightDeckNames || "")
         .split(/[,\n]/)
         .map((item) => item.trim())
@@ -95,7 +94,6 @@ async function saveAnkiHighlightAutoRefreshSettings(settings) {
         .split(/[,\n]/)
         .map((item) => item.trim())
         .filter(Boolean);
-
     const { response, data } = await apiJson("/known-anki-words/auto-refresh-settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -106,12 +104,10 @@ async function saveAnkiHighlightAutoRefreshSettings(settings) {
             autoRefresh: settings.ankiHighlightAutoRefreshInterval || "off"
         })
     });
-
     if (!response.ok || data?.error) {
         throw new Error(data?.error || "Failed to save Anki highlight auto-refresh settings");
     }
 }
-
 function loadSettings() {
     const saved = localStorage.getItem("subtitlePlayerSettings");
     if (!saved) {
@@ -119,68 +115,56 @@ function loadSettings() {
         applyLanguage(currentLang);
         return;
     }
-
     const settings = JSON.parse(saved);
-    if (settings.language) currentLang = settings.language;
-
+    if (settings.language)
+        currentLang = settings.language;
     initLangSelector();
     applyLanguage(currentLang);
-
     if (settings.sidebarWidth) {
         const sidebarEl = document.getElementById("sidebar");
-        if (sidebarEl) sidebarEl.style.width = settings.sidebarWidth;
+        if (sidebarEl)
+            sidebarEl.style.width = settings.sidebarWidth;
     }
-
-	const subtitleHighlightEnabled = document.getElementById("subtitleHighlightEnabled");
-	if (subtitleHighlightEnabled) {
-		subtitleHighlightEnabled.checked = settings.subtitleHighlightEnabled ?? true;
-	}
-
-	const highlightColorNew = document.getElementById("highlightColorNew");
-	if (highlightColorNew) {
-		highlightColorNew.value = settings.highlightColorNew || "#77b7d8";
-	}
-
-	const highlightColorLearning = document.getElementById("highlightColorLearning");
-	if (highlightColorLearning) {
-		highlightColorLearning.value = settings.highlightColorLearning || "#ff8a3d";
-	}
-
-	const highlightColorYoung = document.getElementById("highlightColorYoung");
-	if (highlightColorYoung) {
-		highlightColorYoung.value = settings.highlightColorYoung || "#7ec77a";
-	}
-
-	const highlightColorMature = document.getElementById("highlightColorMature");
-	if (highlightColorMature) {
-		highlightColorMature.value = settings.highlightColorMature || "#2f9d4f";
-	}
-
-	const highlightColorSuspended = document.getElementById("highlightColorSuspended");
-	if (highlightColorSuspended) {
-		highlightColorSuspended.value = settings.highlightColorSuspended || "#ffde4a";
-	}
-
-	const highlightColorUnknown = document.getElementById("highlightColorUnknown");
-	if (highlightColorUnknown) {
-		highlightColorUnknown.value = settings.highlightColorUnknown || "#ffffff";
-	}
-
-	const highlightDeckNames = document.getElementById("highlightDeckNames");
-	if (highlightDeckNames) {
-		highlightDeckNames.value = settings.highlightDeckNames || "";
-	}
-
-	const highlightWordField = document.getElementById("highlightWordField");
-	if (highlightWordField) {
-		highlightWordField.value = settings.highlightWordField || "Word";
-	}
-
-	const ankiHighlightAutoRefreshInterval = document.getElementById("ankiHighlightAutoRefreshInterval");
-	if (ankiHighlightAutoRefreshInterval) {
-		ankiHighlightAutoRefreshInterval.value = settings.ankiHighlightAutoRefreshInterval || settings.ankiHighlightAutoRefresh || "daily";
-	}
-
+    const subtitleHighlightEnabled = getSettingsInput("subtitleHighlightEnabled");
+    if (subtitleHighlightEnabled) {
+        subtitleHighlightEnabled.checked = settings.subtitleHighlightEnabled ?? true;
+    }
+    const highlightColorNew = getSettingsInput("highlightColorNew");
+    if (highlightColorNew) {
+        highlightColorNew.value = settings.highlightColorNew || "#77b7d8";
+    }
+    const highlightColorLearning = getSettingsInput("highlightColorLearning");
+    if (highlightColorLearning) {
+        highlightColorLearning.value = settings.highlightColorLearning || "#ff8a3d";
+    }
+    const highlightColorYoung = getSettingsInput("highlightColorYoung");
+    if (highlightColorYoung) {
+        highlightColorYoung.value = settings.highlightColorYoung || "#7ec77a";
+    }
+    const highlightColorMature = getSettingsInput("highlightColorMature");
+    if (highlightColorMature) {
+        highlightColorMature.value = settings.highlightColorMature || "#2f9d4f";
+    }
+    const highlightColorSuspended = getSettingsInput("highlightColorSuspended");
+    if (highlightColorSuspended) {
+        highlightColorSuspended.value = settings.highlightColorSuspended || "#ffde4a";
+    }
+    const highlightColorUnknown = getSettingsInput("highlightColorUnknown");
+    if (highlightColorUnknown) {
+        highlightColorUnknown.value = settings.highlightColorUnknown || "#ffffff";
+    }
+    const highlightDeckNames = getSettingsInput("highlightDeckNames");
+    if (highlightDeckNames) {
+        highlightDeckNames.value = settings.highlightDeckNames || "";
+    }
+    const highlightWordField = getSettingsInput("highlightWordField");
+    if (highlightWordField) {
+        highlightWordField.value = settings.highlightWordField || "Word";
+    }
+    const ankiHighlightAutoRefreshInterval = getSettingsSelect("ankiHighlightAutoRefreshInterval");
+    if (ankiHighlightAutoRefreshInterval) {
+        ankiHighlightAutoRefreshInterval.value = settings.ankiHighlightAutoRefreshInterval || settings.ankiHighlightAutoRefresh || "daily";
+    }
     const mapping = {
         fontSizeRange: settings.fontSize,
         subOffsetStart: settings.offsetStart,
@@ -189,72 +173,63 @@ function loadSettings() {
         volume: settings.playerVolume,
         ankiUrl: settings.ankiUrl,
         deckName: settings.deckName,
-		globalSubDelay: settings.globalSubDelay,
+        globalSubDelay: settings.globalSubDelay,
         screenshotMode: settings.screenshotMode,
-		sentenceField: settings.sentenceField,
-		sentenceFuriganaField: settings.sentenceFuriganaField,
-		pictureField: settings.pictureField,
-		audioField: settings.audioField
+        sentenceField: settings.sentenceField,
+        sentenceFuriganaField: settings.sentenceFuriganaField,
+        pictureField: settings.pictureField,
+        audioField: settings.audioField
     };
-
     for (const [id, value] of Object.entries(mapping)) {
-        const el = document.getElementById(id);
+        const el = getSettingsInput(id);
         if (el && value !== undefined) {
             el.value = value;
             el.dispatchEvent(new Event("input"));
         }
     }
-
-	const delayEl = document.getElementById("globalSubDelay");
-	if (delayEl) globalSubDelay = parseFloat(delayEl.value) || 0;
-
-	const includeImageSubtitleEl = document.getElementById("includeImageSubtitle");
-	if (includeImageSubtitleEl) {
-		includeImageSubtitleEl.checked = settings.includeImageSubtitle !== false;
-	}
-
-    const autoAttachNextCardEnabled = document.getElementById("autoAttachNextCardEnabled");
+    const delayEl = getSettingsInput("globalSubDelay");
+    if (delayEl)
+        globalSubDelay = parseFloat(delayEl.value) || 0;
+    const includeImageSubtitleEl = getSettingsInput("includeImageSubtitle");
+    if (includeImageSubtitleEl) {
+        includeImageSubtitleEl.checked = settings.includeImageSubtitle !== false;
+    }
+    const autoAttachNextCardEnabled = getSettingsInput("autoAttachNextCardEnabled");
     if (autoAttachNextCardEnabled) {
         autoAttachNextCardEnabled.checked = settings.autoAttachNextCardEnabled === true;
     }
-
-    const playerVolumeEl = document.getElementById("volume");
+    const playerVolumeEl = getSettingsInput("volume");
     if (playerVolumeEl && typeof video !== "undefined") {
         video.volume = Math.max(0, Math.min(1, parseFloat(playerVolumeEl.value) || 1));
     }
-
 }
-
 function applyLanguage(lang) {
     currentLang = lang;
     const dictionary = i18n[lang].dict;
     document.querySelectorAll("[data-i18n]").forEach((el) => {
         const key = el.getAttribute("data-i18n");
-        if (dictionary[key]) el.textContent = dictionary[key];
+        if (key && dictionary[key])
+            el.textContent = dictionary[key];
     });
-
     if (typeof sidebar !== "undefined" && toggleBtn) {
         const langKey = sidebar.classList.contains("hidden") ? "showSubs" : "hideSubs";
         toggleBtn.textContent = dictionary[langKey];
     }
-
     const autoOption = document.querySelector("#targetNoteSelect option[value='']");
     if (autoOption && dictionary.lastAdded) {
         autoOption.textContent = dictionary.lastAdded;
     }
-
     if (typeof updateFullscreenButtonText === "function") {
         updateFullscreenButtonText();
     }
-		
-	if (typeof updateSubtitleSearchPanelLanguage === "function") {
-		updateSubtitleSearchPanelLanguage();
-	}	
+    if (typeof updateSubtitleSearchPanelLanguage === "function") {
+        updateSubtitleSearchPanelLanguage();
+    }
 }
-
 function initLangSelector() {
-    const langSelect = document.getElementById("interfaceLangSelect");
-    if (!langSelect) return;
+    const langSelect = getSettingsSelect("interfaceLangSelect");
+    if (!langSelect)
+        return;
     langSelect.innerHTML = "";
     Object.keys(i18n).forEach((langCode) => {
         const opt = document.createElement("option");
@@ -268,20 +243,18 @@ function initLangSelector() {
         queueSettingsAutosave();
     };
 }
-
 let settingsAutosaveTimer = null;
-
 function queueSettingsAutosave() {
     clearTimeout(settingsAutosaveTimer);
     settingsAutosaveTimer = setTimeout(() => {
         try {
             saveSettingsLocal({ silent: true });
-        } catch (err) {
+        }
+        catch (err) {
             console.warn("Settings autosave failed:", err);
         }
     }, 250);
 }
-
 function initSettingsAutosave() {
     [
         "fontSizeRange",
@@ -312,21 +285,19 @@ function initSettingsAutosave() {
         "interfaceLangSelect"
     ].forEach((id) => {
         const el = document.getElementById(id);
-        if (!el) return;
+        if (!el)
+            return;
         el.addEventListener("input", queueSettingsAutosave);
         el.addEventListener("change", queueSettingsAutosave);
     });
 }
-
-document.getElementById("saveSettingsBtn").onclick = saveSettings;
+getSettingsInput("saveSettingsBtn").onclick = saveSettings;
 window.addEventListener("load", loadSettings);
 window.addEventListener("load", initSettingsAutosave);
 enableWheelOnSettings();
-
 initLangSelector();
 applyLanguage(currentLang);
-
-const langSelect = document.getElementById("interfaceLangSelect");
+const langSelect = getSettingsSelect("interfaceLangSelect");
 if (langSelect) {
     langSelect.onchange = (e) => {
         applyLanguage(e.target.value);

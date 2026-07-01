@@ -1,7 +1,6 @@
 function getSubtitleHighlightSettings() {
     return {
         enabled: document.getElementById("subtitleHighlightEnabled")?.checked === true,
-
         statusSettings: {
             new: {
                 enabled: true,
@@ -30,9 +29,3 @@ function getSubtitleHighlightSettings() {
         }
     };
 }
-
-
-
-
-
-
