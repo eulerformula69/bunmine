@@ -82,6 +82,18 @@ declare let runtimePrefetchWindowEnd: number;
 declare let runtimeNextPrefetchStart: number;
 declare let runtimePrefetchAllInProgress: boolean;
 declare let deckNoteRefreshTimer: ReturnType<typeof setTimeout> | null;
+declare let isResizing: boolean;
+declare let lastClickedSubtitleIdx: number | null;
+declare let lastSidebarWidth: string;
+declare let subtitleElements: SubtitleElementRef[];
+declare let subtitleSearchQuery: string;
+declare let subtitleSearchMatches: SubtitleSearchResult[];
+declare let subtitleSearchIndex: number;
+declare let subtitleSearchMode: "word" | "time";
+declare let subtitleSearchTimeSeconds: number | null;
+declare let subtitleContextBackDepth: number;
+declare let subtitleContextForwardDepth: number;
+declare let subtitleContextDragState: SubtitleContextDragState | null;
 
 interface RuntimeWordStatusInfo {
     status?: string;
@@ -170,7 +182,7 @@ declare function getHighlightWordFieldNames(): string[];
 declare function refreshKnownAnkiWordsFromAnki(options?: { fullRebuild?: boolean }): Promise<AnkiHighlightRefreshResult>;
 declare function checkKnownAnkiWordsStaleOnPlayerOpen(options?: { silent?: boolean }): Promise<unknown>;
 declare function initSubtitleSidebar(): void;
-declare function getCurrentSearchMatch(): SubtitleSearchMatch | null;
+declare function getCurrentSearchMatch(): SubtitleSearchResult | null;
 declare function seekBySubtitle(offset: number): void;
 declare function isSubtitleContextDepthDefault(): boolean;
 declare function resetSubtitleContextDepths(): void;
