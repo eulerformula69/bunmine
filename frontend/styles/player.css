@@ -64,6 +64,29 @@ video {
   transition: bottom 0.3s ease;
 }
 
+.comprehension-level-badge {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 20;
+  min-width: 42px;
+  padding: 5px 8px;
+  box-sizing: border-box;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.62);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  text-align: center;
+  pointer-events: none;
+}
+
+.comprehension-level-badge.hidden {
+  display: none;
+}
+
 /* Bottom controls */
 #controls {
   --control-height: 30px;
@@ -555,6 +578,10 @@ body.subtitle-depth-dragging * {
   font-size: 12px;
   text-transform: uppercase;
   cursor: pointer;
+}
+
+.comprehension-settings-row .settings-checkbox-row {
+  justify-content: space-between;
 }
 
 /* Target note dropdown */

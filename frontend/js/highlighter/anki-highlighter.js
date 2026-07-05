@@ -578,6 +578,27 @@ function findAnkiMatchesInText(text) {
     }
     return resolveOverlappingAnkiMatches(matches);
 }
+function getUnknownKanjiTokenCountForText(text) {
+    const source = String(text || "");
+    const tokens = tokenizeJapaneseTextSync?.(source);
+    if (!tokens)
+        return 0;
+    const knownMatches = findAnkiMatchesInText(source);
+    let unknownCount = 0;
+    for (const token of tokens) {
+        const surface = String(token.surface_form || "");
+        if (!isKanjiContainingToken(surface))
+            continue;
+        const start = getTokenStart(token);
+        const end = getTokenEnd(token);
+        const coveredByKnownMatch = knownMatches.some((match) => match.start <= start &&
+            match.end >= end);
+        if (!coveredByKnownMatch) {
+            unknownCount += 1;
+        }
+    }
+    return unknownCount;
+}
 const ankiSubtitleHighlighter = {
     get enabled() {
         return getSubtitleHighlightSettings().enabled;
@@ -593,6 +614,9 @@ const ankiSubtitleHighlighter = {
     },
     findMatchesInText(text) {
         return findAnkiMatchesInText(text);
+    },
+    getUnknownKanjiTokenCount(text) {
+        return getUnknownKanjiTokenCountForText(text);
     }
 };
 function addRuntimeKnownBasicWord(word) {

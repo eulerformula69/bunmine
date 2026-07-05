@@ -5,6 +5,21 @@ function clearSubtitleOverlay(overlayEl) {
     overlayEl.textContent = "";
 }
 
+function updateSubtitleComprehensionBadge(level) {
+    const badge = document.getElementById("comprehensionLevelBadge");
+
+    if (!badge) return;
+
+    if (!level) {
+        badge.textContent = "";
+        badge.classList.add("hidden");
+        return;
+    }
+
+    badge.textContent = level;
+    badge.classList.remove("hidden");
+}
+
 function getSubtitleStatusSettings(highlighter, status) {
     if (!highlighter || !highlighter.statusSettings) return null;
     return highlighter.statusSettings[status] || null;
@@ -107,8 +122,23 @@ function renderSubtitleOverlay(options) {
     if (!overlay) return;
 
     clearSubtitleOverlay(overlay);
+    updateSubtitleComprehensionBadge(null);
 
     if (!text) return;
+
+    const comprehensionLevel = typeof getSubtitleComprehensionLevel === "function"
+        ? getSubtitleComprehensionLevel(text, highlighter)
+        : null;
+
+    updateSubtitleComprehensionBadge(comprehensionLevel);
+
+    if (
+        comprehensionLevel &&
+        typeof shouldShowSubtitleForComprehensionLevel === "function" &&
+        !shouldShowSubtitleForComprehensionLevel(comprehensionLevel)
+    ) {
+        return;
+    }
 
     if (!highlighter || highlighter.enabled !== true) {
         appendPlainSubtitleText(overlay, text);

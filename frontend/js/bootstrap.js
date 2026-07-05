@@ -21,6 +21,7 @@
         "js/subtitles/context-selection.js",
         "js/subtitles/search.js",
         "js/subtitles/search-panel.js",
+        "js/subtitles/comprehension-level.js",
         "js/subtitles/render-model.js",
         "js/subtitles/sidebar-render.js",
         "js/subtitles/navigation.js",

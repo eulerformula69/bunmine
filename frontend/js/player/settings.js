@@ -65,6 +65,12 @@ function collectSettings() {
         highlightDeckNames: getSettingsInput("highlightDeckNames")?.value || "",
         highlightWordField: getSettingsInput("highlightWordField")?.value || "Word",
         ankiHighlightAutoRefreshInterval: getSettingsSelect("ankiHighlightAutoRefreshInterval")?.value || "off",
+        showComprehensionI0: getSettingsInput("showComprehensionI0")?.checked ?? true,
+        showComprehensionI1: getSettingsInput("showComprehensionI1")?.checked ?? true,
+        showComprehensionI2: getSettingsInput("showComprehensionI2")?.checked ?? true,
+        showComprehensionI3: getSettingsInput("showComprehensionI3")?.checked ?? true,
+        showComprehensionI4: getSettingsInput("showComprehensionI4")?.checked ?? true,
+        showComprehensionI5Plus: getSettingsInput("showComprehensionI5Plus")?.checked ?? true,
         autoAttachNextCardEnabled: getSettingsInput("autoAttachNextCardEnabled")?.checked ?? false
     };
 }
@@ -164,6 +170,19 @@ function loadSettings() {
     const ankiHighlightAutoRefreshInterval = getSettingsSelect("ankiHighlightAutoRefreshInterval");
     if (ankiHighlightAutoRefreshInterval) {
         ankiHighlightAutoRefreshInterval.value = settings.ankiHighlightAutoRefreshInterval || settings.ankiHighlightAutoRefresh || "daily";
+    }
+    const comprehensionVisibilityMapping = {
+        showComprehensionI0: settings.showComprehensionI0,
+        showComprehensionI1: settings.showComprehensionI1,
+        showComprehensionI2: settings.showComprehensionI2,
+        showComprehensionI3: settings.showComprehensionI3,
+        showComprehensionI4: settings.showComprehensionI4,
+        showComprehensionI5Plus: settings.showComprehensionI5Plus
+    };
+    for (const [id, value] of Object.entries(comprehensionVisibilityMapping)) {
+        const el = getSettingsInput(id);
+        if (el)
+            el.checked = value !== false;
     }
     const mapping = {
         fontSizeRange: settings.fontSize,
@@ -281,6 +300,12 @@ function initSettingsAutosave() {
         "highlightDeckNames",
         "highlightWordField",
         "ankiHighlightAutoRefreshInterval",
+        "showComprehensionI0",
+        "showComprehensionI1",
+        "showComprehensionI2",
+        "showComprehensionI3",
+        "showComprehensionI4",
+        "showComprehensionI5Plus",
         "autoAttachNextCardEnabled",
         "interfaceLangSelect"
     ].forEach((id) => {
