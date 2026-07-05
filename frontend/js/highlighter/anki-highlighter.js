@@ -578,12 +578,16 @@ function findAnkiMatchesInText(text) {
     }
     return resolveOverlappingAnkiMatches(matches);
 }
+function isLearnedAnkiStatusForComprehension(status) {
+    return status === "young" || status === "mature";
+}
 function getUnknownKanjiTokenCountForText(text) {
     const source = String(text || "");
     const tokens = tokenizeJapaneseTextSync?.(source);
     if (!tokens)
         return 0;
-    const knownMatches = findAnkiMatchesInText(source);
+    const learnedMatches = findAnkiMatchesInText(source)
+        .filter((match) => isLearnedAnkiStatusForComprehension(match.status));
     let unknownCount = 0;
     for (const token of tokens) {
         const surface = String(token.surface_form || "");
@@ -591,9 +595,9 @@ function getUnknownKanjiTokenCountForText(text) {
             continue;
         const start = getTokenStart(token);
         const end = getTokenEnd(token);
-        const coveredByKnownMatch = knownMatches.some((match) => match.start <= start &&
+        const coveredByLearnedMatch = learnedMatches.some((match) => match.start <= start &&
             match.end >= end);
-        if (!coveredByKnownMatch) {
+        if (!coveredByLearnedMatch) {
             unknownCount += 1;
         }
     }

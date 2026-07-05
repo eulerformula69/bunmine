@@ -31,6 +31,11 @@ function resetKnownWords(...words) {
     }
 }
 
+function resetAnkiWords(status, ...words) {
+    context.clearRuntimeWordStatuses();
+    context.updateRuntimeKnownAnkiWords(words, status);
+}
+
 function matchedTexts(text) {
     return Array.from(context.findAnkiMatchesInText(text), (match) => text.slice(match.start, match.end));
 }
@@ -86,6 +91,23 @@ function matchedTexts(text) {
     assert.equal(context.getSubtitleComprehensionLevel(text, {
         getUnknownKanjiTokenCount: context.getUnknownKanjiTokenCountForText
     }), "i+2");
+}
+
+{
+    const text = "\u9811\u4e08\u306a\u3082\u306e\u3067\u3059\u306d";
+    tokenFixtures.set(text, [
+        { surface_form: "\u9811\u4e08", basic_form: "\u9811\u4e08", pos: "\u540d\u8a5e", word_position: 1 },
+        { surface_form: "\u306a", basic_form: "\u306a", pos: "\u52a9\u8a5e", word_position: 3 },
+        { surface_form: "\u3082\u306e", basic_form: "\u3082\u306e", pos: "\u540d\u8a5e", word_position: 4 },
+        { surface_form: "\u3067\u3059", basic_form: "\u3067\u3059", pos: "\u52a9\u52d5\u8a5e", word_position: 6 },
+        { surface_form: "\u306d", basic_form: "\u306d", pos: "\u52a9\u8a5e", word_position: 8 }
+    ]);
+
+    resetAnkiWords("new", "\u9811\u4e08");
+    assert.equal(context.getUnknownKanjiTokenCountForText(text), 1);
+
+    resetAnkiWords("mature", "\u9811\u4e08");
+    assert.equal(context.getUnknownKanjiTokenCountForText(text), 0);
 }
 
 {
