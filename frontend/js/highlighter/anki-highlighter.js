@@ -282,6 +282,12 @@ function addCandidate(candidates, value) {
         candidates.push(normalized);
     }
 }
+function getTokenStart(token) {
+    return Math.max(0, Number(token.word_position || 1) - 1);
+}
+function getTokenEnd(token) {
+    return getTokenStart(token) + String(token.surface_form || "").length;
+}
 function getJapaneseTokenCandidates(token) {
     const surface = String(token.surface_form || "");
     const basic = String(token.basic_form || "");
@@ -380,9 +386,9 @@ function buildJapaneseHighlightSpans(tokens) {
     const spans = [];
     for (let i = 0; i < tokens.length; i += 1) {
         const token = tokens[i];
-        const start = Math.max(0, Number(token.word_position || 1) - 1);
+        const start = getTokenStart(token);
         const surface = String(token.surface_form || "");
-        const end = start + surface.length;
+        const end = getTokenEnd(token);
         if (token.pos !== "助詞" || surface.length > 1) {
             spans.push({
                 start,
@@ -401,7 +407,7 @@ function buildJapaneseHighlightSpans(tokens) {
             const next = tokens[j];
             const nextSurface = String(next.surface_form || "");
             chainSurface += nextSurface;
-            chainEnd += nextSurface.length;
+            chainEnd = getTokenEnd(next);
             candidates.push(...getJapaneseTokenCandidates(next));
             j += 1;
         }
@@ -427,7 +433,7 @@ function buildJapaneseCompoundSpans(tokens) {
     for (let i = 0; i < tokens.length; i += 1) {
         let surface = "";
         const firstToken = tokens[i];
-        const start = Math.max(0, Number(firstToken.word_position || 1) - 1);
+        const start = getTokenStart(firstToken);
         for (let j = i; j < Math.min(tokens.length, i + maxWindowSize); j += 1) {
             const token = tokens[j];
             const tokenSurface = String(token.surface_form || "");
@@ -448,6 +454,52 @@ function buildJapaneseCompoundSpans(tokens) {
         }
     }
     return spans;
+}
+function resolveOverlappingAnkiMatches(matches) {
+    const selected = [];
+    for (const match of matches
+        .filter((item) => item.end > item.start)
+        .sort((a, b) => {
+        const lengthDiff = (b.end - b.start) - (a.end - a.start);
+        if (lengthDiff !== 0)
+            return lengthDiff;
+        return a.start - b.start;
+    })) {
+        const overlaps = selected.some((prev) => match.start < prev.end &&
+            match.end > prev.start);
+        if (!overlaps) {
+            selected.push(match);
+        }
+    }
+    return selected.sort((a, b) => {
+        if (a.start !== b.start)
+            return a.start - b.start;
+        return (b.end - b.start) - (a.end - a.start);
+    });
+}
+function findKnownRawMatchesInText(text) {
+    const source = String(text || "");
+    const matches = [];
+    if (!source)
+        return matches;
+    for (const [word, info] of ankiRuntimeWordStatusMap.entries()) {
+        const status = info.status;
+        if (!status || status === "unknown")
+            continue;
+        const needle = normalizeHighlightWord(word);
+        if (!needle)
+            continue;
+        let start = source.indexOf(needle);
+        while (start !== -1) {
+            matches.push({
+                start,
+                end: start + needle.length,
+                status
+            });
+            start = source.indexOf(needle, start + 1);
+        }
+    }
+    return matches;
 }
 function collectSubtitleCandidates(text) {
     const source = String(text || "");
@@ -502,11 +554,11 @@ function rerenderCurrentSubtitleWithAnkiHighlighter() {
 function findAnkiMatchesInText(text) {
     const source = String(text || "");
     const tokens = tokenizeJapaneseTextSync?.(source);
+    const matches = findKnownRawMatchesInText(source);
     if (!tokens) {
-        return [];
+        return resolveOverlappingAnkiMatches(matches);
     }
     const spans = buildJapaneseHighlightSpans(tokens);
-    const matches = [];
     for (const span of spans) {
         let bestMatch = null;
         for (const candidate of span.candidates) {
@@ -524,22 +576,7 @@ function findAnkiMatchesInText(text) {
             matches.push(bestMatch);
         }
     }
-    return matches
-        .sort((a, b) => {
-        if (a.start !== b.start)
-            return a.start - b.start;
-        return (b.end - b.start) - (a.end - a.start);
-    })
-        .filter((match, index, arr) => {
-        for (let i = 0; i < index; i += 1) {
-            const prev = arr[i];
-            const overlaps = match.start < prev.end &&
-                match.end > prev.start;
-            if (overlaps)
-                return false;
-        }
-        return true;
-    });
+    return resolveOverlappingAnkiMatches(matches);
 }
 const ankiSubtitleHighlighter = {
     get enabled() {
