@@ -217,11 +217,6 @@ def create_audio_clip(settings: Settings, data: dict) -> dict:
             "-map",
             f"0:{track_str}",
         ])
-    else:
-        cmd.extend([
-            "-map",
-            "0:a:0",
-        ])
 
     cmd.extend([
         "-vn",
