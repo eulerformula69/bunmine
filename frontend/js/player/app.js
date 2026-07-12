@@ -1,14 +1,12 @@
-const { video, sidebar, multiInput, fullscreenBtn, settingsBtn, settingsModal, closeSettingsBtn, dropzone, toggleBtn, overlay, deleteVideoBtn, playPause, progress, timeLabel, videoContainer, controls, ankiAllBtn, targetNoteSelect, audioTrackSelect, fontSizeRange, subtitleOverlay, resizer, videoPickerModal, videoPickerList, videoPickerCancelBtn, addKnownBasicBtn, addCardToDeck, volume } = playerContext.dom;
+const { video, sidebar, multiInput, fullscreenBtn, settingsBtn, settingsModal, closeSettingsBtn, dropzone, toggleBtn, overlay, deleteVideoBtn, playPause, progress, timeLabel, videoContainer, controls, ankiAllBtn, targetNoteSelect, fontSizeRange, subtitleOverlay, resizer, videoPickerModal, videoPickerList, videoPickerCancelBtn, addKnownBasicBtn, addCardToDeck, volume } = playerContext.dom;
 video.volume = Number(volume.value);
 volume.addEventListener("input", () => {
     const nextVolume = Math.max(0, Math.min(1, parseFloat(volume.value) || 0));
     video.volume = nextVolume;
-    if (typeof audioManager !== "undefined" && audioManager.externalAudio) {
-        audioManager.externalAudio.volume = nextVolume;
-    }
 });
 video.addEventListener("timeupdate", () => {
-    const sub = getCurrentSubtitle();
+    const activeSubtitles = getActiveSubtitles();
+    const sub = getCurrentSubtitle() || null;
     if (sub?.text && sub.text !== lastRuntimeSubtitleText) {
         lastRuntimeSubtitleText = sub.text;
         ensureStatusesForSubtitleText(sub.text).catch((err) => {
@@ -36,7 +34,8 @@ video.addEventListener("timeupdate", () => {
     }
     renderSubtitleOverlay({
         overlay,
-        text: sub ? sub.text : "",
+        cues: activeSubtitles,
+        cueIndices: getActiveSubtitleEntries().map(({ index }) => index),
         highlighter: ankiSubtitleHighlighter
     });
     progress.value = String((video.currentTime / video.duration) * 100 || 0);
@@ -287,7 +286,6 @@ document.querySelectorAll(".settings-tab").forEach((tab) => {
 });
 progress.oninput = () => {
     video.currentTime = (Number(progress.value) / 100) * video.duration;
-    audioManager.sync();
 };
 videoContainer.addEventListener("mousemove", (e) => {
     const rect = videoContainer.getBoundingClientRect();
@@ -387,7 +385,7 @@ function maybePromptSubtitleDepthReset() {
     ], "info", 0);
 }
 function getActiveSubtitleIndex() {
-    return findActiveSubtitleIndexAtTime(subtitles, getAdjustedPlaybackTime(video, globalSubDelay));
+    return getPrimarySubtitleIndex();
 }
 function getSubtitleIndexFromSelection(selection = window.getSelection()) {
     if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
@@ -408,7 +406,10 @@ function getSubtitleIndexFromSelection(selection = window.getSelection()) {
         return Number.isInteger(idx) ? idx : -1;
     }
     if (overlay?.contains(anchorElement) || overlay?.contains(focusElement)) {
-        return getActiveSubtitleIndex();
+        const overlaySubtitle = anchorElement?.closest?.(".subtitle-overlay-line[data-subtitle-index]")
+            || focusElement?.closest?.(".subtitle-overlay-line[data-subtitle-index]");
+        const index = Number(overlaySubtitle?.dataset.subtitleIndex);
+        return Number.isInteger(index) ? index : getActiveSubtitleIndex();
     }
     return -1;
 }
@@ -421,7 +422,6 @@ const ankiMediaController = createAnkiMediaController({
     getSubtitleStart: (index) => subtitles[index].start,
     getSubtitleContext: getSubtitleContextSelection,
     getGlobalSubtitleDelay: () => globalSubDelay,
-    getAudioTrackValue: () => audioTrackSelect.value,
     getTargetNoteId: () => Number(targetNoteSelect?.value || 0),
     clearTargetNote: () => {
         if (targetNoteSelect)
@@ -503,8 +503,6 @@ videoContainer.addEventListener("wheel", (e) => {
     volume.value = String(newVolume);
     volume.dispatchEvent(new Event("input", { bubbles: true }));
     volume.dispatchEvent(new Event("change", { bubbles: true }));
-    if (audioManager.externalAudio)
-        audioManager.externalAudio.volume = newVolume;
 }, { passive: false });
 settingsBtn.onclick = (e) => {
     e.stopPropagation();
@@ -534,10 +532,10 @@ fontSizeRange.addEventListener("input", (e) => {
     "showComprehensionI5Plus"
 ].forEach((id) => {
     document.getElementById(id)?.addEventListener("input", () => {
-        const sub = getCurrentSubtitle();
         renderSubtitleOverlay({
             overlay,
-            text: sub ? sub.text : "",
+            cues: getActiveSubtitles(),
+            cueIndices: getActiveSubtitleEntries().map(({ index }) => index),
             highlighter: ankiSubtitleHighlighter
         });
     });
@@ -614,7 +612,8 @@ window.addEventListener("load", () => {
         const sub = getCurrentSubtitle?.();
         renderSubtitleOverlay({
             overlay,
-            text: sub ? sub.text : "",
+            cues: getActiveSubtitles(),
+            cueIndices: getActiveSubtitleEntries().map(({ index }) => index),
             highlighter: ankiSubtitleHighlighter
         });
         if (sub?.text) {
@@ -687,9 +686,6 @@ document.getElementById("refreshAnkiHighlighterBtn")?.addEventListener("click", 
 document.addEventListener("visibilitychange", () => {
     if (document.hidden && !video.paused) {
         video.play().catch(() => { });
-        if (audioManager.externalAudio) {
-            audioManager.externalAudio.play().catch(() => { });
-        }
     }
 });
 addKnownBasicBtn?.addEventListener("mousedown", (e) => {

@@ -165,10 +165,6 @@ function stepFrame(direction: number): void {
 
     video.currentTime = nextTime;
 
-    if (typeof audioManager !== "undefined" && audioManager) {
-        audioManager.sync();
-        audioManager.pause();
-    }
 }
 
 function seekBySeconds(seconds: number): void {
@@ -181,9 +177,6 @@ function seekBySeconds(seconds: number): void {
 
     video.currentTime = nextTime;
 
-    if (typeof audioManager !== "undefined" && audioManager) {
-        audioManager.sync();
-    }
 }
 
 function getCleanSelectedText(): string {

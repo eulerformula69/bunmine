@@ -10,22 +10,6 @@ interface LibraryVideoFilePayload {
 
 type CurrentVideoPayload = VideoFilePayload | LibraryVideoFilePayload;
 
-interface AudioTrackInfo {
-    index: string | number;
-    tags?: {
-        language?: string;
-        title?: string;
-    };
-}
-
-interface AudioTracksResponse extends ApiPayload {
-    tracks?: AudioTrackInfo[];
-}
-
-interface TrackUrlResponse extends ApiPayload {
-    url?: string;
-}
-
 interface LibraryPlaybackPayload extends ApiPayload {
     episodeId?: string | number | null;
     videoFileId?: string | number | null;
@@ -130,11 +114,18 @@ declare function showActionToast(
 declare function renderSubtitles(): void;
 declare function renderSubtitleOverlay(options: {
     overlay: HTMLElement | null;
-    text: string;
+    text?: string;
+    texts?: string[];
+    cues?: SubtitleCue[];
+    cueIndices?: number[];
     highlighter?: unknown;
 }): void;
 declare function parseSRT(data: string): SubtitleCue[];
 declare function parseASS(data: string): SubtitleCue[];
+declare function getActiveSubtitles(): SubtitleCue[];
+declare function getActiveSubtitleEntries(): Array<{ index: number; cue: SubtitleCue }>;
+declare function getPrimarySubtitleIndex(): number;
+declare function selectPrimarySubtitle(index: number): void;
 declare function tokenizeJapaneseText(text: string): Promise<JapaneseToken[]>;
 declare function tokenizeJapaneseTextSync(text: string): JapaneseToken[] | null;
 declare function restoreSubtitleFromCurrentTime(): void;
@@ -152,7 +143,6 @@ declare function getSubtitleContextSelection(index: number): {
     text: string;
 };
 declare function getCurrentVideoPayload(): CurrentVideoPayload | null;
-declare function loadAudioTrackList(videoRef: string | { videoFileId: string | number }): Promise<void>;
 declare function resetLibraryProgressTracking(): void;
 declare function saveLibraryWatchProgress(options?: {
     force?: boolean;

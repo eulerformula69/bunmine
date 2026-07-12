@@ -245,7 +245,6 @@ function createAnkiMediaController(options) {
         if (audioEnd <= audioStart)
             audioEnd = audioStart + 0.5;
         const includeImageSubtitle = document.getElementById("includeImageSubtitle")?.checked !== false;
-        const trackValue = options.getAudioTrackValue();
         return {
             videoPayload,
             volumeLevel: options.getValidatedVolume(),
@@ -263,7 +262,7 @@ function createAnkiMediaController(options) {
             combinedText: context.text,
             imageSubtitleText: includeImageSubtitle ? context.text : "",
             fontSize: inputValue("fontSizeRange"),
-            trackIndex: trackValue === "default" ? "a:0" : trackValue
+            trackIndex: "a:0"
         };
     }
     async function updateNote(targetNoteId, snapshot) {

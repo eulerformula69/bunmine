@@ -17,7 +17,6 @@
     controls,
     ankiAllBtn,
     targetNoteSelect,
-    audioTrackSelect,
     fontSizeRange,
     subtitleOverlay,
     resizer,
@@ -35,13 +34,11 @@ video.volume = Number(volume.value);
 volume.addEventListener("input", () => {
     const nextVolume = Math.max(0, Math.min(1, parseFloat(volume.value) || 0));
     video.volume = nextVolume;
-    if (typeof audioManager !== "undefined" && audioManager.externalAudio) {
-        audioManager.externalAudio.volume = nextVolume;
-    }
 });
 
 video.addEventListener("timeupdate", () => {
-    const sub = getCurrentSubtitle();
+    const activeSubtitles = getActiveSubtitles();
+    const sub = getCurrentSubtitle() || null;
 
     if (sub?.text && sub.text !== lastRuntimeSubtitleText) {
         lastRuntimeSubtitleText = sub.text;
@@ -83,7 +80,8 @@ video.addEventListener("timeupdate", () => {
 
     renderSubtitleOverlay({
         overlay,
-        text: sub ? sub.text : "",
+        cues: activeSubtitles,
+        cueIndices: getActiveSubtitleEntries().map(({ index }) => index),
         highlighter: ankiSubtitleHighlighter
     });
 
@@ -405,7 +403,6 @@ document.querySelectorAll<HTMLElement>(".settings-tab").forEach((tab) => {
 
 progress.oninput = () => {
     video.currentTime = (Number(progress.value) / 100) * video.duration;
-    audioManager.sync();
 };
 
 videoContainer.addEventListener("mousemove", (e) => {
@@ -529,10 +526,7 @@ function maybePromptSubtitleDepthReset() {
 }
 
 function getActiveSubtitleIndex() {
-    return findActiveSubtitleIndexAtTime(
-        subtitles,
-        getAdjustedPlaybackTime(video, globalSubDelay)
-    );
+    return getPrimarySubtitleIndex();
 }
 
 function getSubtitleIndexFromSelection(selection = window.getSelection()) {
@@ -558,7 +552,10 @@ function getSubtitleIndexFromSelection(selection = window.getSelection()) {
     }
 
     if (overlay?.contains(anchorElement) || overlay?.contains(focusElement)) {
-        return getActiveSubtitleIndex();
+        const overlaySubtitle = anchorElement?.closest?.(".subtitle-overlay-line[data-subtitle-index]")
+            || focusElement?.closest?.(".subtitle-overlay-line[data-subtitle-index]");
+        const index = Number((overlaySubtitle as HTMLElement | null)?.dataset.subtitleIndex);
+        return Number.isInteger(index) ? index : getActiveSubtitleIndex();
     }
 
     return -1;
@@ -573,7 +570,6 @@ const ankiMediaController = createAnkiMediaController({
     getSubtitleStart: (index) => subtitles[index].start,
     getSubtitleContext: getSubtitleContextSelection,
     getGlobalSubtitleDelay: () => globalSubDelay,
-    getAudioTrackValue: () => audioTrackSelect.value,
     getTargetNoteId: () => Number(targetNoteSelect?.value || 0),
     clearTargetNote: () => {
         if (targetNoteSelect) targetNoteSelect.value = "";
@@ -668,7 +664,6 @@ videoContainer.addEventListener("wheel", (e) => {
     volume.dispatchEvent(new Event("input", { bubbles: true }));
     volume.dispatchEvent(new Event("change", { bubbles: true }));
 
-    if (audioManager.externalAudio) audioManager.externalAudio.volume = newVolume;
 }, { passive: false });
 
 settingsBtn.onclick = (e) => {
@@ -702,11 +697,10 @@ fontSizeRange.addEventListener("input", (e) => {
     "showComprehensionI5Plus"
 ].forEach((id) => {
     document.getElementById(id)?.addEventListener("input", () => {
-        const sub = getCurrentSubtitle();
-
         renderSubtitleOverlay({
             overlay,
-            text: sub ? sub.text : "",
+            cues: getActiveSubtitles(),
+            cueIndices: getActiveSubtitleEntries().map(({ index }) => index),
             highlighter: ankiSubtitleHighlighter
         });
     });
@@ -807,7 +801,8 @@ window.addEventListener("load", () => {
 
             renderSubtitleOverlay({
                 overlay,
-                text: sub ? sub.text : "",
+                cues: getActiveSubtitles(),
+                cueIndices: getActiveSubtitleEntries().map(({ index }) => index),
                 highlighter: ankiSubtitleHighlighter
             });
 
@@ -892,9 +887,6 @@ document.addEventListener("visibilitychange", () => {
     if (document.hidden && !video.paused) {
         video.play().catch(() => {});
 
-        if (audioManager.externalAudio) {
-            audioManager.externalAudio.play().catch(() => {});
-        }
     }
 });
 

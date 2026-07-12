@@ -17,8 +17,6 @@
         if (!data.filename) return;
 
         currentVideoFile = data.filename;
-        loadAudioTrackList(data.filename);
-
         if (subtitleFile) {
             await uploadSubtitleInBackground(subtitleFile, data.filename);
         }
@@ -70,13 +68,7 @@ async function restoreSubtitleFromServer(subtitleFilename: string): Promise<void
         }
 
         const text = await res.text();
-        const lowerName = subtitleFilename.toLowerCase();
-
-        if (lowerName.endsWith(".srt")) {
-            subtitles = parseSRT(text);
-        }  else {
-            throw new Error("Unsupported subtitle format");
-        }
+        subtitles = parseSRT(text);
 
         lastRuntimeSubtitleText = "";
         runtimePrefetchAllRunId += 1;

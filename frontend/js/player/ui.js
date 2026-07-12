@@ -121,19 +121,12 @@ function stepFrame(direction) {
     video.pause();
     const nextTime = Math.max(0, Math.min(video.duration, video.currentTime + (FRAME_STEP_SECONDS * direction)));
     video.currentTime = nextTime;
-    if (typeof audioManager !== "undefined" && audioManager) {
-        audioManager.sync();
-        audioManager.pause();
-    }
 }
 function seekBySeconds(seconds) {
     if (!video.duration || Number.isNaN(video.duration))
         return;
     const nextTime = Math.max(0, Math.min(video.duration, video.currentTime + seconds));
     video.currentTime = nextTime;
-    if (typeof audioManager !== "undefined" && audioManager) {
-        audioManager.sync();
-    }
 }
 function getCleanSelectedText() {
     const selection = window.getSelection();

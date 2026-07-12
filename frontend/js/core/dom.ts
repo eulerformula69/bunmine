@@ -17,7 +17,6 @@ interface PlayerDom {
     controls: HTMLElement | null;
     ankiAllBtn: HTMLButtonElement | null;
     targetNoteSelect: HTMLSelectElement | null;
-    audioTrackSelect: HTMLSelectElement | null;
     fontSizeRange: HTMLInputElement | null;
     subtitleOverlay: HTMLElement | null;
     resizer: HTMLElement | null;
@@ -48,7 +47,6 @@ const dom: PlayerDom = {
     controls: document.getElementById("controls"),
     ankiAllBtn: document.getElementById("ankiAllBtn") as HTMLButtonElement | null,
     targetNoteSelect: document.getElementById("targetNoteSelect") as HTMLSelectElement | null,
-    audioTrackSelect: document.getElementById("audioTrackSelect") as HTMLSelectElement | null,
     fontSizeRange: document.getElementById("fontSizeRange") as HTMLInputElement | null,
     subtitleOverlay: document.getElementById("subtitleOverlay"),
     resizer: document.getElementById("resizer"),

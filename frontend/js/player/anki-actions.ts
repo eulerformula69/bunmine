@@ -315,7 +315,6 @@ interface AnkiMediaControllerOptions {
     getSubtitleStart(index: number): number;
     getSubtitleContext(index: number): { startTime: number; endTime: number; text: string };
     getGlobalSubtitleDelay(): number;
-    getAudioTrackValue(): string;
     getTargetNoteId(): number;
     clearTargetNote(): void;
     refreshTargetNotes(): void;
@@ -375,8 +374,6 @@ function createAnkiMediaController(options: AnkiMediaControllerOptions): AnkiMed
 
         const includeImageSubtitle =
             (document.getElementById("includeImageSubtitle") as HTMLInputElement | null)?.checked !== false;
-        const trackValue = options.getAudioTrackValue();
-
         return {
             videoPayload,
             volumeLevel: options.getValidatedVolume(),
@@ -394,7 +391,7 @@ function createAnkiMediaController(options: AnkiMediaControllerOptions): AnkiMed
             combinedText: context.text,
             imageSubtitleText: includeImageSubtitle ? context.text : "",
             fontSize: inputValue("fontSizeRange"),
-            trackIndex: trackValue === "default" ? "a:0" : trackValue
+            trackIndex: "a:0"
         };
     }
 

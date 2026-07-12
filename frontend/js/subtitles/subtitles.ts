@@ -116,7 +116,15 @@ function renderMatchedSubtitleOverlay(overlayEl, text, highlighter) {
 
 function renderSubtitleOverlay(options) {
     const overlay = options.overlay;
-    const text = options.text;
+    const cueEntries = Array.isArray(options.cues)
+        ? options.cues.map((cue, position) => ({
+            cue,
+            index: Number.isInteger(options.cueIndices?.[position]) ? options.cueIndices[position] : -1
+        }))
+        : [];
+    const texts = cueEntries.length
+        ? cueEntries.map(({ cue }) => cue.text)
+        : (Array.isArray(options.texts) ? options.texts.filter(Boolean) : (options.text ? [options.text] : []));
     const highlighter = options.highlighter || null;
 
     if (!overlay) return;
@@ -124,7 +132,82 @@ function renderSubtitleOverlay(options) {
     clearSubtitleOverlay(overlay);
     updateSubtitleComprehensionBadge(null);
 
-    if (!text) return;
+    if (!texts.length) return;
+
+    const regions = new Map<string, HTMLElement>();
+    const primaryIndex = typeof getPrimarySubtitleIndex === "function" ? getPrimarySubtitleIndex() : -1;
+
+    for (let position = 0; position < texts.length; position += 1) {
+        const text = texts[position];
+        const entry = cueEntries[position];
+        const cue = entry?.cue;
+        const cueIndex = entry?.index ?? -1;
+        const alignment = Number(cue?.alignment || 2);
+        const line = document.createElement("div");
+        line.className = "subtitle-overlay-line";
+        line.classList.add(`subtitle-alignment-${alignment}`);
+        if (cueIndex >= 0) line.dataset.subtitleIndex = String(cueIndex);
+        if (cueIndex === primaryIndex) line.classList.add("primary");
+        applySubtitleCueStyle(line, cue);
+        renderSubtitleOverlayLine(line, text, cueIndex === primaryIndex ? highlighter : null);
+
+        if (cueIndex >= 0) {
+            line.addEventListener("click", (event) => {
+                event.stopPropagation();
+                selectPrimarySubtitle(cueIndex);
+                renderSubtitleOverlay({
+                    overlay,
+                    cues: getActiveSubtitles(),
+                    cueIndices: getActiveSubtitleEntries().map(({ index }) => index),
+                    highlighter
+                });
+            });
+        }
+
+        const regionKey = getSubtitleRegionKey(cue);
+        let region = regions.get(regionKey);
+        if (!region) {
+            region = document.createElement("div");
+            region.className = `subtitle-overlay-region subtitle-overlay-region-${regionKey}`;
+            applyPositionedSubtitleRegion(region, cue);
+            regions.set(regionKey, region);
+            overlay.appendChild(region);
+        }
+        region.appendChild(line);
+    }
+}
+
+function applySubtitleCueStyle(line, cue) {
+    if (!cue) return;
+    if (cue.fontName) line.style.fontFamily = `"${cue.fontName}", "NotoSansJP", sans-serif`;
+    if (cue.fontSize) line.style.fontSize = `${Math.max(0.6, Math.min(2.5, cue.fontSize / 40))}em`;
+    if (cue.primaryColor) line.style.color = cue.primaryColor;
+    if (cue.bold) line.style.fontWeight = "700";
+    if (cue.italic) line.style.fontStyle = "italic";
+}
+
+function getSubtitleRegionKey(cue) {
+    if (cue?.positionX !== undefined && cue?.positionY !== undefined) return `positioned-${cue.positionX}-${cue.positionY}`;
+    const alignment = Number(cue?.alignment || 2);
+    if (alignment >= 7) return "top";
+    if (alignment >= 4) return "middle";
+    return "bottom";
+}
+
+function applyPositionedSubtitleRegion(region, cue) {
+    if (cue?.positionX === undefined || cue?.positionY === undefined) return;
+    const x = Math.max(0, Math.min(100, cue.positionX / Number(cue.playResX || 384) * 100));
+    const y = Math.max(0, Math.min(100, cue.positionY / Number(cue.playResY || 288) * 100));
+    region.classList.add("subtitle-overlay-region-positioned");
+    region.style.left = `${x}%`;
+    region.style.top = `${y}%`;
+    const alignment = Number(cue.alignment || 2);
+    const translateX = alignment % 3 === 1 ? "0%" : (alignment % 3 === 0 ? "-100%" : "-50%");
+    const translateY = alignment >= 7 ? "0%" : (alignment >= 4 ? "-50%" : "-100%");
+    region.style.transform = `translate(${translateX}, ${translateY})`;
+}
+
+function renderSubtitleOverlayLine(overlayEl, text, highlighter) {
 
     const comprehensionLevel = typeof getSubtitleComprehensionLevel === "function"
         ? getSubtitleComprehensionLevel(text, highlighter)
@@ -141,9 +224,9 @@ function renderSubtitleOverlay(options) {
     }
 
     if (!highlighter || highlighter.enabled !== true) {
-        appendPlainSubtitleText(overlay, text);
+        appendPlainSubtitleText(overlayEl, text);
         return;
     }
 
-    renderHighlightedSubtitleOverlay(overlay, text, highlighter);
+    renderHighlightedSubtitleOverlay(overlayEl, text, highlighter);
 }

@@ -1,8 +1,8 @@
 function getCurrentSubtitleIndexForNavigation() {
+    const primaryIndex = getPrimarySubtitleIndex();
+    if (primaryIndex !== -1)
+        return primaryIndex;
     const adjustedTime = video.currentTime - globalSubDelay;
-    const activeIndex = subtitles.findIndex((cue) => adjustedTime >= cue.start && adjustedTime <= cue.end);
-    if (activeIndex !== -1)
-        return activeIndex;
     const nextIndex = subtitles.findIndex((cue) => cue.start > adjustedTime);
     if (nextIndex !== -1)
         return nextIndex;
@@ -12,25 +12,27 @@ function goToPreviousSubtitle() {
     if (!subtitles.length)
         return;
     const currentIndex = getCurrentSubtitleIndexForNavigation();
-    const targetIndex = Math.max(0, currentIndex - 1);
+    const referenceTime = subtitles[currentIndex]?.start ?? (video.currentTime - globalSubDelay);
+    const targetIndex = findSubtitleIndexForOffset(subtitles, referenceTime, -1);
     video.currentTime = Math.max(0, subtitles[targetIndex].start + globalSubDelay + 0.01);
     syncSubtitleStyle(targetIndex);
-    audioManager?.sync?.();
 }
 function goToNextSubtitle() {
     if (!subtitles.length)
         return;
     const currentIndex = getCurrentSubtitleIndexForNavigation();
-    const targetIndex = Math.min(subtitles.length - 1, currentIndex + 1);
+    const referenceTime = subtitles[currentIndex]?.start ?? (video.currentTime - globalSubDelay);
+    const targetIndex = findSubtitleIndexForOffset(subtitles, referenceTime, 1);
     video.currentTime = Math.max(0, subtitles[targetIndex].start + globalSubDelay + 0.01);
     syncSubtitleStyle(targetIndex);
-    audioManager?.sync?.();
 }
 function replayCurrentSubtitle() {
     if (!subtitles.length)
         return;
     clearSearchMatches();
-    const currentIndex = getCurrentSubtitleIndexForNavigation();
+    const currentIndex = getPrimarySubtitleIndex() !== -1
+        ? getPrimarySubtitleIndex()
+        : getCurrentSubtitleIndexForNavigation();
     const targetSub = subtitles[currentIndex];
     if (!targetSub)
         return;
@@ -41,7 +43,6 @@ function replayCurrentSubtitle() {
         highlighter: ankiSubtitleHighlighter
     });
     syncSubtitleStyle(currentIndex);
-    audioManager?.sync?.();
     video.play();
 }
 function focusSubtitleWordSearch() {

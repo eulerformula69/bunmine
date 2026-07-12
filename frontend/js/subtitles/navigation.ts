@@ -5,17 +5,26 @@ function findSubtitleIndexForOffset(
 ): number {
     if (!cues.length) return -1;
 
-    let currentIdx = cues.findIndex((cue) => currentTime >= cue.start && currentTime <= cue.end);
-
-    if (currentIdx === -1) {
-        currentIdx = offset > 0
-            ? cues.findIndex((cue) => cue.start > currentTime)
-            : cues.filter((cue) => cue.end < currentTime).length - 1;
-    } else {
-        currentIdx += offset;
+    const groups = getSubtitleStartGroups(cues);
+    if (!groups.length) return -1;
+    if (offset > 0) {
+        const next = groups.find((group) => group.start > currentTime + 0.02);
+        return (next || groups[groups.length - 1]).index;
     }
+    const current = [...groups].reverse().find((group) => group.start <= currentTime + 0.02);
+    if (current && currentTime - current.start > 0.25) return current.index;
+    const previous = [...groups].reverse().find((group) => group.start < (current?.start ?? currentTime) - 0.02);
+    return (previous || groups[0]).index;
+}
 
-    return Math.max(0, Math.min(cues.length - 1, currentIdx));
+function getSubtitleStartGroups(cues: SubtitleCue[]): Array<{ start: number; index: number }> {
+    const groups: Array<{ start: number; index: number }> = [];
+    cues.forEach((cue, index) => {
+        if (!groups.length || Math.abs(groups[groups.length - 1].start - cue.start) > 0.02) {
+            groups.push({ start: cue.start, index });
+        }
+    });
+    return groups;
 }
 
 function findSubtitleIndexForPlaybackTime(
