@@ -4,6 +4,16 @@ interface SubtitleCue {
     text: string;
     layer?: number;
     style?: string;
+    alignment?: number;
+    positionX?: number;
+    positionY?: number;
+    playResX?: number;
+    playResY?: number;
+    fontName?: string;
+    fontSize?: number;
+    primaryColor?: string;
+    bold?: boolean;
+    italic?: boolean;
     [key: string]: unknown;
 }
 

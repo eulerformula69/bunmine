@@ -80,7 +80,8 @@ video.addEventListener("timeupdate", () => {
 
     renderSubtitleOverlay({
         overlay,
-        texts: activeSubtitles.map((cue) => cue.text),
+        cues: activeSubtitles,
+        cueIndices: getActiveSubtitleEntries().map(({ index }) => index),
         highlighter: ankiSubtitleHighlighter
     });
 
@@ -525,10 +526,7 @@ function maybePromptSubtitleDepthReset() {
 }
 
 function getActiveSubtitleIndex() {
-    return findActiveSubtitleIndexAtTime(
-        subtitles,
-        getAdjustedPlaybackTime(video, globalSubDelay)
-    );
+    return getPrimarySubtitleIndex();
 }
 
 function getSubtitleIndexFromSelection(selection = window.getSelection()) {
@@ -554,7 +552,10 @@ function getSubtitleIndexFromSelection(selection = window.getSelection()) {
     }
 
     if (overlay?.contains(anchorElement) || overlay?.contains(focusElement)) {
-        return getActiveSubtitleIndex();
+        const overlaySubtitle = anchorElement?.closest?.(".subtitle-overlay-line[data-subtitle-index]")
+            || focusElement?.closest?.(".subtitle-overlay-line[data-subtitle-index]");
+        const index = Number((overlaySubtitle as HTMLElement | null)?.dataset.subtitleIndex);
+        return Number.isInteger(index) ? index : getActiveSubtitleIndex();
     }
 
     return -1;
@@ -696,11 +697,10 @@ fontSizeRange.addEventListener("input", (e) => {
     "showComprehensionI5Plus"
 ].forEach((id) => {
     document.getElementById(id)?.addEventListener("input", () => {
-        const sub = getCurrentSubtitle();
-
         renderSubtitleOverlay({
             overlay,
-            text: sub ? sub.text : "",
+            cues: getActiveSubtitles(),
+            cueIndices: getActiveSubtitleEntries().map(({ index }) => index),
             highlighter: ankiSubtitleHighlighter
         });
     });
@@ -801,7 +801,8 @@ window.addEventListener("load", () => {
 
             renderSubtitleOverlay({
                 overlay,
-                text: sub ? sub.text : "",
+                cues: getActiveSubtitles(),
+                cueIndices: getActiveSubtitleEntries().map(({ index }) => index),
                 highlighter: ankiSubtitleHighlighter
             });
 

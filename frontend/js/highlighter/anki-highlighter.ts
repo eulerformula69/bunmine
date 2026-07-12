@@ -719,11 +719,10 @@ function rerenderCurrentSubtitleWithAnkiHighlighter() {
     if (typeof renderSubtitleOverlay !== "function") return;
     if (typeof overlay === "undefined") return;
 
-    const sub = getCurrentSubtitle();
-
     renderSubtitleOverlay({
         overlay,
-        text: sub ? sub.text : "",
+        cues: getActiveSubtitles(),
+        cueIndices: getActiveSubtitleEntries().map(({ index }) => index),
         highlighter: ankiSubtitleHighlighter
     });
 }

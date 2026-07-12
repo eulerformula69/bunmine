@@ -440,6 +440,7 @@ function renderSubtitles() {
         div.appendChild(textContent);
         div.onclick = () => {
             clearSearchMatches();
+            lastClickedSubtitleIdx = idx;
             if (lastClickedSubtitleIdx === idx) {
                 if (video.paused) {
                     video.play();

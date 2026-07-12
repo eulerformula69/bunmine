@@ -116,11 +116,16 @@ declare function renderSubtitleOverlay(options: {
     overlay: HTMLElement | null;
     text?: string;
     texts?: string[];
+    cues?: SubtitleCue[];
+    cueIndices?: number[];
     highlighter?: unknown;
 }): void;
 declare function parseSRT(data: string): SubtitleCue[];
 declare function parseASS(data: string): SubtitleCue[];
 declare function getActiveSubtitles(): SubtitleCue[];
+declare function getActiveSubtitleEntries(): Array<{ index: number; cue: SubtitleCue }>;
+declare function getPrimarySubtitleIndex(): number;
+declare function selectPrimarySubtitle(index: number): void;
 declare function tokenizeJapaneseText(text: string): Promise<JapaneseToken[]>;
 declare function tokenizeJapaneseTextSync(text: string): JapaneseToken[] | null;
 declare function restoreSubtitleFromCurrentTime(): void;
