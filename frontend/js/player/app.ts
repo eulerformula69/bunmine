@@ -38,7 +38,7 @@ volume.addEventListener("input", () => {
 
 video.addEventListener("timeupdate", () => {
     const activeSubtitles = getActiveSubtitles();
-    const sub = activeSubtitles[0] || null;
+    const sub = getCurrentSubtitle() || null;
 
     if (sub?.text && sub.text !== lastRuntimeSubtitleText) {
         lastRuntimeSubtitleText = sub.text;

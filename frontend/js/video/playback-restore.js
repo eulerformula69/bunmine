@@ -151,13 +151,7 @@ async function restoreLibrarySubtitle(subtitleUrl) {
             throw new Error(`Subtitle request failed: ${res.status}`);
         }
         const text = await res.text();
-        let parsed = parseSRT(text);
-        // /library/file/<id> РЅРµ СЃРѕРґРµСЂР¶РёС‚ СЂР°СЃС€РёСЂРµРЅРёСЏ РІ URL,
-        // РїРѕСЌС‚РѕРјСѓ РµСЃР»Рё SRT РЅРµ СЂР°СЃРїР°СЂСЃРёР»СЃСЏ, РїСЂРѕР±СѓРµРј ASS.
-        if (!parsed.length) {
-            parsed = parseASS(text);
-        }
-        subtitles = parsed;
+        subtitles = parseSRT(text);
         lastRuntimeSubtitleText = "";
         clearRuntimeWordStatuses?.();
         renderSubtitles();
