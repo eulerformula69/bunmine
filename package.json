@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "test:highlighter": "node tests/highlighter-match-tests.mjs",
-    "test:subtitles": "node tests/subtitle-model-tests.mjs",
+    "test:highlighter": "npm run build && node tests/highlighter-match-tests.mjs",
+    "test:subtitles": "npm run build && node tests/subtitle-model-tests.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {

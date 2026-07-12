@@ -1,5 +1,6 @@
 .env
 node_modules/
+/frontend/js/**/*.js
 UploadedVideos/
 data/
 frontend/temp/
