@@ -58,8 +58,11 @@ async function restoreSubtitleFromServer(subtitleFilename) {
         }
         const text = await res.text();
         const lowerName = subtitleFilename.toLowerCase();
-        if (lowerName.endsWith(".srt")) {
+        if (lowerName.endsWith(".srt") || lowerName.endsWith(".vtt")) {
             subtitles = parseSRT(text);
+        }
+        else if (lowerName.endsWith(".ass")) {
+            subtitles = parseASS(text);
         }
         else {
             throw new Error("Unsupported subtitle format");

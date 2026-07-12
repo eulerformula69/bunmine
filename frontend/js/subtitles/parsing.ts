@@ -1,35 +1,38 @@
 ﻿// parsing
 
+function parseSubtitleTimestamp(value) {
+    const match = String(value).trim().match(/^(?:(\d+):)?(\d{1,2}):(\d{2})[,.](\d{1,3})/);
+    if (!match) return null;
+    const hours = Number(match[1] || 0);
+    return hours * 3600 + Number(match[2]) * 60 + Number(match[3]) + Number(match[4].padEnd(3, "0")) / 1000;
+}
+
+function cleanSubtitleText(lines) {
+    return lines
+        .map((line) => line.trim())
+        .join("\n")
+        .replace(/<br\s*\/?>/gi, "\n")
+        .replace(/<[^>]+>/g, "")
+        .replace(/\{\\.*?\}/g, "")
+        .trim();
+}
+
 function parseSRT(data) {
-    data = data.replace(/\r/g, "").trim();
-    const blocks = data.split("\n\n");
+    const blocks = String(data).replace(/^\uFEFF/, "").replace(/\r/g, "").trim().split(/\n{2,}/);
     const subs = [];
 
     for (const block of blocks) {
-        const lines = block.split("\n").filter((l) => l.trim() !== "");
-        if (lines.length < 3) continue;
-
-        const match = lines[1].match(/(\d+):(\d+):(\d+),(\d+)\s-->\s(\d+):(\d+):(\d+),(\d+)/);
-        if (!match) continue;
-
-        const start = +match[1] * 3600 + +match[2] * 60 + +match[3] + +match[4] / 1000;
-        const end = +match[5] * 3600 + +match[6] * 60 + +match[7] + +match[8] / 1000;
-		const rawText = lines.slice(2).map((l) => l.trim()).join(" ");
-
-		// РџСЂРѕРїСѓСЃРєР°РµРј РІРµСЂС…РЅРёРµ СЃСѓР±С‚РёС‚СЂС‹ С‚РёРїР° {\an8}
-		if (/\{\\an8\}/.test(rawText)) continue;
-
-		// РќР° РІСЃСЏРєРёР№ СЃР»СѓС‡Р°Р№ С‡РёСЃС‚РёРј РѕСЃС‚Р°Р»СЊРЅС‹Рµ ASS/SRT override-С‚РµРіРё
-		const text = rawText
-			.replace(/\{\\.*?\}/g, "")
-			.trim();
-
-		if (text) {
-			subs.push({ start, end, text });
-		}
+        const lines = block.split("\n");
+        const timingIndex = lines.findIndex((line) => line.includes("-->"));
+        if (timingIndex < 0) continue;
+        const [startValue, endValue] = lines[timingIndex].split("-->");
+        const start = parseSubtitleTimestamp(startValue);
+        const end = parseSubtitleTimestamp(endValue);
+        const text = cleanSubtitleText(lines.slice(timingIndex + 1));
+        if (start !== null && end !== null && end > start && text) subs.push({ start, end, text });
     }
 
-    return subs;
+    return subs.sort((left, right) => left.start - right.start || left.end - right.end);
 }
 
 function parseASS(data) {
@@ -47,8 +50,10 @@ function parseASS(data) {
         const parts = line.split(",");
         if (parts.length < 10) return;
 
+        const layer = Number(parts[0].slice("Dialogue:".length).trim()) || 0;
         const start = timeToSeconds(parts[1]);
         const end = timeToSeconds(parts[2]);
+        const style = parts[3].trim();
         const text = parts.slice(9).join(",")
             .replace(/\{.*?\}/g, "")
             .replace(/\\N/g, "\n")
@@ -56,10 +61,10 @@ function parseASS(data) {
             .replace(/\\h/g, " ")
             .trim();
 
-        if (text) subs.push({ start, end, text });
+        if (text && end > start) subs.push({ start, end, text, layer, style });
     });
 
-    return subs;
+    return subs.sort((left, right) => left.start - right.start || left.layer - right.layer);
 }
 
 function formatTime(t) {

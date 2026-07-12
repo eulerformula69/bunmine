@@ -130,11 +130,13 @@ declare function showActionToast(
 declare function renderSubtitles(): void;
 declare function renderSubtitleOverlay(options: {
     overlay: HTMLElement | null;
-    text: string;
+    text?: string;
+    texts?: string[];
     highlighter?: unknown;
 }): void;
 declare function parseSRT(data: string): SubtitleCue[];
 declare function parseASS(data: string): SubtitleCue[];
+declare function getActiveSubtitles(): SubtitleCue[];
 declare function tokenizeJapaneseText(text: string): Promise<JapaneseToken[]>;
 declare function tokenizeJapaneseTextSync(text: string): JapaneseToken[] | null;
 declare function restoreSubtitleFromCurrentTime(): void;

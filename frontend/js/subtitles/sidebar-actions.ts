@@ -18,7 +18,6 @@ function goToPreviousSubtitle(): void {
 
     video.currentTime = Math.max(0, subtitles[targetIndex].start + globalSubDelay + 0.01);
     syncSubtitleStyle(targetIndex);
-    audioManager?.sync?.();
 }
 
 function goToNextSubtitle(): void {
@@ -29,7 +28,6 @@ function goToNextSubtitle(): void {
 
     video.currentTime = Math.max(0, subtitles[targetIndex].start + globalSubDelay + 0.01);
     syncSubtitleStyle(targetIndex);
-    audioManager?.sync?.();
 }
 
 function replayCurrentSubtitle(): void {
@@ -51,7 +49,6 @@ function replayCurrentSubtitle(): void {
     });
 
     syncSubtitleStyle(currentIndex);
-    audioManager?.sync?.();
     video.play();
 }
 

@@ -1,13 +1,13 @@
 class AudioTrackManager {
     constructor(videoEl) {
         this.video = videoEl;
-        this.externalAudio = null;
+        this.originalSource = "";
         this.currentTrack = "default";
     }
     async setTrack(trackId, videoPayload) {
         if (trackId === "default") {
-            this.destroyExternal();
-            this.video.muted = false;
+            if (this.originalSource)
+                await this.replaceSource(this.originalSource);
             this.currentTrack = "default";
             return;
         }
@@ -27,48 +27,43 @@ class AudioTrackManager {
             if (data.error) {
                 throw new Error(getApiErrorMessage(data));
             }
-            this.destroyExternal();
-            this.externalAudio = document.createElement("audio");
-            this.externalAudio.preload = "auto";
-            this.externalAudio.src = data.url || "";
-            this.sync();
-            this.video.muted = true;
+            if (!this.originalSource)
+                this.originalSource = this.video.currentSrc || this.video.src;
+            await this.replaceSource(buildApiUrl(data.url || ""));
             this.currentTrack = trackId;
         }
         catch (e) {
             console.error("Track switch error:", e);
+            showToast("Could not switch audio track", "error", 5000);
         }
     }
-    sync() {
-        if (!this.externalAudio)
-            return;
-        const v = this.video;
-        const a = this.externalAudio;
-        a.currentTime = v.currentTime;
-        a.playbackRate = v.playbackRate;
-        a.volume = v.volume;
-        if (!v.paused)
-            a.play().catch(() => { });
+    async replaceSource(source) {
+        const time = this.video.currentTime;
+        const wasPlaying = !this.video.paused;
+        const playbackRate = this.video.playbackRate;
+        this.video.src = source;
+        this.video.load();
+        await new Promise((resolve, reject) => {
+            this.video.addEventListener("loadedmetadata", () => resolve(), { once: true });
+            this.video.addEventListener("error", () => reject(new Error("Media stream failed to load")), { once: true });
+        });
+        this.video.currentTime = Math.min(time, this.video.duration || time);
+        this.video.playbackRate = playbackRate;
+        if (wasPlaying)
+            await this.video.play();
     }
-    pause() {
-        if (this.externalAudio)
-            this.externalAudio.pause();
-    }
-    destroyExternal() {
-        if (!this.externalAudio)
-            return;
-        this.externalAudio.pause();
-        this.externalAudio = null;
+    resetSource(source) {
+        this.originalSource = source || this.video.src || this.video.currentSrc;
+        this.currentTrack = "default";
     }
 }
 const audioManager = new AudioTrackManager(video);
 volume.oninput = () => {
     video.volume = Number(volume.value);
-    if (audioManager.externalAudio)
-        audioManager.externalAudio.volume = Number(volume.value);
 };
 async function loadAudioTrackList(videoRef) {
     try {
+        audioManager.resetSource();
         const query = typeof videoRef === "object" && videoRef?.videoFileId
             ? `videoFileId=${encodeURIComponent(videoRef.videoFileId)}`
             : `filename=${encodeURIComponent(String(videoRef))}`;
@@ -100,19 +95,9 @@ audioTrackSelect.onchange = () => {
     audioManager.setTrack(audioTrackSelect.value, getCurrentVideoPayload());
 };
 video.addEventListener("play", () => {
-    audioManager.sync();
     updatePlayButton();
 });
-video.addEventListener("pause", () => {
-    audioManager.pause();
-    updatePlayButton();
-});
-video.addEventListener("seeking", () => {
-    audioManager.sync();
-});
-video.addEventListener("ratechange", () => {
-    audioManager.sync();
-});
+video.addEventListener("pause", updatePlayButton);
 function getValidatedVolume() {
     const input = document.getElementById("audioVol");
     let val = parseFloat(input.value);

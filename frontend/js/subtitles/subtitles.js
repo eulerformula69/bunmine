@@ -86,14 +86,24 @@ function renderMatchedSubtitleOverlay(overlayEl, text, highlighter) {
 }
 function renderSubtitleOverlay(options) {
     const overlay = options.overlay;
-    const text = options.text;
+    const texts = Array.isArray(options.texts)
+        ? options.texts.filter(Boolean)
+        : (options.text ? [options.text] : []);
     const highlighter = options.highlighter || null;
     if (!overlay)
         return;
     clearSubtitleOverlay(overlay);
     updateSubtitleComprehensionBadge(null);
-    if (!text)
+    if (!texts.length)
         return;
+    for (const text of texts) {
+        const line = document.createElement("div");
+        line.className = "subtitle-overlay-line";
+        renderSubtitleOverlayLine(line, text, highlighter);
+        overlay.appendChild(line);
+    }
+}
+function renderSubtitleOverlayLine(overlayEl, text, highlighter) {
     const comprehensionLevel = typeof getSubtitleComprehensionLevel === "function"
         ? getSubtitleComprehensionLevel(text, highlighter)
         : null;
@@ -104,8 +114,8 @@ function renderSubtitleOverlay(options) {
         return;
     }
     if (!highlighter || highlighter.enabled !== true) {
-        appendPlainSubtitleText(overlay, text);
+        appendPlainSubtitleText(overlayEl, text);
         return;
     }
-    renderHighlightedSubtitleOverlay(overlay, text, highlighter);
+    renderHighlightedSubtitleOverlay(overlayEl, text, highlighter);
 }

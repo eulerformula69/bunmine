@@ -64,6 +64,11 @@ video {
   transition: bottom 0.3s ease;
 }
 
+.subtitle-overlay-line {
+  display: table;
+  margin: 0 auto 0.12em;
+}
+
 .comprehension-level-badge {
   position: absolute;
   top: 16px;

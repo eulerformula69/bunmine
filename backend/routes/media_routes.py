@@ -3,7 +3,6 @@ import os
 from flask import Blueprint, current_app, jsonify, request, send_from_directory
 
 from backend.api_response import legacy_error_response, ok_response
-from backend.ffmpeg_service import run_subprocess
 from backend.services.dedupe_service import clean_srt_text_file
 from backend.services.media_export_service import (
     MediaExportError,
@@ -60,32 +59,16 @@ def upload_subtitle():
         return _json_error(err, 400, "INVALID_VIDEO_FILENAME")
 
     subtitle_ext = os.path.splitext(subtitle_file.filename or "")[1].lower()
-    if subtitle_ext not in {".srt", ".ass"}:
-        return legacy_error_response("Only .srt and .ass subtitles are supported", 400, "INVALID_SUBTITLE_EXTENSION")
+    if subtitle_ext not in settings.allowed_subtitle_extensions:
+        return legacy_error_response("Unsupported subtitle format", 400, "INVALID_SUBTITLE_EXTENSION")
 
     video_base_name = os.path.splitext(safe_video_filename)[0]
-    srt_filename = f"{video_base_name}.srt"
-    srt_path = settings.video_dir / srt_filename
-
+    subtitle_filename = f"{video_base_name}{subtitle_ext}"
+    subtitle_path = settings.video_dir / subtitle_filename
+    subtitle_file.save(subtitle_path)
     if subtitle_ext == ".srt":
-        subtitle_file.save(srt_path)
-        clean_srt_text_file(srt_path)
-        return ok_response({"filename": srt_filename})[0]
-
-    temp_ass_path = settings.video_dir / f"temp_{video_base_name}.ass"
-    subtitle_file.save(temp_ass_path)
-    cmd = ["ffmpeg", "-y", "-i", str(temp_ass_path), "-c:s", "srt", str(srt_path)]
-    try:
-        run_subprocess(cmd)
-        clean_srt_text_file(srt_path)
-    except RuntimeError as err:
-        if srt_path.exists():
-            srt_path.unlink()
-        return _json_error(err, 500, "FFMPEG_SUBTITLE_CONVERSION_FAILED")
-    finally:
-        if temp_ass_path.exists():
-            temp_ass_path.unlink()
-    return ok_response({"filename": srt_filename})[0]
+        clean_srt_text_file(subtitle_path)
+    return ok_response({"filename": subtitle_filename})[0]
 
 
 @media_bp.route("/current-video", methods=["GET"])
@@ -100,9 +83,11 @@ def current_video():
 
     latest_video = max(videos, key=lambda path: path.stat().st_mtime)
     subtitle_filename = None
-    candidate = settings.video_dir / f"{latest_video.stem}.srt"
-    if candidate.exists():
-        subtitle_filename = candidate.name
+    for extension in settings.allowed_subtitle_extensions:
+        candidate = settings.video_dir / f"{latest_video.stem}{extension}"
+        if candidate.exists():
+            subtitle_filename = candidate.name
+            break
     return jsonify({"ok": True, "filename": latest_video.name, "subtitleFilename": subtitle_filename})
 
 
@@ -113,10 +98,14 @@ def list_videos():
     for path in settings.video_dir.iterdir():
         if not path.is_file() or path.suffix.lower() not in settings.allowed_video_extensions:
             continue
-        subtitle_candidate = settings.video_dir / f"{path.stem}.srt"
+        subtitle_candidate = next(
+            (settings.video_dir / f"{path.stem}{extension}" for extension in settings.allowed_subtitle_extensions
+             if (settings.video_dir / f"{path.stem}{extension}").exists()),
+            None,
+        )
         videos.append({
             "filename": path.name,
-            "subtitleFilename": subtitle_candidate.name if subtitle_candidate.exists() else None,
+            "subtitleFilename": subtitle_candidate.name if subtitle_candidate else None,
             "modifiedTime": path.stat().st_mtime,
         })
     videos.sort(key=lambda item: item["modifiedTime"], reverse=True)
@@ -135,7 +124,7 @@ def serve_subtitle(filename):
     subtitle_path = settings.video_dir / safe_name
     if not subtitle_path.exists():
         return legacy_error_response("Subtitle not found", 404, "SUBTITLE_NOT_FOUND")
-    if os.path.splitext(safe_name)[1].lower() != ".srt":
+    if os.path.splitext(safe_name)[1].lower() not in settings.allowed_subtitle_extensions:
         return legacy_error_response("Invalid subtitle extension", 400, "INVALID_SUBTITLE_EXTENSION")
     return send_from_directory(str(settings.video_dir), safe_name)
 
@@ -225,6 +214,20 @@ def download_audio():
     except ValueError as err:
         return _json_error(err, 400, "INVALID_FILENAME")
     return send_from_directory(str(settings.video_dir), safe_name)
+
+
+@media_bp.route("/player-cache/<path:filename>")
+def player_cache(filename):
+    settings = _settings()
+    try:
+        safe_name = safe_media_name(filename)
+    except ValueError as err:
+        return _json_error(err, 400, "INVALID_FILENAME")
+    cache_dir = settings.data_dir / "PlayerCache"
+    media_path = cache_dir / safe_name
+    if not media_path.exists() or not is_within(cache_dir, media_path):
+        return legacy_error_response("Cached media not found", 404, "MEDIA_NOT_FOUND")
+    return send_from_directory(str(cache_dir), safe_name, mimetype="video/mp4")
 
 
 @media_bp.route("/delete-video", methods=["DELETE"])

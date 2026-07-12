@@ -2,6 +2,8 @@ interface SubtitleCue {
     start: number;
     end: number;
     text: string;
+    layer?: number;
+    style?: string;
     [key: string]: unknown;
 }
 

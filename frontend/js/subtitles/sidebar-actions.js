@@ -15,7 +15,6 @@ function goToPreviousSubtitle() {
     const targetIndex = Math.max(0, currentIndex - 1);
     video.currentTime = Math.max(0, subtitles[targetIndex].start + globalSubDelay + 0.01);
     syncSubtitleStyle(targetIndex);
-    audioManager?.sync?.();
 }
 function goToNextSubtitle() {
     if (!subtitles.length)
@@ -24,7 +23,6 @@ function goToNextSubtitle() {
     const targetIndex = Math.min(subtitles.length - 1, currentIndex + 1);
     video.currentTime = Math.max(0, subtitles[targetIndex].start + globalSubDelay + 0.01);
     syncSubtitleStyle(targetIndex);
-    audioManager?.sync?.();
 }
 function replayCurrentSubtitle() {
     if (!subtitles.length)
@@ -41,7 +39,6 @@ function replayCurrentSubtitle() {
         highlighter: ankiSubtitleHighlighter
     });
     syncSubtitleStyle(currentIndex);
-    audioManager?.sync?.();
     video.play();
 }
 function focusSubtitleWordSearch() {

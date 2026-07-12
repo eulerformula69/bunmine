@@ -202,12 +202,19 @@ def create_track_url(settings: Settings, data: dict) -> dict:
         raise MediaExportError(payload.get("error", "Invalid video payload"), status_code)
 
     track_key = make_dedupe_key("track", {"video": video_identity, "trackIndex": str(track_index)})
-    temp_audio_name = f"temp_track_{track_key[:24]}.mka"
-    temp_audio_path = settings.video_dir / temp_audio_name
-    if not temp_audio_path.exists():
-        cmd = ["ffmpeg", "-y", "-i", str(video_path_obj), "-map", f"0:{track_index}", "-c", "copy", str(temp_audio_path)]
+    cache_dir = settings.data_dir / "PlayerCache"
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    media_name = f"track_{track_key[:24]}.mp4"
+    media_path = cache_dir / media_name
+    if not media_path.exists():
+        cmd = [
+            "ffmpeg", "-y", "-i", str(video_path_obj),
+            "-map", "0:v:0", "-map", f"0:{track_index}",
+            "-c:v", "copy", "-c:a", "aac", "-movflags", "+faststart",
+            str(media_path),
+        ]
         run_subprocess(cmd)
-    return {"url": f"/download-audio?name={temp_audio_name}"}
+    return {"url": f"/player-cache/{media_name}"}
 
 
 def _resolve_video_path_from_query(settings: Settings, video_file_id: str | None, filename: str | None) -> Path:

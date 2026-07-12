@@ -35,13 +35,11 @@ video.volume = Number(volume.value);
 volume.addEventListener("input", () => {
     const nextVolume = Math.max(0, Math.min(1, parseFloat(volume.value) || 0));
     video.volume = nextVolume;
-    if (typeof audioManager !== "undefined" && audioManager.externalAudio) {
-        audioManager.externalAudio.volume = nextVolume;
-    }
 });
 
 video.addEventListener("timeupdate", () => {
-    const sub = getCurrentSubtitle();
+    const activeSubtitles = getActiveSubtitles();
+    const sub = activeSubtitles[0] || null;
 
     if (sub?.text && sub.text !== lastRuntimeSubtitleText) {
         lastRuntimeSubtitleText = sub.text;
@@ -83,7 +81,7 @@ video.addEventListener("timeupdate", () => {
 
     renderSubtitleOverlay({
         overlay,
-        text: sub ? sub.text : "",
+        texts: activeSubtitles.map((cue) => cue.text),
         highlighter: ankiSubtitleHighlighter
     });
 
@@ -405,7 +403,6 @@ document.querySelectorAll<HTMLElement>(".settings-tab").forEach((tab) => {
 
 progress.oninput = () => {
     video.currentTime = (Number(progress.value) / 100) * video.duration;
-    audioManager.sync();
 };
 
 videoContainer.addEventListener("mousemove", (e) => {
@@ -668,7 +665,6 @@ videoContainer.addEventListener("wheel", (e) => {
     volume.dispatchEvent(new Event("input", { bubbles: true }));
     volume.dispatchEvent(new Event("change", { bubbles: true }));
 
-    if (audioManager.externalAudio) audioManager.externalAudio.volume = newVolume;
 }, { passive: false });
 
 settingsBtn.onclick = (e) => {
@@ -892,9 +888,6 @@ document.addEventListener("visibilitychange", () => {
     if (document.hidden && !video.paused) {
         video.play().catch(() => {});
 
-        if (audioManager.externalAudio) {
-            audioManager.externalAudio.play().catch(() => {});
-        }
     }
 });
 

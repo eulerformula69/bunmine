@@ -1,6 +1,12 @@
 ﻿// state helpers
 
 function getCurrentSubtitle() {
-    const t = video.currentTime - globalSubDelay;
-    return subtitles.find((s) => t >= s.start && t <= s.end);
+	return getActiveSubtitles()[0];
+}
+
+function getActiveSubtitles(): SubtitleCue[] {
+	const time = video.currentTime - globalSubDelay;
+	return subtitles
+		.filter((cue) => time >= cue.start && time <= cue.end)
+		.sort((left, right) => Number(left.layer || 0) - Number(right.layer || 0));
 }
