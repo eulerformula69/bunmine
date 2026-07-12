@@ -9,6 +9,7 @@ __pycache__/
 .pytest_cache/
 .tmp_pytest/
 .tmp_pytest_run/
+.tmp_pytest_cache/
 *.mp4
 *.mkv
 *.webm
@@ -25,4 +26,3 @@ known-basic-words.json
 NEXT.md
 library.sqlite3
 library.backup.db
-tests/

@@ -33,7 +33,7 @@ document.getElementById("previewAudioBtn")?.addEventListener("click", async () =
                 ...videoPayload,
                 start,
                 end,
-                trackIndex: "a:0",
+                trackIndex: "default",
                 volume: volumeLevel
             })
         });

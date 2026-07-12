@@ -262,7 +262,7 @@ function createAnkiMediaController(options) {
             combinedText: context.text,
             imageSubtitleText: includeImageSubtitle ? context.text : "",
             fontSize: inputValue("fontSizeRange"),
-            trackIndex: "a:0"
+            trackIndex: "default"
         };
     }
     async function updateNote(targetNoteId, snapshot) {

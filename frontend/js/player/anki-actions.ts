@@ -391,7 +391,7 @@ function createAnkiMediaController(options: AnkiMediaControllerOptions): AnkiMed
             combinedText: context.text,
             imageSubtitleText: includeImageSubtitle ? context.text : "",
             fontSize: inputValue("fontSizeRange"),
-            trackIndex: "a:0"
+            trackIndex: "default"
         };
     }
 

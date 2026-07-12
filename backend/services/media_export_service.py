@@ -143,20 +143,38 @@ Dialogue: 0,0:00:00.00,{duration_ass},Default,,0,0,0,,{ass_text}
 def create_audio_clip(settings: Settings, data: dict) -> dict:
     start = data.get("start")
     end = data.get("end")
-    track_index = data.get("trackIndex", "a:0")
+    track_index = data.get("trackIndex", "default")
     volume_level = data.get("volume", "1")
+
     if start is None or end is None:
         raise ValueError("start and end are required")
 
-    video_path_obj, video_identity, error_response = resolve_video_path_from_payload(data, settings)
+    video_path_obj, video_identity, error_response = resolve_video_path_from_payload(
+        data,
+        settings,
+    )
     if error_response:
         payload, status_code = error_response
-        raise MediaExportError(payload.get("error", "Invalid video payload"), status_code)
+        raise MediaExportError(
+            payload.get("error", "Invalid video payload"),
+            status_code,
+        )
 
     start_f = round(to_float(start), 3)
     end_f = round(to_float(end), 3)
+    duration_f = round(end_f - start_f, 3)
+
     volume_f = round(to_float(volume_level, 1.0), 3)
-    track_str = str(track_index)
+    track_str = str(track_index or "default")
+
+    if start_f < 0:
+        raise ValueError(f"Invalid audio start time: {start_f}")
+
+    if duration_f <= 0:
+        raise ValueError(
+            f"Invalid audio interval: start={start_f}, end={end_f}"
+        )
+
     audio_payload = {
         "video": video_identity,
         "start": start_f,
@@ -164,21 +182,67 @@ def create_audio_clip(settings: Settings, data: dict) -> dict:
         "trackIndex": track_str,
         "volume": volume_f,
     }
+
     audio_key = make_dedupe_key("audio", audio_payload)
+
     cached_filename = get_cached_media("audio", audio_key)
     if cached_filename:
-        return {"filename": cached_filename, "url": f"/get-temp-audio?filename={cached_filename}", "reused": True}
+        return {
+            "filename": cached_filename,
+            "url": f"/get-temp-audio?filename={cached_filename}",
+            "reused": True,
+        }
 
     audio_filename = f"audio_{audio_key[:24]}.mp3"
     audio_path = settings.audio_dir / audio_filename
-    cmd = [
-        "ffmpeg", "-y", "-i", str(video_path_obj), "-ss", str(start_f), "-to", str(end_f), "-map", f"0:{track_str}",
-        "-af", f"volume={volume_f}", "-vn", "-acodec", "libmp3lame", str(audio_path),
-    ]
-    run_subprocess(cmd)
-    save_cached_media("audio", audio_key, audio_filename)
-    return {"filename": audio_filename, "url": f"/get-temp-audio?filename={audio_filename}", "reused": False}
 
+    cmd = [
+        "ffmpeg",
+        "-y",
+
+        # Переходим к началу предложения до декодирования файла.
+        "-ss",
+        str(start_f),
+
+        "-i",
+        str(video_path_obj),
+
+        # Вырезаем длительность предложения.
+        "-t",
+        str(duration_f),
+    ]
+
+    if track_str != "default":
+        cmd.extend([
+            "-map",
+            f"0:{track_str}",
+        ])
+    else:
+        cmd.extend([
+            "-map",
+            "0:a:0",
+        ])
+
+    cmd.extend([
+        "-vn",
+        "-af",
+        f"volume={volume_f}",
+        "-c:a",
+        "libmp3lame",
+        "-q:a",
+        "2",
+        str(audio_path),
+    ])
+
+    run_subprocess(cmd)
+
+    save_cached_media("audio", audio_key, audio_filename)
+
+    return {
+        "filename": audio_filename,
+        "url": f"/get-temp-audio?filename={audio_filename}",
+        "reused": False,
+    }
 
 class MediaExportError(RuntimeError):
     def __init__(self, message: str, status_code: int = 400):
