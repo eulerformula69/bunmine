@@ -176,6 +176,7 @@ def create_audio_clip(settings: Settings, data: dict) -> dict:
         )
 
     audio_payload = {
+        "exportVersion": 2,
         "video": video_identity,
         "start": start_f,
         "end": end_f,
