@@ -1,8 +1,8 @@
 {
     const scripts: string[] = [
-        "js/core/api.js",
-        "js/library/library-api.js",
-        "js/library/library.js",
+        "/dist/js/core/api.js",
+        "/dist/js/library/library-api.js",
+        "/dist/js/library/library.js",
     ];
 
     const loadScript = (src: string): Promise<void> => {

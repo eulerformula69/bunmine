@@ -1,6 +1,6 @@
 .env
 node_modules/
-/frontend/js/**/*.js
+dist/
 UploadedVideos/
 data/
 frontend/temp/
@@ -27,3 +27,4 @@ known-basic-words.json
 NEXT.md
 library.sqlite3
 library.backup.db
+.tmp_pytest_cache/

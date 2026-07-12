@@ -3,8 +3,8 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import vm from "node:vm";
 
-const highlighterPath = fileURLToPath(new URL("../frontend/js/highlighter/anki-highlighter.js", import.meta.url));
-const comprehensionLevelPath = fileURLToPath(new URL("../frontend/js/subtitles/comprehension-level.js", import.meta.url));
+const highlighterPath = fileURLToPath(new URL("../dist/js/highlighter/anki-highlighter.js", import.meta.url));
+const comprehensionLevelPath = fileURLToPath(new URL("../dist/js/subtitles/comprehension-level.js", import.meta.url));
 const tokenFixtures = new Map();
 
 const context = {

@@ -12,9 +12,9 @@ const context = {
 vm.createContext(context);
 
 for (const file of [
-    "frontend/js/subtitles/parsing.js",
-    "frontend/js/subtitles/timing.js",
-    "frontend/js/subtitles/navigation.js"
+    "dist/js/subtitles/parsing.js",
+    "dist/js/subtitles/timing.js",
+    "dist/js/subtitles/navigation.js"
 ]) {
     vm.runInContext(fs.readFileSync(file, "utf8"), context, { filename: file });
 }

@@ -10,7 +10,9 @@
     "noImplicitThis": true,
     "alwaysStrict": false,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "rootDir": "frontend",
+    "outDir": "dist"
   },
   "include": [
     "frontend/js/**/*.ts"

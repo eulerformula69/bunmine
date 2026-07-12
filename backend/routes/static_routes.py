@@ -36,10 +36,16 @@ def serve_kuromoji_dict(filename):
     return response
 
 
+@static_bp.route("/dist/<path:path>")
+def serve_frontend_build(path):
+    settings = current_app.config["SETTINGS"]
+    dist_dir = settings.project_dir / "dist"
+    return send_from_directory(str(dist_dir), path)
+
+
 @static_bp.route("/<path:path>")
 def serve_file(path):
     frontend_dir = current_app.config["SETTINGS"].frontend_dir
     return send_from_directory(str(frontend_dir), path)
-
 
 
