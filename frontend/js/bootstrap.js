@@ -33,6 +33,7 @@
         "js/player/toast.js",
         "js/player/anki-actions.js",
         "js/player/target-note-dropdown.js",
+        "js/player/auto-attach-queue.js",
         "js/player/app.js",
         "js/video/audio-tracks.js",
         "js/player/settings.js",

@@ -386,26 +386,6 @@ function maybePromptSubtitleDepthReset() {
         }
     ], "info", 0);
 }
-let autoAttachQueue = [];
-let activeAutoAttachTask = null;
-let autoAttachTaskId = 0;
-let autoAttachStatusToast = null;
-let autoAttachArmTimer = null;
-let autoAttachSelectionClearTimer = null;
-let autoAttachQueueProcessing = false;
-const autoAttachQueuedKeys = new Set();
-class AutoAttachCancelledError extends Error {
-    constructor(message) {
-        super(message);
-        this.name = "AutoAttachCancelledError";
-    }
-}
-function getAutoAttachQueueSize() {
-    return autoAttachQueue.length + (activeAutoAttachTask ? 1 : 0);
-}
-function isAutoAttachBusy() {
-    return getAutoAttachQueueSize() > 0;
-}
 function getActiveSubtitleIndex() {
     return findActiveSubtitleIndexAtTime(subtitles, getAdjustedPlaybackTime(video, globalSubDelay));
 }
@@ -641,238 +621,39 @@ async function updateCurrentOrSelectedAnkiCard() {
     refreshTargetNoteList({ preserveSelection: false });
     maybePromptSubtitleDepthReset();
 }
-async function waitForNextAnkiNote(snapshot, previousNoteIds, task) {
-    const previous = new Set((previousNoteIds || []).map((id) => String(id)));
-    const timeoutMs = 60000;
-    const pollMs = 1000;
-    const deadline = Date.now() + timeoutMs;
-    while (Date.now() < deadline) {
-        if (task?.cancelled) {
-            throw new AutoAttachCancelledError(t("toastAutoAttachCancelled"));
-        }
-        const noteIds = await fetchDeckNoteIds(snapshot.ankiUrl, snapshot.deckName);
-        const recentIds = await fetchNoteIdsByQuery(snapshot.ankiUrl, "added:1", "AnkiConnect find recent notes");
-        const mergedIds = [...new Set([...noteIds, ...recentIds])];
-        const newIds = mergedIds
-            .filter((id) => !previous.has(String(id)))
-            .sort((a, b) => Number(a) - Number(b));
-        if (newIds.length) {
-            const infoList = await fetchNotesInfo(snapshot.ankiUrl, newIds.slice(-10));
-            const selectedWord = stripHtml(snapshot.selectedWord).toLowerCase();
-            if (selectedWord) {
-                const matchingNote = infoList.find((note) => {
-                    const fields = note?.fields || {};
-                    return Object.values(fields).some((field) => {
-                        return stripHtml(field?.value).toLowerCase().includes(selectedWord);
-                    });
-                });
-                if (matchingNote?.noteId) {
-                    return Number(matchingNote.noteId);
-                }
-            }
-            const earliestInfo = infoList[0];
-            return Number(earliestInfo?.noteId || newIds[0]);
-        }
-        await sleep(pollMs);
-    }
-    throw new Error(t("toastAutoAttachNoNewCard"));
-}
-function cancelPendingAutoAttachNextCard() {
-    if (activeAutoAttachTask) {
-        activeAutoAttachTask.cancelled = true;
-    }
-    autoAttachQueue.forEach((task) => {
-        task.cancelled = true;
-    });
-    autoAttachQueue = [];
-    autoAttachQueuedKeys.clear();
-    closeAutoAttachStatusToast();
-    clearTimeout(autoAttachSelectionClearTimer);
-}
-function setAutoAttachStatus(message, type = "info", { persistent = true } = {}) {
-    if (!autoAttachStatusToast || !document.body.contains(autoAttachStatusToast)) {
-        autoAttachStatusToast = showActionToast(message, [
-            {
-                label: t("toastAutoAttachCancel"),
-                onClick: () => {
-                    cancelPendingAutoAttachNextCard();
-                }
-            }
-        ], type, persistent ? 0 : 3500);
-        return;
-    }
-    const messageEl = autoAttachStatusToast.querySelector(".mp-toast-action-message");
-    if (messageEl)
-        messageEl.textContent = message;
-    autoAttachStatusToast.className = `mp-toast mp-toast-${type} mp-toast-action`;
-}
-function closeAutoAttachStatusToast() {
-    if (!autoAttachStatusToast)
-        return;
-    autoAttachStatusToast.classList.add("mp-toast-removing");
-    const toast = autoAttachStatusToast;
-    autoAttachStatusToast = null;
-    setTimeout(() => {
-        toast.remove();
-    }, 180);
-}
-function scheduleAutoAttachCancelIfSelectionCleared() {
-    clearTimeout(autoAttachSelectionClearTimer);
-    if (!isAutoAttachBusy())
-        return;
-    autoAttachSelectionClearTimer = setTimeout(() => {
-        const selection = window.getSelection();
-        const selectedText = selection && !selection.isCollapsed
-            ? selection.toString().trim()
-            : "";
-        if (selectedText)
-            return;
-        cancelPendingAutoAttachNextCard();
-    }, 1200);
-}
-function clearAutoAttachSelectionCancelTimer() {
-    clearTimeout(autoAttachSelectionClearTimer);
-}
 function isAutoAttachNextCardEnabled() {
     return document.getElementById("autoAttachNextCardEnabled")?.checked === true;
 }
-function formatAutoAttachQueueStatus(key, task, type = "info") {
-    const queueSize = getAutoAttachQueueSize();
-    setAutoAttachStatus(t(key, {
-        word: task.selectedWord,
-        count: queueSize,
-        position: task.position || 1
-    }), type);
-}
-async function prepareAutoAttachTask(word, { copyWord = false, subtitleIndex = null, armKey = "" } = {}) {
-    const selectedWord = String(word || getCleanSelectedText() || "").trim();
-    if (!selectedWord) {
-        showToast(t("toastNoWordSelected"), "error", 3000);
-        return null;
-    }
-    const task = {
-        id: ++autoAttachTaskId,
-        selectedWord,
-        copyWord,
-        subtitleIndex,
-        armKey,
-        cancelled: false,
-        snapshot: null,
-        previousNoteIds: []
-    };
-    setAutoAttachStatus(t("toastAutoAttachPreparing", { word: selectedWord }), "info");
-    try {
-        const snapshot = buildCurrentAnkiMediaSnapshot({ subtitleIndex });
-        snapshot.selectedWord = selectedWord;
-        task.snapshot = snapshot;
-        setAutoAttachStatus(t("toastAutoAttachSnapshotReady", { word: selectedWord }), "info");
-        const deckNoteIds = await fetchDeckNoteIds(snapshot.ankiUrl, snapshot.deckName);
-        const recentNoteIds = await fetchNoteIdsByQuery(snapshot.ankiUrl, "added:1", "AnkiConnect find recent notes");
-        task.previousNoteIds = [...new Set([...deckNoteIds, ...recentNoteIds])];
-    }
-    catch (err) {
-        closeAutoAttachStatusToast();
-        if (armKey)
-            autoAttachQueuedKeys.delete(armKey);
-        showToast(t("toastError", { message: err.message }), "error", 6000);
-        return null;
-    }
-    return task;
-}
-function enqueueAutoAttachTask(task) {
-    if (!task)
-        return;
-    autoAttachQueue.push(task);
-    formatAutoAttachQueueStatus("toastAutoAttachQueued", task);
-    processAutoAttachQueue();
-}
-function markAutoAttachNoteConsumed(noteId) {
-    const consumedId = String(noteId);
-    autoAttachQueue.forEach((task) => {
-        const previous = new Set((task.previousNoteIds || []).map((id) => String(id)));
-        previous.add(consumedId);
-        task.previousNoteIds = [...previous];
-    });
-}
-async function processAutoAttachQueue() {
-    if (autoAttachQueueProcessing)
-        return;
-    autoAttachQueueProcessing = true;
-    try {
-        while (autoAttachQueue.length) {
-            const task = autoAttachQueue.shift();
-            activeAutoAttachTask = task;
-            task.position = 1;
-            try {
-                if (task.copyWord) {
-                    await copyWordForYomitan(task.selectedWord);
-                }
-                formatAutoAttachQueueStatus("toastAutoAttachListeningQueued", task);
-                const targetNoteId = await waitForNextAnkiNote(task.snapshot, task.previousNoteIds, task);
-                formatAutoAttachQueueStatus("toastAutoAttachAddingQueued", task);
-                markAutoAttachNoteConsumed(targetNoteId);
-                await updateAnkiNoteWithSnapshot(targetNoteId, task.snapshot);
-                showToast(t("toastAutoAttachDoneQueued", {
-                    word: task.selectedWord,
-                    count: autoAttachQueue.length
-                }), "success", 5000);
-                refreshTargetNoteList({ preserveSelection: false });
-                maybePromptSubtitleDepthReset();
-            }
-            catch (err) {
-                if (err instanceof AutoAttachCancelledError) {
-                    return;
-                }
-                console.warn("Auto attach next Anki card failed:", err);
-                showToast(t("toastAutoAttachFailed", { message: err.message }), "error", 7000);
-            }
-            finally {
-                if (task.armKey)
-                    autoAttachQueuedKeys.delete(task.armKey);
-                activeAutoAttachTask = null;
-                clearAutoAttachSelectionCancelTimer();
-            }
-        }
-    }
-    finally {
-        autoAttachQueueProcessing = false;
-        if (!isAutoAttachBusy()) {
-            closeAutoAttachStatusToast();
-        }
-    }
-}
-async function startAutoAttachNextCard(word, { copyWord = false, subtitleIndex = null, armKey = "" } = {}) {
-    const task = await prepareAutoAttachTask(word, { copyWord, subtitleIndex, armKey });
-    enqueueAutoAttachTask(task);
-}
+const autoAttachQueueController = createAutoAttachQueueController({
+    translate: t,
+    getSelectedText: getCleanSelectedText,
+    buildSnapshot: buildCurrentAnkiMediaSnapshot,
+    fetchDeckNoteIds,
+    fetchNoteIdsByQuery,
+    fetchNotesInfo,
+    stripHtml,
+    sleep,
+    copyWord: copyWordForYomitan,
+    updateNote: updateAnkiNoteWithSnapshot,
+    refreshTargetNotes: () => refreshTargetNoteList({ preserveSelection: false }),
+    maybePromptSubtitleDepthReset,
+    showToast,
+    showActionToast,
+    isEnabled: isAutoAttachNextCardEnabled
+});
 async function copyWordAndAttachNextCard(word) {
-    await startAutoAttachNextCard(word, {
+    await autoAttachQueueController.start(word, {
         copyWord: true,
         subtitleIndex: getSubtitleIndexFromSelection()
     });
 }
 function armAutoAttachForSelection(word, subtitleIndex) {
-    if (!isAutoAttachNextCardEnabled())
-        return;
     if (!word || !Number.isInteger(subtitleIndex) || subtitleIndex < 0)
         return;
-    const armKey = `${subtitleIndex}:${word}`;
-    if (autoAttachQueuedKeys.has(armKey))
-        return;
-    clearTimeout(autoAttachArmTimer);
-    autoAttachArmTimer = setTimeout(() => {
-        if (!isAutoAttachNextCardEnabled())
-            return;
-        if (autoAttachQueuedKeys.has(armKey))
-            return;
-        autoAttachQueuedKeys.add(armKey);
-        startAutoAttachNextCard(word, {
-            copyWord: false,
-            subtitleIndex,
-            armKey
-        });
-    }, 250);
+    autoAttachQueueController.armForSelection(word, subtitleIndex);
 }
+const scheduleAutoAttachCancelIfSelectionCleared = autoAttachQueueController.scheduleCancelIfSelectionCleared;
+const clearAutoAttachSelectionCancelTimer = autoAttachQueueController.clearSelectionCancelTimer;
 ankiAllBtn.onclick = async () => {
     try {
         await updateCurrentOrSelectedAnkiCard();
