@@ -27,15 +27,6 @@ function enableWheelOnSettings() {
             input.dispatchEvent(new Event("change", { bubbles: true }));
         }, { passive: false });
     });
-    audioTrackSelect.addEventListener("wheel", (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        const direction = e.deltaY < 0 ? -1 : 1;
-        let newIdx = audioTrackSelect.selectedIndex + direction;
-        newIdx = Math.max(0, Math.min(audioTrackSelect.options.length - 1, newIdx));
-        audioTrackSelect.selectedIndex = newIdx;
-        audioTrackSelect.dispatchEvent(new Event("change"));
-    }, { passive: false });
 }
 function collectSettings() {
     return {

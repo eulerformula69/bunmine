@@ -17,7 +17,6 @@
     controls,
     ankiAllBtn,
     targetNoteSelect,
-    audioTrackSelect,
     fontSizeRange,
     subtitleOverlay,
     resizer,
@@ -570,7 +569,6 @@ const ankiMediaController = createAnkiMediaController({
     getSubtitleStart: (index) => subtitles[index].start,
     getSubtitleContext: getSubtitleContextSelection,
     getGlobalSubtitleDelay: () => globalSubDelay,
-    getAudioTrackValue: () => audioTrackSelect.value,
     getTargetNoteId: () => Number(targetNoteSelect?.value || 0),
     clearTargetNote: () => {
         if (targetNoteSelect) targetNoteSelect.value = "";

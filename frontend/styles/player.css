@@ -180,16 +180,6 @@ video {
   font-size: 12px;
 }
 
-#audioTrackSelect {
-  min-width: 10px;
-  width: auto;
-  padding-right: 4px;
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  background-image: none;
-}
-
 #ankiAllBtn {
   padding: 0 12px;
 }

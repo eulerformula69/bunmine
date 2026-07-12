@@ -1,16 +1,13 @@
-import json
 import os
 import textwrap
-from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
 
 from backend.ffmpeg_service import run_subprocess
-from backend.library_db import get_library_file_by_id
 from backend.services.dedupe_service import get_cached_media, make_dedupe_key, save_cached_media
 from backend.services.video_service import resolve_video_path_from_payload
 from backend.settings import Settings
-from backend.utils_validation import is_within, normalize_text, safe_media_name, to_float
+from backend.utils_validation import normalize_text, to_float
 
 
 def create_screenshot(settings: Settings, data: dict) -> dict:
@@ -181,68 +178,6 @@ def create_audio_clip(settings: Settings, data: dict) -> dict:
     run_subprocess(cmd)
     save_cached_media("audio", audio_key, audio_filename)
     return {"filename": audio_filename, "url": f"/get-temp-audio?filename={audio_filename}", "reused": False}
-
-
-def get_audio_tracks(settings: Settings, video_file_id: str | None, filename: str | None) -> dict:
-    video_path_obj = _resolve_video_path_from_query(settings, video_file_id, filename)
-    cmd = ["ffprobe", "-v", "error", "-select_streams", "a", "-show_entries", "stream=index:stream_tags=language,title", "-of", "json", str(video_path_obj)]
-    result = run_subprocess(cmd)
-    data = json.loads(result.stdout)
-    return {"tracks": data.get("streams", [])}
-
-
-def create_track_url(settings: Settings, data: dict) -> dict:
-    track_index = data.get("trackIndex")
-    if track_index is None:
-        raise ValueError("trackIndex is required")
-
-    video_path_obj, video_identity, error_response = resolve_video_path_from_payload(data, settings)
-    if error_response:
-        payload, status_code = error_response
-        raise MediaExportError(payload.get("error", "Invalid video payload"), status_code)
-
-    track_key = make_dedupe_key("track", {"video": video_identity, "trackIndex": str(track_index)})
-    cache_dir = settings.data_dir / "PlayerCache"
-    cache_dir.mkdir(parents=True, exist_ok=True)
-    media_name = f"track_{track_key[:24]}.mp4"
-    media_path = cache_dir / media_name
-    if not media_path.exists():
-        cmd = [
-            "ffmpeg", "-y", "-i", str(video_path_obj),
-            "-map", "0:v:0", "-map", f"0:{track_index}",
-            "-c:v", "copy", "-c:a", "aac", "-movflags", "+faststart",
-            str(media_path),
-        ]
-        run_subprocess(cmd)
-    return {"url": f"/player-cache/{media_name}"}
-
-
-def _resolve_video_path_from_query(settings: Settings, video_file_id: str | None, filename: str | None) -> Path:
-    if video_file_id:
-        try:
-            file_id = int(video_file_id)
-        except (TypeError, ValueError) as err:
-            raise MediaExportError("Invalid videoFileId", 400) from err
-        result = get_library_file_by_id(settings.library_db_path, file_id)
-        if not result.get("found"):
-            raise MediaExportError("Library video file not found", 404)
-        file_info = result["file"]
-        if file_info.get("file_type") != "video":
-            raise MediaExportError("Library file is not a video", 400)
-        video_path_obj = Path(file_info["path"]).resolve()
-        if not is_within(settings.media_library_dir, video_path_obj):
-            raise MediaExportError("Video file is outside MEDIA_LIBRARY_DIR", 403)
-        if not video_path_obj.exists() or not video_path_obj.is_file():
-            raise MediaExportError("Video file is missing", 404)
-        return video_path_obj
-
-    if not filename:
-        raise MediaExportError("filename or videoFileId is required", 400)
-    safe_filename = safe_media_name(filename)
-    video_path_obj = (settings.video_dir / safe_filename).resolve()
-    if not video_path_obj.exists() or not is_within(settings.video_dir, video_path_obj):
-        raise MediaExportError(f"File {filename} was not found at {video_path_obj}", 404)
-    return video_path_obj
 
 
 class MediaExportError(RuntimeError):

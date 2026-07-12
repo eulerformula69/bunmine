@@ -10,22 +10,6 @@ interface LibraryVideoFilePayload {
 
 type CurrentVideoPayload = VideoFilePayload | LibraryVideoFilePayload;
 
-interface AudioTrackInfo {
-    index: string | number;
-    tags?: {
-        language?: string;
-        title?: string;
-    };
-}
-
-interface AudioTracksResponse extends ApiPayload {
-    tracks?: AudioTrackInfo[];
-}
-
-interface TrackUrlResponse extends ApiPayload {
-    url?: string;
-}
-
 interface LibraryPlaybackPayload extends ApiPayload {
     episodeId?: string | number | null;
     videoFileId?: string | number | null;
@@ -154,7 +138,6 @@ declare function getSubtitleContextSelection(index: number): {
     text: string;
 };
 declare function getCurrentVideoPayload(): CurrentVideoPayload | null;
-declare function loadAudioTrackList(videoRef: string | { videoFileId: string | number }): Promise<void>;
 declare function resetLibraryProgressTracking(): void;
 declare function saveLibraryWatchProgress(options?: {
     force?: boolean;

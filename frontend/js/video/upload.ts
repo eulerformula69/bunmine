@@ -17,8 +17,6 @@
         if (!data.filename) return;
 
         currentVideoFile = data.filename;
-        loadAudioTrackList(data.filename);
-
         if (subtitleFile) {
             await uploadSubtitleInBackground(subtitleFile, data.filename);
         }

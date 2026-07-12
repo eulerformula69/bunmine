@@ -9,8 +9,6 @@ from backend.services.media_export_service import (
     create_animated_webp,
     create_audio_clip,
     create_screenshot,
-    create_track_url,
-    get_audio_tracks,
 )
 from backend.settings import Settings
 from backend.utils_validation import is_within, safe_media_name, safe_uploaded_filename
@@ -177,57 +175,6 @@ def get_temp_audio():
     if not file_path.exists() or not is_within(settings.audio_dir, file_path):
         return legacy_error_response("File not found", 404, "AUDIO_NOT_FOUND")
     return send_from_directory(str(settings.audio_dir), safe_name, mimetype="audio/mpeg")
-
-
-@media_bp.route("/get-audio-tracks", methods=["GET"])
-def audio_tracks():
-    try:
-        return ok_response(get_audio_tracks(
-            _settings(),
-            request.args.get("videoFileId"),
-            request.args.get("filename"),
-        ))[0]
-    except MediaExportError as err:
-        return _json_error(err, err.status_code, "AUDIO_TRACKS_FAILED")
-    except Exception as err:
-        return _json_error(err, 500, "AUDIO_TRACKS_FAILED")
-
-
-@media_bp.route("/get-track-url", methods=["POST"])
-def track_url():
-    try:
-        return ok_response(create_track_url(_settings(), request.get_json(silent=True) or {}))[0]
-    except MediaExportError as err:
-        return _json_error(err, err.status_code, "TRACK_EXPORT_FAILED")
-    except ValueError as err:
-        return _json_error(err, 400, "INVALID_REQUEST")
-    except RuntimeError as err:
-        return _json_error(err, 500, "TRACK_EXPORT_FAILED")
-
-
-@media_bp.route("/download-audio")
-def download_audio():
-    settings = _settings()
-    name = request.args.get("name")
-    try:
-        safe_name = safe_media_name(name)
-    except ValueError as err:
-        return _json_error(err, 400, "INVALID_FILENAME")
-    return send_from_directory(str(settings.video_dir), safe_name)
-
-
-@media_bp.route("/player-cache/<path:filename>")
-def player_cache(filename):
-    settings = _settings()
-    try:
-        safe_name = safe_media_name(filename)
-    except ValueError as err:
-        return _json_error(err, 400, "INVALID_FILENAME")
-    cache_dir = settings.data_dir / "PlayerCache"
-    media_path = cache_dir / safe_name
-    if not media_path.exists() or not is_within(cache_dir, media_path):
-        return legacy_error_response("Cached media not found", 404, "MEDIA_NOT_FOUND")
-    return send_from_directory(str(cache_dir), safe_name, mimetype="video/mp4")
 
 
 @media_bp.route("/delete-video", methods=["DELETE"])

@@ -1,4 +1,4 @@
-const { video, sidebar, multiInput, fullscreenBtn, settingsBtn, settingsModal, closeSettingsBtn, dropzone, toggleBtn, overlay, deleteVideoBtn, playPause, progress, timeLabel, videoContainer, controls, ankiAllBtn, targetNoteSelect, audioTrackSelect, fontSizeRange, subtitleOverlay, resizer, videoPickerModal, videoPickerList, videoPickerCancelBtn, addKnownBasicBtn, addCardToDeck, volume } = playerContext.dom;
+const { video, sidebar, multiInput, fullscreenBtn, settingsBtn, settingsModal, closeSettingsBtn, dropzone, toggleBtn, overlay, deleteVideoBtn, playPause, progress, timeLabel, videoContainer, controls, ankiAllBtn, targetNoteSelect, fontSizeRange, subtitleOverlay, resizer, videoPickerModal, videoPickerList, videoPickerCancelBtn, addKnownBasicBtn, addCardToDeck, volume } = playerContext.dom;
 video.volume = Number(volume.value);
 volume.addEventListener("input", () => {
     const nextVolume = Math.max(0, Math.min(1, parseFloat(volume.value) || 0));
@@ -418,7 +418,6 @@ const ankiMediaController = createAnkiMediaController({
     getSubtitleStart: (index) => subtitles[index].start,
     getSubtitleContext: getSubtitleContextSelection,
     getGlobalSubtitleDelay: () => globalSubDelay,
-    getAudioTrackValue: () => audioTrackSelect.value,
     getTargetNoteId: () => Number(targetNoteSelect?.value || 0),
     clearTargetNote: () => {
         if (targetNoteSelect)

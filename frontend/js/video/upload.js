@@ -14,7 +14,6 @@ async function uploadVideoInBackground(videoFile, subtitleFile = null) {
         if (!data.filename)
             return;
         currentVideoFile = data.filename;
-        loadAudioTrackList(data.filename);
         if (subtitleFile) {
             await uploadSubtitleInBackground(subtitleFile, data.filename);
         }

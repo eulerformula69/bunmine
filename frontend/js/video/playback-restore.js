@@ -27,7 +27,6 @@ async function restoreSelectedVideoFromServer(videoInfo) {
     video.load();
     dropzone.classList.add("hidden");
     videoPickerModal?.classList.add("hidden");
-    loadAudioTrackList(videoInfo.filename);
     if (videoInfo.subtitleFilename) {
         await restoreSubtitleFromServer(videoInfo.subtitleFilename);
     }
@@ -115,9 +114,6 @@ async function loadLibraryEpisodePlayback(playback) {
     video.load();
     dropzone.classList.add("hidden");
     videoPickerModal?.classList.add("hidden");
-    loadAudioTrackList({
-        videoFileId: playback.videoFileId
-    });
     if (playback.subtitleUrl) {
         await restoreLibrarySubtitle(playback.subtitleUrl);
     }

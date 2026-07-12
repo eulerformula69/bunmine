@@ -17,7 +17,6 @@ const dom = {
     controls: document.getElementById("controls"),
     ankiAllBtn: document.getElementById("ankiAllBtn"),
     targetNoteSelect: document.getElementById("targetNoteSelect"),
-    audioTrackSelect: document.getElementById("audioTrackSelect"),
     fontSizeRange: document.getElementById("fontSizeRange"),
     subtitleOverlay: document.getElementById("subtitleOverlay"),
     resizer: document.getElementById("resizer"),

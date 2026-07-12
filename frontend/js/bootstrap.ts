@@ -34,7 +34,7 @@
         "js/player/anki-actions.js",
         "js/player/target-note-dropdown.js",
         "js/player/auto-attach-queue.js",
-        "js/video/audio-tracks.js",
+        "js/video/audio-preview.js",
         "js/player/app.js",
         "js/player/settings.js",
     ];
