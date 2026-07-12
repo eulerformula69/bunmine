@@ -564,279 +564,40 @@ function getSubtitleIndexFromSelection(selection = window.getSelection()) {
     return -1;
 }
 
-function buildCurrentAnkiMediaSnapshot({ subtitleIndex = null } = {}) {
-    const videoPayload = getCurrentVideoPayload();
+const ankiMediaController = createAnkiMediaController({
+    translate: t,
+    getVideoPayload: getCurrentVideoPayload,
+    getVideoCurrentTime: () => video.currentTime,
+    getValidatedVolume,
+    getActiveSubtitleIndex,
+    getSubtitleStart: (index) => subtitles[index].start,
+    getSubtitleContext: getSubtitleContextSelection,
+    getGlobalSubtitleDelay: () => globalSubDelay,
+    getAudioTrackValue: () => audioTrackSelect.value,
+    getTargetNoteId: () => Number(targetNoteSelect?.value || 0),
+    clearTargetNote: () => {
+        if (targetNoteSelect) targetNoteSelect.value = "";
+    },
+    refreshTargetNotes: () => refreshTargetNoteList({ preserveSelection: false }),
+    maybePromptSubtitleDepthReset,
+    resetRuntimeHighlightPrefetch: () => {
+        runtimePrefetchWindowStart = -1;
+        runtimePrefetchWindowEnd = -1;
+        runtimeNextPrefetchStart = 0;
+        runtimeHighlightPrefetchReady = false;
+    },
+    refreshKnownWord: (payload) => refreshKnownAnkiWordFromNote?.(payload),
+    getHighlightWordFields: () => getHighlightWordFieldNames?.(),
+    ensureSubtitleStatuses: ensureStatusesForSubtitleText,
+    prefetchSubtitleStatuses: () => {
+        prefetchRuntimeStatusesForAllSubtitles({ silent: true });
+    },
+    showToast
+});
 
-    if (!videoPayload) {
-        throw new Error(t("toastVideoNotUploaded"));
-    }
-
-    const offsetStart = parseFloat((document.getElementById("subOffsetStart") as HTMLInputElement).value) || 0;
-    const offsetEnd = parseFloat((document.getElementById("subOffsetEnd") as HTMLInputElement).value) || 0;
-    const volumeLevel = getValidatedVolume();
-    const ankiUrl = (document.getElementById("ankiUrl") as HTMLInputElement).value;
-    const deckName = (document.getElementById("deckName") as HTMLInputElement).value;
-    const screenshotMode = (document.getElementById("screenshotMode") as HTMLSelectElement).value;
-
-    const sentenceField = (document.getElementById("sentenceField") as HTMLInputElement).value.trim();
-    const pictureField = (document.getElementById("pictureField") as HTMLInputElement).value.trim();
-    const audioField = (document.getElementById("audioField") as HTMLInputElement).value.trim();
-	const sentenceFuriganaField = (document.getElementById("sentenceFuriganaField") as HTMLInputElement | null)?.value.trim();
-
-	if (!pictureField || !audioField) {
-        throw new Error(t("toastRequiredFields"));
-	}
-
-    if (!ankiUrl || !deckName) {
-        throw new Error(t("toastAnkiSettingsRequired"));
-    }
-
-    const currentIdx = Number.isInteger(subtitleIndex)
-        ? subtitleIndex
-        : getActiveSubtitleIndex();
-	if (currentIdx === -1) {
-        throw new Error(t("toastNoActiveSubtitle"));
-	}
-
-    let targetTime;
-
-    if (screenshotMode === "current") {
-        targetTime = video.currentTime;
-    } else {
-        targetTime = Math.max(0, subtitles[currentIdx].start + offsetStart);
-    }
-
-	const contextSelection = getSubtitleContextSelection(currentIdx);
-
-	const audioStart = Math.max(
-		0,
-		contextSelection.startTime + globalSubDelay + offsetStart
-	);
-
-	let audioEnd = contextSelection.endTime + globalSubDelay + offsetEnd;
-
-	if (audioEnd <= audioStart) audioEnd = audioStart + 0.5;
-
-	const combinedText = contextSelection.text;
-		
-	
-
-    const includeImageSubtitle = (document.getElementById("includeImageSubtitle") as HTMLInputElement | null)?.checked !== false;
-    const imageSubtitleText = includeImageSubtitle ? combinedText : "";
-
-    return {
-        videoPayload,
-        offsetStart,
-        offsetEnd,
-        volumeLevel,
-        ankiUrl,
-        deckName,
-        screenshotMode,
-        sentenceField,
-        pictureField,
-        audioField,
-        sentenceFuriganaField,
-        currentIdx,
-        targetTime,
-        audioStart,
-        audioEnd,
-        combinedText,
-        imageSubtitleText,
-        fontSize: (document.getElementById("fontSizeRange") as HTMLInputElement).value,
-        trackIndex: audioTrackSelect.value === "default" ? "a:0" : audioTrackSelect.value
-    };
-}
-
-async function updateAnkiNoteWithSnapshot(targetNoteId, snapshot) {
-    const {
-        videoPayload,
-        volumeLevel,
-        ankiUrl,
-        screenshotMode,
-        sentenceField,
-        pictureField,
-        audioField,
-        sentenceFuriganaField,
-        targetTime,
-        audioStart,
-        audioEnd,
-        combinedText,
-        imageSubtitleText,
-        fontSize,
-        trackIndex
-    } = snapshot;
-
-    const pictureEndpoint = screenshotMode === "webp"
-        ? "/animated-webp"
-        : "/screenshot";
-
-    const picturePayload = screenshotMode === "webp"
-        ? {
-            ...videoPayload,
-            start: audioStart,
-            end: audioEnd,
-            text: imageSubtitleText,
-            fontSize
-        }
-        : {
-            ...videoPayload,
-            time: targetTime,
-            text: imageSubtitleText,
-            fontSize
-        };
-
-    console.log("picturePayload", pictureEndpoint, picturePayload);
-
-    const [sRes, aRes] = await Promise.all([
-        fetch(buildApiUrl(pictureEndpoint), {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(picturePayload)
-        }),
-        fetch(buildApiUrl("/audio-to-anki"), {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                ...videoPayload,
-                start: audioStart,
-                end: audioEnd,
-                trackIndex,
-                volume: volumeLevel
-            })
-        })
-    ]);
-
-    const sData = await sRes.json();
-    const aData = await aRes.json();
-
-    if (!sRes.ok || !aRes.ok) {
-        throw new Error(sData.error || aData.error || "Media server error");
-    }
-
-    const sName = sData.filename;
-    const aName = aData.filename;
-    const [targetNoteInfo] = await fetchNotesInfo(ankiUrl, [targetNoteId]);
-    const targetWord = getNoteWord(targetNoteInfo);
-
-    const combinedTextForAnki = targetWord
-        ? boldWordInText(combinedText, targetWord)
-        : combinedText;
-
-    let combinedTextFuriganaForAnki = "";
-
-    if (sentenceFuriganaField) {
-        try {
-            combinedTextFuriganaForAnki = boldWordInText(
-                await Promise.race([
-                    buildSentenceFurigana(combinedText),
-                    new Promise<string>((_, reject) => {
-                        setTimeout(() => {
-                            reject(new Error("Furigana generation timeout"));
-                        }, 1500);
-                    })
-                ]),
-                targetWord
-            );
-        } catch (err) {
-            console.warn("Furigana generation skipped:", err);
-            combinedTextFuriganaForAnki = "";
-        }
-    }
-
-    const updateController = new AbortController();
-    const updateTimeoutId = setTimeout(() => {
-        updateController.abort();
-    }, 5000);
-
-    let updateRes;
-
-    try {
-        updateRes = await fetch(ankiUrl, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            signal: updateController.signal,
-            body: JSON.stringify({
-                action: "updateNoteFields",
-                version: 6,
-                params: {
-                    note: {
-                        id: targetNoteId,
-                        fields: (() => {
-                            const fieldsToUpdate = {};
-
-                            if (sentenceField) {
-                                fieldsToUpdate[sentenceField] = combinedTextForAnki;
-                            }
-
-                            if (sentenceFuriganaField) {
-                                fieldsToUpdate[sentenceFuriganaField] = combinedTextFuriganaForAnki;
-                            }
-
-                            fieldsToUpdate[pictureField] = `<img src="${sName}">`;
-                            fieldsToUpdate[audioField] = `[sound:${aName}]`;
-
-                            return fieldsToUpdate;
-                        })()
-                    }
-                }
-            })
-        });
-    } finally {
-        clearTimeout(updateTimeoutId);
-    }
-
-    const updateData = await updateRes.json();
-
-    if (!updateRes.ok || updateData.error) {
-        throw new Error(updateData.error || `Anki update failed: HTTP ${updateRes.status}`);
-    }
-
-    runtimePrefetchWindowStart = -1;
-    runtimePrefetchWindowEnd = -1;
-    runtimeNextPrefetchStart = 0;
-    runtimeHighlightPrefetchReady = false;
-
-    try {
-        await refreshKnownAnkiWordFromNote?.({
-            noteId: targetNoteId,
-            word: targetWord,
-            wordFields: getHighlightWordFieldNames?.()
-        });
-    } catch (err) {
-        console.warn("Could not refresh known-anki-words.json for updated card:", err);
-    }
-
-    ensureStatusesForSubtitleText(combinedText)
-        .then(() => {
-            prefetchRuntimeStatusesForAllSubtitles({ silent: true });
-        })
-        .catch((err) => {
-            console.warn("Could not update runtime highlight status:", err);
-        });
-
-    return { targetWord };
-}
-
-async function updateCurrentOrSelectedAnkiCard() {
-    const snapshot = buildCurrentAnkiMediaSnapshot();
-    const noteIds = await fetchDeckNoteIds(snapshot.ankiUrl, snapshot.deckName);
-
-    if (!noteIds.length) {
-        throw new Error(`Error: There are no cards in "${snapshot.deckName}"!`);
-    }
-
-    const selectedId = Number(targetNoteSelect?.value || 0);
-    const targetNoteId = selectedId > 0 ? selectedId : noteIds[noteIds.length - 1];
-
-    await updateAnkiNoteWithSnapshot(targetNoteId, snapshot);
-
-    showToast(t("toastCardUpdated"), "success");
-
-    if (targetNoteSelect) targetNoteSelect.value = "";
-
-    refreshTargetNoteList({ preserveSelection: false });
-    maybePromptSubtitleDepthReset();
-}
+const buildCurrentAnkiMediaSnapshot = ankiMediaController.buildSnapshot;
+const updateAnkiNoteWithSnapshot = ankiMediaController.updateNote;
+const updateCurrentOrSelectedAnkiCard = ankiMediaController.updateCurrentOrSelected;
 
 function isAutoAttachNextCardEnabled() {
     return (document.getElementById("autoAttachNextCardEnabled") as HTMLInputElement | null)?.checked === true;
@@ -876,6 +637,7 @@ const scheduleAutoAttachCancelIfSelectionCleared =
     autoAttachQueueController.scheduleCancelIfSelectionCleared;
 const clearAutoAttachSelectionCancelTimer =
     autoAttachQueueController.clearSelectionCancelTimer;
+
 ankiAllBtn.onclick = async () => {
     try {
         await updateCurrentOrSelectedAnkiCard();

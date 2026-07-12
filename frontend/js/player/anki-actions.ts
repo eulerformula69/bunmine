@@ -285,4 +285,256 @@ function pickNotePreviewText(noteInfo: { fields?: Record<string, { value?: unkno
     return "";
 }
 
-// TODO: Move AnkiConnect polling/update flows after auto-attach queue state is separated from player/app.js.
+interface AnkiMediaSnapshot {
+    videoPayload: CurrentVideoPayload;
+    volumeLevel: number;
+    ankiUrl: string;
+    deckName: string;
+    screenshotMode: string;
+    sentenceField: string;
+    pictureField: string;
+    audioField: string;
+    sentenceFuriganaField?: string;
+    currentIdx: number;
+    targetTime: number;
+    audioStart: number;
+    audioEnd: number;
+    combinedText: string;
+    imageSubtitleText: string;
+    fontSize: string;
+    trackIndex: string;
+    selectedWord?: string;
+}
+
+interface AnkiMediaControllerOptions {
+    translate(key: string, params?: Record<string, unknown>): string;
+    getVideoPayload(): CurrentVideoPayload | null;
+    getVideoCurrentTime(): number;
+    getValidatedVolume(): number;
+    getActiveSubtitleIndex(): number;
+    getSubtitleStart(index: number): number;
+    getSubtitleContext(index: number): { startTime: number; endTime: number; text: string };
+    getGlobalSubtitleDelay(): number;
+    getAudioTrackValue(): string;
+    getTargetNoteId(): number;
+    clearTargetNote(): void;
+    refreshTargetNotes(): void;
+    maybePromptSubtitleDepthReset(): void;
+    resetRuntimeHighlightPrefetch(): void;
+    refreshKnownWord(payload: Record<string, unknown>): Promise<unknown> | undefined;
+    getHighlightWordFields(): string[] | undefined;
+    ensureSubtitleStatuses(text: string): Promise<unknown>;
+    prefetchSubtitleStatuses(): void;
+    showToast(message: string, type?: string, duration?: number): unknown;
+}
+
+interface AnkiMediaController {
+    buildSnapshot(options?: { subtitleIndex?: number | null }): AnkiMediaSnapshot;
+    updateNote(targetNoteId: number, snapshot: AnkiMediaSnapshot): Promise<{ targetWord: string }>;
+    updateCurrentOrSelected(): Promise<void>;
+}
+
+function createAnkiMediaController(options: AnkiMediaControllerOptions): AnkiMediaController {
+    const inputValue = (id: string): string =>
+        (document.getElementById(id) as HTMLInputElement | null)?.value || "";
+
+    function buildSnapshot({ subtitleIndex = null } = {}): AnkiMediaSnapshot {
+        const videoPayload = options.getVideoPayload();
+        if (!videoPayload) throw new Error(options.translate("toastVideoNotUploaded"));
+
+        const offsetStart = parseFloat(inputValue("subOffsetStart")) || 0;
+        const offsetEnd = parseFloat(inputValue("subOffsetEnd")) || 0;
+        const ankiUrl = inputValue("ankiUrl");
+        const deckName = inputValue("deckName");
+        const screenshotMode = inputValue("screenshotMode");
+        const sentenceField = inputValue("sentenceField").trim();
+        const pictureField = inputValue("pictureField").trim();
+        const audioField = inputValue("audioField").trim();
+        const sentenceFuriganaField = inputValue("sentenceFuriganaField").trim();
+
+        if (!pictureField || !audioField) {
+            throw new Error(options.translate("toastRequiredFields"));
+        }
+        if (!ankiUrl || !deckName) {
+            throw new Error(options.translate("toastAnkiSettingsRequired"));
+        }
+
+        const currentIdx = Number.isInteger(subtitleIndex)
+            ? Number(subtitleIndex)
+            : options.getActiveSubtitleIndex();
+        if (currentIdx === -1) throw new Error(options.translate("toastNoActiveSubtitle"));
+
+        const targetTime = screenshotMode === "current"
+            ? options.getVideoCurrentTime()
+            : Math.max(0, options.getSubtitleStart(currentIdx) + offsetStart);
+        const context = options.getSubtitleContext(currentIdx);
+        const globalDelay = options.getGlobalSubtitleDelay();
+        const audioStart = Math.max(0, context.startTime + globalDelay + offsetStart);
+        let audioEnd = context.endTime + globalDelay + offsetEnd;
+        if (audioEnd <= audioStart) audioEnd = audioStart + 0.5;
+
+        const includeImageSubtitle =
+            (document.getElementById("includeImageSubtitle") as HTMLInputElement | null)?.checked !== false;
+        const trackValue = options.getAudioTrackValue();
+
+        return {
+            videoPayload,
+            volumeLevel: options.getValidatedVolume(),
+            ankiUrl,
+            deckName,
+            screenshotMode,
+            sentenceField,
+            pictureField,
+            audioField,
+            sentenceFuriganaField,
+            currentIdx,
+            targetTime,
+            audioStart,
+            audioEnd,
+            combinedText: context.text,
+            imageSubtitleText: includeImageSubtitle ? context.text : "",
+            fontSize: inputValue("fontSizeRange"),
+            trackIndex: trackValue === "default" ? "a:0" : trackValue
+        };
+    }
+
+    async function updateNote(
+        targetNoteId: number,
+        snapshot: AnkiMediaSnapshot
+    ): Promise<{ targetWord: string }> {
+        const pictureEndpoint = snapshot.screenshotMode === "webp"
+            ? "/animated-webp"
+            : "/screenshot";
+        const picturePayload = snapshot.screenshotMode === "webp"
+            ? {
+                ...snapshot.videoPayload,
+                start: snapshot.audioStart,
+                end: snapshot.audioEnd,
+                text: snapshot.imageSubtitleText,
+                fontSize: snapshot.fontSize
+            }
+            : {
+                ...snapshot.videoPayload,
+                time: snapshot.targetTime,
+                text: snapshot.imageSubtitleText,
+                fontSize: snapshot.fontSize
+            };
+
+        const [pictureResponse, audioResponse] = await Promise.all([
+            fetch(buildApiUrl(pictureEndpoint), {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(picturePayload)
+            }),
+            fetch(buildApiUrl("/audio-to-anki"), {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    ...snapshot.videoPayload,
+                    start: snapshot.audioStart,
+                    end: snapshot.audioEnd,
+                    trackIndex: snapshot.trackIndex,
+                    volume: snapshot.volumeLevel
+                })
+            })
+        ]);
+        const pictureData = await pictureResponse.json();
+        const audioData = await audioResponse.json();
+
+        if (!pictureResponse.ok || !audioResponse.ok) {
+            throw new Error(pictureData.error || audioData.error || "Media server error");
+        }
+
+        const [targetNoteInfo] = await fetchNotesInfo(snapshot.ankiUrl, [targetNoteId]);
+        const targetWord = getNoteWord(targetNoteInfo);
+        const sentence = targetWord
+            ? boldWordInText(snapshot.combinedText, targetWord)
+            : snapshot.combinedText;
+        let furiganaSentence = "";
+
+        if (snapshot.sentenceFuriganaField) {
+            try {
+                furiganaSentence = boldWordInText(
+                    await Promise.race([
+                        buildSentenceFurigana(snapshot.combinedText),
+                        new Promise<string>((_, reject) => setTimeout(
+                            () => reject(new Error("Furigana generation timeout")),
+                            1500
+                        ))
+                    ]),
+                    targetWord
+                );
+            } catch (error) {
+                console.warn("Furigana generation skipped:", error);
+            }
+        }
+
+        const fields: Record<string, string> = {
+            [snapshot.pictureField]: `<img src="${pictureData.filename}">`,
+            [snapshot.audioField]: `[sound:${audioData.filename}]`
+        };
+        if (snapshot.sentenceField) fields[snapshot.sentenceField] = sentence;
+        if (snapshot.sentenceFuriganaField) {
+            fields[snapshot.sentenceFuriganaField] = furiganaSentence;
+        }
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        let updateResponse: Response;
+
+        try {
+            updateResponse = await fetch(snapshot.ankiUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                signal: controller.signal,
+                body: JSON.stringify({
+                    action: "updateNoteFields",
+                    version: 6,
+                    params: { note: { id: targetNoteId, fields } }
+                })
+            });
+        } finally {
+            clearTimeout(timeoutId);
+        }
+
+        const updateData = await updateResponse.json();
+        if (!updateResponse.ok || updateData.error) {
+            throw new Error(updateData.error || `Anki update failed: HTTP ${updateResponse.status}`);
+        }
+
+        options.resetRuntimeHighlightPrefetch();
+        try {
+            await options.refreshKnownWord({
+                noteId: targetNoteId,
+                word: targetWord,
+                wordFields: options.getHighlightWordFields()
+            });
+        } catch (error) {
+            console.warn("Could not refresh known-anki-words.json for updated card:", error);
+        }
+
+        options.ensureSubtitleStatuses(snapshot.combinedText)
+            .then(options.prefetchSubtitleStatuses)
+            .catch((error) => console.warn("Could not update runtime highlight status:", error));
+
+        return { targetWord };
+    }
+
+    async function updateCurrentOrSelected(): Promise<void> {
+        const snapshot = buildSnapshot();
+        const noteIds = await fetchDeckNoteIds(snapshot.ankiUrl, snapshot.deckName);
+        if (!noteIds.length) {
+            throw new Error(`Error: There are no cards in "${snapshot.deckName}"!`);
+        }
+
+        const selectedId = options.getTargetNoteId();
+        const targetNoteId = selectedId > 0 ? selectedId : noteIds[noteIds.length - 1];
+        await updateNote(targetNoteId, snapshot);
+        options.showToast(options.translate("toastCardUpdated"), "success");
+        options.clearTargetNote();
+        options.refreshTargetNotes();
+        options.maybePromptSubtitleDepthReset();
+    }
+
+    return { buildSnapshot, updateNote, updateCurrentOrSelected };
+}
