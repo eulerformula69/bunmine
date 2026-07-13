@@ -22,8 +22,8 @@ from backend.library_subtitles import (
     get_episode_subtitle_context,
     search_jimaku_subtitles,
 )
+from backend.library_deletion import delete_library_series, delete_missing_library_episode
 from backend.library_db import (
-    delete_library_series,
     get_episode_playback,
     get_library_db_status,
     get_library_file_by_id,
@@ -190,6 +190,20 @@ def library_episode_playback(episode_id):
     if result.get("error"):
         return jsonify({"error": result["error"]}), 404
     return jsonify(result["playback"])
+
+
+@library_bp.route("/library/episodes/<int:episode_id>", methods=["DELETE"])
+def library_episode_delete(episode_id):
+    try:
+        result = delete_missing_library_episode(LIBRARY_DB_PATH, episode_id)
+    except Exception as err:
+        return jsonify({"error": str(err)}), 500
+
+    if not result.get("found"):
+        return jsonify({"error": "Episode not found"}), 404
+    if not result.get("deleted"):
+        return jsonify({"error": "Episode still has existing media files"}), 409
+    return jsonify({"ok": True, **result})
 
 
 @library_bp.route("/library/episodes/<int:episode_id>/progress", methods=["POST"])

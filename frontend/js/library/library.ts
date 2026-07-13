@@ -106,6 +106,9 @@ const LIBRARY_I18N: LibraryLanguageCatalog = {
             deleteSeriesTitle: "Delete from library",
             deleteSeriesConfirm: "Remove \"{title}\" from the library? Files on disk will not be deleted.",
             deleteSeriesFailed: "Could not delete series",
+            deleteMissingEpisode: "Delete",
+            deleteMissingEpisodeConfirm: "Remove \"{title}\" from the list? Files on disk will not be deleted.",
+            deleteMissingEpisodeFailed: "Could not delete episode",
             subtitleQueryHint: "Edit the Jimaku query, then press Search.",
             seriesSummary: "{count} series · {watched}/{total} watched",
             seriesStats: "{videos}/{episodes} video · {subtitles}/{episodes} subtitles · {status}",
@@ -196,6 +199,18 @@ const LIBRARY_I18N: LibraryLanguageCatalog = {
         }
     }
 };
+
+Object.assign(LIBRARY_I18N.ru.dict, {
+    deleteMissingEpisode: "Удалить",
+    deleteMissingEpisodeConfirm: "Удалить «{title}» из списка? Файлы на диске не будут удалены.",
+    deleteMissingEpisodeFailed: "Не удалось удалить серию"
+});
+
+Object.assign(LIBRARY_I18N.ja.dict, {
+    deleteMissingEpisode: "削除",
+    deleteMissingEpisodeConfirm: "「{title}」を一覧から削除しますか？ディスク上のファイルは削除されません。",
+    deleteMissingEpisodeFailed: "エピソードを削除できませんでした"
+});
 
 let libraryCurrentLang = loadLibraryLanguage();
 
@@ -641,6 +656,7 @@ function renderEpisodeRow(episode) {
     row.className = "episode-row";
 
     const canOpen = Boolean(episode.hasVideo);
+    const canDelete = !episode.hasVideo && !episode.hasSubtitle;
 
     const watched = watchedTextForEpisode(episode);
 
@@ -674,6 +690,11 @@ function renderEpisodeRow(episode) {
         </div>
 
         <div class="episode-actions">
+            ${canDelete ? `
+                <button class="delete-missing-episode-btn" type="button">
+                    ${escapeHtml(lt("deleteMissingEpisode"))}
+                </button>
+            ` : ""}
             <a class="open-episode-link ${canOpen ? "" : "disabled"}"
                href="/?episodeId=${encodeURIComponent(episode.id)}">
                 ${escapeHtml(lt("open"))}
@@ -727,6 +748,32 @@ completedCheckbox.addEventListener("change", async () => {
         findSubtitlesBtn.addEventListener("click", (event) => {
             event.stopPropagation();
             openSubtitleSearchModal(episode, row);
+        });
+    }
+
+    const deleteEpisodeBtn = row.querySelector(".delete-missing-episode-btn") as HTMLButtonElement | null;
+    if (deleteEpisodeBtn) {
+        deleteEpisodeBtn.addEventListener("click", async (event) => {
+            event.stopPropagation();
+            const confirmed = window.confirm(lt("deleteMissingEpisodeConfirm", {
+                title: episode.title || lt("untitled")
+            }));
+            if (!confirmed || !currentOpenedSeries) return;
+
+            deleteEpisodeBtn.disabled = true;
+            try {
+                const seriesId = currentOpenedSeries.id;
+                const { response, data } = await libraryDeleteMissingEpisode(episode.id);
+                if (!response.ok || data.error) {
+                    throw new Error(data.error || lt("deleteMissingEpisodeFailed"));
+                }
+
+                await openSeries(seriesId);
+                await loadLibrarySeries();
+            } catch (err) {
+                alert(`${lt("deleteMissingEpisodeFailed")}: ${err.message}`);
+                deleteEpisodeBtn.disabled = false;
+            }
         });
     }
 

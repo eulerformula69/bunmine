@@ -78,6 +78,50 @@ def test_library_episode_playback_404_for_unknown_episode(tmp_path, monkeypatch)
     assert response.get_json()["error"] == "Episode not found"
 
 
+def test_delete_missing_library_episode_removes_db_entry_and_preserves_card(tmp_path, monkeypatch):
+    client, db_path, _ = make_client(tmp_path, monkeypatch)
+    with get_db(db_path) as conn:
+        series_id = conn.execute(
+            "INSERT INTO series(title, normalized_title) VALUES(?, ?)",
+            ("Show", "show"),
+        ).lastrowid
+        episode_id = conn.execute(
+            "INSERT INTO episodes(series_id, normalized_key, title) VALUES(?, ?, ?)",
+            (series_id, "show|unknown", "Episode Unknown"),
+        ).lastrowid
+        conn.execute(
+            "INSERT INTO watch_progress(episode_id, completed) VALUES(?, 1)",
+            (episode_id,),
+        )
+        conn.execute(
+            "INSERT INTO cards(series_id, episode_id, note_id) VALUES(?, ?, ?)",
+            (series_id, episode_id, "note-1"),
+        )
+
+    response = client.delete(f"/library/episodes/{episode_id}")
+
+    assert response.status_code == 200
+    assert response.get_json()["episodeId"] == episode_id
+    with get_db(db_path) as conn:
+        assert conn.execute("SELECT 1 FROM episodes WHERE id = ?", (episode_id,)).fetchone() is None
+        assert conn.execute("SELECT 1 FROM watch_progress WHERE episode_id = ?", (episode_id,)).fetchone() is None
+        card = conn.execute("SELECT series_id, episode_id FROM cards WHERE note_id = 'note-1'").fetchone()
+        assert card["series_id"] == series_id
+        assert card["episode_id"] is None
+
+
+def test_delete_library_episode_rejects_episode_with_existing_media(tmp_path, monkeypatch):
+    client, db_path, media_root = make_client(tmp_path, monkeypatch)
+    _, episode_id, _, _ = seed_playable_episode(db_path, media_root)
+
+    response = client.delete(f"/library/episodes/{episode_id}")
+
+    assert response.status_code == 409
+    assert response.get_json()["error"] == "Episode still has existing media files"
+    with get_db(db_path) as conn:
+        assert conn.execute("SELECT 1 FROM episodes WHERE id = ?", (episode_id,)).fetchone() is not None
+
+
 def test_serve_library_file_rejects_paths_outside_media_root(tmp_path, monkeypatch):
     client, db_path, media_root = make_client(tmp_path, monkeypatch)
     outside_file = tmp_path / "outside.mkv"

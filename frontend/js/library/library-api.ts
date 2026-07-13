@@ -57,6 +57,12 @@ function libraryDeleteSeries(seriesId: string | number): Promise<ApiResult<Libra
     });
 }
 
+function libraryDeleteMissingEpisode(episodeId: string | number): Promise<ApiResult<LibraryMutationResponse>> {
+    return apiJson<LibraryMutationResponse>(`/library/episodes/${encodeURIComponent(episodeId)}`, {
+        method: "DELETE"
+    });
+}
+
 function libraryRelinkSeries(
     seriesId: string | number,
     payload: Record<string, unknown>
