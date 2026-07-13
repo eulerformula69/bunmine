@@ -52,7 +52,10 @@ class MediaCaptionsSubtitleParser implements SubtitleParser {
         }
 
         const format = input.format as "srt" | "vtt" | "ass" | "ssa";
-        const result = await MediaCaptions.parseText(input.source, {
+        const parserSource = format === "ass" || format === "ssa"
+            ? normalizeMediaCaptionsAssSource(input.source)
+            : input.source;
+        const result = await MediaCaptions.parseText(parserSource, {
             type: format,
             strict: false,
             errors: true
@@ -97,6 +100,11 @@ function mapMediaCaptionsCue(
 ): SubtitleCueDraft | null {
     const assText = assCue ? extractMediaCaptionsAssText(assCue.rawText) : undefined;
     if (assText?.hasDrawingMode && !assText.text) return null;
+    const sourceText = assText
+        ? assText.text
+        : format === "ass" || format === "ssa"
+            ? cleanMediaCaptionsAssFallbackText(cue.text)
+            : cue.text;
 
     const providerMetadata: Record<string, unknown> = {
         provider: "media-captions",
@@ -118,7 +126,7 @@ function mapMediaCaptionsCue(
         id: cue.id || undefined,
         startTime: cue.startTime,
         endTime: cue.endTime,
-        text: cleanMediaCaptionsText(assText?.hasDrawingMode ? assText.text : cue.text),
+        text: cleanMediaCaptionsText(sourceText),
         rawText: assCue?.rawText ?? cue.text,
         format,
         layer: assCue?.layer,
@@ -143,6 +151,12 @@ function cleanMediaCaptionsText(text: string): string {
         .replace(/<[^>]+>/g, "")
         .replace(/\{\\.*?}/g, "")
         .trim();
+}
+
+function cleanMediaCaptionsAssFallbackText(text: string): string {
+    return text
+        .replace(/\{[^{}\r\n]*\\[^{}\r\n]*}/g, "")
+        .replace(/\\i?clip\([^)]*\)/gi, "");
 }
 
 function readMediaCaptionsFontName(style?: Readonly<Record<string, string>>): string | undefined {

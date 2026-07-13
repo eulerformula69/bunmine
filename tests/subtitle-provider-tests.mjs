@@ -107,6 +107,37 @@ assert.deepEqual(
     "only the pure \\p1 and \\p4 drawing events should be filtered"
 );
 
+const malformedClipReal = await parseFixture("malformed-clip-real.ass", "ass");
+assert.equal(malformedClipReal.cues.length, 1);
+assert.equal(malformedClipReal.cues[0].text, "即使雨过天晴");
+assert.doesNotMatch(malformedClipReal.cues[0].text, /\\clip/i);
+assert.doesNotMatch(malformedClipReal.cues[0].text, /m 964/i);
+assert.doesNotMatch(malformedClipReal.cues[0].text, /b 945\.6/i);
+assert.equal(malformedClipReal.cues[0].positionX, 960);
+assert.equal(malformedClipReal.cues[0].positionY, 12);
+assert.match(malformedClipReal.cues[0].rawText, /^\{3\\pos/);
+
+const malformedOverridePrefixes = await parseFixture("malformed-override-prefix.ass", "ass");
+assert.equal(malformedOverridePrefixes.cues.length, 5);
+assert.deepEqual(
+    Array.from(malformedOverridePrefixes.cues, (cue) => cue.text),
+    ["字幕", "字幕", "字幕", "字幕", "普通のテキスト 123"]
+);
+assert.deepEqual(
+    Array.from(malformedOverridePrefixes.cues.slice(0, 3), (cue) => [cue.positionX, cue.positionY]),
+    [[960, 12], [100, 200], [100, 200]]
+);
+assert.match(malformedOverridePrefixes.cues[0].rawText, /^\{2\\pos/);
+
+context.malformedOverrideSource = "{2\\pos(960,12)\\fad(0,300)\\clip(m 1 2 l 3 4)\\an8\\fs40}字幕";
+assert.equal(
+    evaluate("normalizeMediaCaptionsAssSource(malformedOverrideSource)"),
+    "{\\pos(960,12)\\fad(0,300)\\clip(m 1 2 l 3 4)\\an8\\fs40}字幕",
+    "normalization must remove only the numeric prefix before the first ASS tag"
+);
+context.ordinaryAssText = "普通のテキスト 123";
+assert.equal(evaluate("normalizeMediaCaptionsAssSource(ordinaryAssText)"), context.ordinaryAssText);
+
 const ssa = await parseFixture("basic.ssa", "ssa");
 assert.equal(ssa.cues.length, 1);
 assert.equal(ssa.cues[0].text, "SSA 日本語");

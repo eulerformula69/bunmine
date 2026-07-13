@@ -30,6 +30,15 @@ interface MediaCaptionsAssTextResult {
     hasDrawingMode: boolean;
 }
 
+function normalizeMediaCaptionsAssSource(source: string): string {
+    return source.replace(/\{[^{}\r\n]*}/g, (block) => {
+        const content = block.slice(1, -1);
+        const malformedPrefix = content.match(/^\d+(\\(?=[A-Za-z0-9])[\s\S]*)$/);
+
+        return malformedPrefix ? `{${malformedPrefix[1]}}` : block;
+    });
+}
+
 function extractMediaCaptionsAssMetadata(
     source: string,
     format: "ass" | "ssa"
