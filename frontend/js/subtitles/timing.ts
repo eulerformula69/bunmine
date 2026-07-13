@@ -5,11 +5,11 @@ function getCurrentSubtitle() {
 	return index >= 0 ? subtitles[index] : undefined;
 }
 
-function getActiveSubtitles(): SubtitleCue[] {
+function getActiveSubtitles(): RuntimeSubtitleCue[] {
 	return getActiveSubtitleEntries().map((entry) => entry.cue);
 }
 
-function getActiveSubtitleEntries(): Array<{ index: number; cue: SubtitleCue }> {
+function getActiveSubtitleEntries(): Array<{ index: number; cue: RuntimeSubtitleCue }> {
 	const time = video.currentTime - globalSubDelay;
 	return subtitles
 		.map((cue, index) => ({ cue, index }))

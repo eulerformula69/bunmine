@@ -1,26 +1,7 @@
-interface SubtitleCue {
-    start: number;
-    end: number;
-    text: string;
-    layer?: number;
-    style?: string;
-    alignment?: number;
-    positionX?: number;
-    positionY?: number;
-    playResX?: number;
-    playResY?: number;
-    fontName?: string;
-    fontSize?: number;
-    primaryColor?: string;
-    bold?: boolean;
-    italic?: boolean;
-    [key: string]: unknown;
-}
-
 interface SubtitleElementRef {
     index: number;
     div: HTMLElement;
-    sub: SubtitleCue;
+    sub: RuntimeSubtitleCue;
 }
 
 interface SubtitleSearchMatch {
@@ -40,7 +21,7 @@ interface SubtitleContextDragState {
 interface BunmineState {
     currentLang: string;
     isResizing: boolean;
-    subtitles: SubtitleCue[];
+    subtitles: RuntimeSubtitleCue[];
     globalSubDelay: number;
     subtitleElements: SubtitleElementRef[];
     currentVideoFile: string | null;

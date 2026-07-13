@@ -7,7 +7,7 @@ interface SubtitleRenderModel {
 }
 
 function buildSubtitleRenderModel(
-    cue: SubtitleCue,
+    cue: RuntimeSubtitleCue,
     index: number,
     currentTime: number,
     delaySeconds: number

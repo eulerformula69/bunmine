@@ -6,11 +6,16 @@
     for (const file of files) {
         const lowerName = file.name.toLowerCase();
 
-		if (lowerName.endsWith(".srt")) {
+		if (lowerName.endsWith(".srt") || lowerName.endsWith(".vtt")) {
 			subtitleFile = file;
-			subtitles = parseSRT(await file.text());
+			const parsed = await parseSubtitleSource({
+				source: await file.text(),
+				format: detectSubtitleFormat({ filename: file.name }),
+				filename: file.name
+			});
+			subtitles = toRuntimeSubtitleCues(parsed.cues);
 			hasSubtitles = true;
-		} else if (lowerName.endsWith(".ass")) {
+		} else if (lowerName.endsWith(".ass") || lowerName.endsWith(".ssa")) {
 			subtitleFile = file;
 
 			// ASS Р±РѕР»СЊС€Рµ РЅРµ РїР°СЂСЃРёРј РІ Р±СЂР°СѓР·РµСЂРµ.

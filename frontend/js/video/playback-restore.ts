@@ -200,8 +200,13 @@ async function restoreLibrarySubtitle(subtitleUrl: string): Promise<void> {
         }
 
         const text = await res.text();
+        const parsed = await parseSubtitleSource({
+            source: text,
+            format: detectSubtitleFormat({ filename: subtitleUrl, source: text }),
+            filename: subtitleUrl
+        });
 
-        subtitles = parseSRT(text);
+        subtitles = toRuntimeSubtitleCues(parsed.cues);
         lastRuntimeSubtitleText = "";
 
         clearRuntimeWordStatuses?.();

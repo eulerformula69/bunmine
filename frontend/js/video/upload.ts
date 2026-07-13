@@ -68,7 +68,12 @@ async function restoreSubtitleFromServer(subtitleFilename: string): Promise<void
         }
 
         const text = await res.text();
-        subtitles = parseSRT(text);
+        const parsed = await parseSubtitleSource({
+            source: text,
+            format: detectSubtitleFormat({ filename: subtitleFilename, source: text }),
+            filename: subtitleFilename
+        });
+        subtitles = toRuntimeSubtitleCues(parsed.cues);
 
         lastRuntimeSubtitleText = "";
         runtimePrefetchAllRunId += 1;
