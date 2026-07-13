@@ -94,6 +94,19 @@ assert.equal(ass.cues[0].layer, 2);
 assert.equal(ass.cues[0].style, "TopDialogue");
 assert.ok(ass.cues[0].startTime <= ass.cues[1].startTime, "provider cue order must be preserved");
 
+const drawingModes = await parseFixture("drawing-modes.ass", "ass");
+assert.equal(drawingModes.cues.length, 2, "pure vector drawing events must not become subtitle text");
+assert.deepEqual(
+    Array.from(drawingModes.cues, (cue) => cue.text),
+    ["普通のテキスト", "普通のテキスト"],
+    "text after \\p0 and ordinary text must be preserved"
+);
+assert.deepEqual(
+    Array.from(drawingModes.cues, (cue) => cue.startTime),
+    [5, 7],
+    "only the pure \\p1 and \\p4 drawing events should be filtered"
+);
+
 const ssa = await parseFixture("basic.ssa", "ssa");
 assert.equal(ssa.cues.length, 1);
 assert.equal(ssa.cues[0].text, "SSA 日本語");

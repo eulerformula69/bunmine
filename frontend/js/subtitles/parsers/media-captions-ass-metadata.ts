@@ -25,6 +25,11 @@ interface MediaCaptionsAssStyle {
     italic?: boolean;
 }
 
+interface MediaCaptionsAssTextResult {
+    text: string;
+    hasDrawingMode: boolean;
+}
+
 function extractMediaCaptionsAssMetadata(
     source: string,
     format: "ass" | "ssa"
@@ -123,6 +128,38 @@ function matchMediaCaptionsAssMetadata(
     if (index < 0) return undefined;
     usedIndexes.add(index);
     return cues[index];
+}
+
+function extractMediaCaptionsAssText(rawText: string): MediaCaptionsAssTextResult {
+    const overrideTagPattern = /\{([^}]*)}/g;
+    let cursor = 0;
+    let drawingMode = 0;
+    let hasDrawingMode = false;
+    let text = "";
+    let tagMatch: RegExpExecArray | null;
+
+    while ((tagMatch = overrideTagPattern.exec(rawText)) !== null) {
+        if (drawingMode === 0) text += rawText.slice(cursor, tagMatch.index);
+
+        const drawingCommandPattern = /\\p\s*(\d+)/gi;
+        let drawingCommand: RegExpExecArray | null;
+        while ((drawingCommand = drawingCommandPattern.exec(tagMatch[1])) !== null) {
+            drawingMode = Number(drawingCommand[1]);
+            if (drawingMode > 0) hasDrawingMode = true;
+        }
+        cursor = overrideTagPattern.lastIndex;
+    }
+
+    if (drawingMode === 0) text += rawText.slice(cursor);
+
+    return {
+        text: text
+            .replace(/\\N/g, "\n")
+            .replace(/\\n/g, " ")
+            .replace(/\\h/g, " ")
+            .trim(),
+        hasDrawingMode
+    };
 }
 
 function defaultAssEventFormat(format: "ass" | "ssa"): string[] {

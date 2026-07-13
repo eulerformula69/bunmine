@@ -74,15 +74,17 @@ class MediaCaptionsSubtitleParser implements SubtitleParser {
             ? extractMediaCaptionsAssMetadata(input.source, format)
             : [];
         const usedAssMetadata = new Set<number>();
-        const drafts = result.cues.map((cue) => {
-            const assCue = matchMediaCaptionsAssMetadata(
-                assMetadata,
-                cue.startTime,
-                cue.endTime,
-                usedAssMetadata
-            );
-            return mapMediaCaptionsCue(cue, format, assCue);
-        });
+        const drafts = result.cues
+            .map((cue) => {
+                const assCue = matchMediaCaptionsAssMetadata(
+                    assMetadata,
+                    cue.startTime,
+                    cue.endTime,
+                    usedAssMetadata
+                );
+                return mapMediaCaptionsCue(cue, format, assCue);
+            })
+            .filter((draft): draft is SubtitleCueDraft => draft !== null);
         const normalized = normalizeSubtitleCues(drafts, format);
         return { cues: normalized.cues, format, warnings: [...warnings, ...normalized.warnings] };
     }
@@ -92,7 +94,10 @@ function mapMediaCaptionsCue(
     cue: MediaCaptionsLibraryCue,
     format: SubtitleFormat,
     assCue?: MediaCaptionsAssCueMetadata
-): SubtitleCueDraft {
+): SubtitleCueDraft | null {
+    const assText = assCue ? extractMediaCaptionsAssText(assCue.rawText) : undefined;
+    if (assText?.hasDrawingMode && !assText.text) return null;
+
     const providerMetadata: Record<string, unknown> = {
         provider: "media-captions",
         settings: {
@@ -113,7 +118,7 @@ function mapMediaCaptionsCue(
         id: cue.id || undefined,
         startTime: cue.startTime,
         endTime: cue.endTime,
-        text: cleanMediaCaptionsText(cue.text),
+        text: cleanMediaCaptionsText(assText?.hasDrawingMode ? assText.text : cue.text),
         rawText: assCue?.rawText ?? cue.text,
         format,
         layer: assCue?.layer,
