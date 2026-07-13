@@ -19,7 +19,7 @@ The primary provider uses `media-captions` 0.0.18. It was selected because it ha
 
 The application still compiles TypeScript with `module: "None"`. `tools/build-media-captions.mjs` therefore uses esbuild to generate an unminified IIFE at `frontend/libs/media-captions/media-captions.js`. The generated file is ignored by Git and rebuilt by `npm run build`. `bootstrap.ts` loads it before `media-captions-parser.js` and the provider registry. No general-purpose frontend bundler or module migration was introduced.
 
-The startup dependency check includes TypeScript, esbuild, and `media-captions`, so an old partial `node_modules` directory triggers `npm install` before the frontend build.
+The startup dependency check includes TypeScript, esbuild, `media-captions`, and `kuromoji`, so an old partial `node_modules` directory triggers `npm install` before the frontend build. Like `media-captions`, the pinned `kuromoji` package is materialized into the ignored `frontend/libs` runtime directory by `npm run build`; its JavaScript bundle and dictionary are no longer stored in the repository.
 
 ## Contracts and mapping
 

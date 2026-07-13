@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "build:captions": "node tools/build-media-captions.mjs",
-    "build": "npm run build:captions && tsc -p tsconfig.json",
+    "build:kuromoji": "node tools/build-kuromoji.mjs",
+    "build:libs": "npm run build:captions && npm run build:kuromoji",
+    "build": "npm run build:libs && tsc -p tsconfig.json",
     "test:highlighter": "npm run build && node tests/highlighter-match-tests.mjs",
     "test:subtitles": "npm run build && node tests/subtitle-model-tests.mjs && node tests/subtitle-provider-tests.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit"
@@ -15,6 +17,7 @@
     "typescript": "^5.5.4"
   },
   "dependencies": {
+    "kuromoji": "0.1.2",
     "media-captions": "0.0.18"
   }
 }

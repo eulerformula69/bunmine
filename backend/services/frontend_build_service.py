@@ -24,6 +24,7 @@ def _frontend_dependencies_installed(project_dir: Path) -> bool:
         (node_modules / ".bin" / executable_name).exists(),
         (node_modules / ".bin" / esbuild_name).exists(),
         (node_modules / "media-captions" / "package.json").exists(),
+        (node_modules / "kuromoji" / "package.json").exists(),
     ))
 
 
@@ -40,5 +41,5 @@ def build_frontend_on_startup(project_dir: Path) -> None:
         print("Installing frontend dependencies...")
         _run_npm(project_dir, ["install"])
 
-    print("Building frontend TypeScript...")
+    print("Building frontend assets...")
     _run_npm(project_dir, ["run", "build"])
