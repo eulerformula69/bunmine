@@ -9,7 +9,18 @@ async function apiJson<T extends ApiPayload = ApiPayload>(
     options: RequestInit = {}
 ): Promise<ApiResult<T>> {
     const response = await fetch(buildApiUrl(path), options);
-    const data = await response.json() as T;
+    const responseText = await response.text();
+    let data: T;
+
+    try {
+        data = (responseText ? JSON.parse(responseText) : {}) as T;
+    } catch {
+        const status = `${response.status} ${response.statusText}`.trim();
+        data = {
+            error: status || "Server returned an invalid response"
+        } as T;
+    }
+
     normalizeApiPayload(data);
     return { response, data };
 }
@@ -72,4 +83,3 @@ async function fetchWithRetry(url: string, options: RequestInit | undefined, {
     }
     throw new Error(`${label} failed: ${message}`);
 }
-
