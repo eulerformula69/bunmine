@@ -37,7 +37,6 @@ from backend.library_db import (
 )
 from backend.library_scanner import scan_library
 from backend.services.job_service import get_job, start_job
-from backend.services.subtitle_conversion_service import get_srt_playback_subtitle
 from backend.utils_validation import is_within, to_float
 
 library_bp = Blueprint("library", __name__)
@@ -430,13 +429,7 @@ def serve_library_file(file_id):
         return jsonify({"error": "File is outside MEDIA_LIBRARY_DIR"}), 403
     if not file_path.exists() or not file_path.is_file():
         return jsonify({"error": "File is missing"}), 404
-    served_path = file_path
-    if result["file"].get("file_type") == "subtitle" and file_path.suffix.lower() == ".ass":
-        try:
-            served_path = get_srt_playback_subtitle(file_path, DATA_DIR / "SubtitleCache")
-        except RuntimeError as err:
-            return jsonify({"error": str(err)}), 500
-    return send_from_directory(str(served_path.parent), served_path.name, as_attachment=False)
+    return send_from_directory(str(file_path.parent), file_path.name, as_attachment=False)
 
 
 @library_bp.route("/library/series/<int:series_id>/cover/search", methods=["GET"])

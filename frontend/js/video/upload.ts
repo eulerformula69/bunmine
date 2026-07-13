@@ -46,9 +46,6 @@ async function uploadSubtitleInBackground(subtitleFile: File, videoFilename: str
         }
 
         console.log("Subtitle uploaded:", data.filename);
-
-        // Р’РђР–РќРћ:
-        // СЃРµСЂРІРµСЂ РІРµСЂРЅСѓР» СѓР¶Рµ .srt, РґР°Р¶Рµ РµСЃР»Рё РЅР° РІС…РѕРґ Р±С‹Р» .ass
         if (data.filename) {
             await restoreSubtitleFromServer(data.filename);
         }

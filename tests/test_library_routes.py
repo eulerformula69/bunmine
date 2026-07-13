@@ -106,6 +106,28 @@ def test_serve_library_file_rejects_paths_outside_media_root(tmp_path, monkeypat
     assert response.get_json()["error"] == "File is outside MEDIA_LIBRARY_DIR"
 
 
+def test_serve_library_ass_file_preserves_original_source(tmp_path, monkeypatch):
+    client, db_path, media_root = make_client(tmp_path, monkeypatch)
+    series_id, episode_id, _, _ = seed_playable_episode(db_path, media_root)
+    source = "[Events]\nDialogue: 0,0:00:01.00,0:00:02.00,Default,,0,0,0,,{3\\pos(960,12)}字幕\n"
+    subtitle_path = media_root / "Show" / "Show - 01.ass"
+    subtitle_path.write_text(source, encoding="utf-8")
+
+    with get_db(db_path) as conn:
+        file_id = conn.execute(
+            """
+            INSERT INTO library_files(series_id, episode_id, file_type, path, relative_path, file_exists, is_primary)
+            VALUES(?, ?, 'subtitle', ?, ?, 1, 1)
+            """,
+            (series_id, episode_id, str(subtitle_path), str(subtitle_path.relative_to(media_root))),
+        ).lastrowid
+
+    response = client.get(f"/library/file/{file_id}")
+
+    assert response.status_code == 200
+    assert response.data == subtitle_path.read_bytes()
+
+
 def test_library_scan_path_rejects_directory_outside_media_root(tmp_path, monkeypatch):
     client, *_ = make_client(tmp_path, monkeypatch)
     outside_dir = tmp_path / "outside-dir"
