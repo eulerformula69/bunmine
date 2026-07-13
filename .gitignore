@@ -4,6 +4,7 @@ dist/
 UploadedVideos/
 data/
 frontend/temp/
+frontend/libs/media-captions/
 anki_highlight/
 frontend/LibraryCovers/
 __pycache__/

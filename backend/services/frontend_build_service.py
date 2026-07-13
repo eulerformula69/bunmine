@@ -18,7 +18,13 @@ def _run_npm(project_dir: Path, args: list[str]) -> None:
 
 def _frontend_dependencies_installed(project_dir: Path) -> bool:
     executable_name = "tsc.cmd" if os.name == "nt" else "tsc"
-    return (project_dir / "node_modules" / ".bin" / executable_name).exists()
+    esbuild_name = "esbuild.cmd" if os.name == "nt" else "esbuild"
+    node_modules = project_dir / "node_modules"
+    return all((
+        (node_modules / ".bin" / executable_name).exists(),
+        (node_modules / ".bin" / esbuild_name).exists(),
+        (node_modules / "media-captions" / "package.json").exists(),
+    ))
 
 
 def build_frontend_on_startup(project_dir: Path) -> None:

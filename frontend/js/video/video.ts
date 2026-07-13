@@ -6,7 +6,12 @@
     for (const file of files) {
         const lowerName = file.name.toLowerCase();
 
-		if (lowerName.endsWith(".srt") || lowerName.endsWith(".vtt")) {
+		if (
+			lowerName.endsWith(".srt") ||
+			lowerName.endsWith(".vtt") ||
+			lowerName.endsWith(".ass") ||
+			lowerName.endsWith(".ssa")
+		) {
 			subtitleFile = file;
 			const parsed = await parseSubtitleSource({
 				source: await file.text(),
@@ -14,13 +19,6 @@
 				filename: file.name
 			});
 			subtitles = toRuntimeSubtitleCues(parsed.cues);
-			hasSubtitles = true;
-		} else if (lowerName.endsWith(".ass") || lowerName.endsWith(".ssa")) {
-			subtitleFile = file;
-
-			// ASS Р±РѕР»СЊС€Рµ РЅРµ РїР°СЂСЃРёРј РІ Р±СЂР°СѓР·РµСЂРµ.
-			// Р–РґС‘Рј, РїРѕРєР° СЃРµСЂРІРµСЂ СЃРєРѕРЅРІРµСЂС‚РёСЂСѓРµС‚ ASS -> SRT.
-			subtitles = [];
 			hasSubtitles = true;
 		} else if (file.type.startsWith("video")) {
 			videoFile = file;

@@ -39,3 +39,7 @@ class SubtitleParseError extends Error {
         this.cause = options.cause;
     }
 }
+
+function isSubtitleProviderCompatibilityError(error: SubtitleParseError): boolean {
+    return error.code === "external-format-incompatible" || error.code === "external-empty-result";
+}

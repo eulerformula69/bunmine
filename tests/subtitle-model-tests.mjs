@@ -2,13 +2,29 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import vm from "node:vm";
 
+class TestVTTCue extends EventTarget {
+    constructor(startTime, endTime, text) {
+        super();
+        this.id = "";
+        this.startTime = startTime;
+        this.endTime = endTime;
+        this.text = text;
+        this.pauseOnExit = false;
+    }
+}
+
 const context = {
     console,
+    Event,
+    EventTarget,
+    ReadableStream,
     video: { currentTime: 5 },
     globalSubDelay: 0,
     lastClickedSubtitleIdx: null,
     subtitles: []
 };
+context.window = context;
+context.window.VTTCue = TestVTTCue;
 vm.createContext(context);
 
 for (const file of [
@@ -19,6 +35,9 @@ for (const file of [
     "dist/js/subtitles/parsing.js",
     "dist/js/subtitles/parsers/legacy-parser.js",
     "dist/js/subtitles/parsers/external-parser.js",
+    "frontend/libs/media-captions/media-captions.js",
+    "dist/js/subtitles/parsers/media-captions-ass-metadata.js",
+    "dist/js/subtitles/parsers/media-captions-parser.js",
     "dist/js/subtitles/parser-registry.js",
     "dist/js/subtitles/parse-subtitle-source.js",
     "dist/js/subtitles/timing.js",
@@ -34,7 +53,7 @@ assert.equal(evaluate('detectSubtitleFormat({ filename: "episode.VTT" })'), "vtt
 assert.equal(evaluate('detectSubtitleFormat({ filename: "episode.ass" })'), "ass");
 assert.equal(evaluate('detectSubtitleFormat({ filename: "episode.ssa" })'), "ssa");
 assert.equal(evaluate('detectSubtitleFormat({ source: "ordinary text" })'), "unknown");
-assert.equal(evaluate('subtitleParserRegistry.resolve("srt").id'), "legacy");
+assert.equal(evaluate('subtitleParserRegistry.resolve("srt").id'), "media-captions");
 
 const srt = `1\r
 00:00:01,000 --> 00:00:02,000\r

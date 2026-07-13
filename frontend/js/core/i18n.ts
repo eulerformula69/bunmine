@@ -24,7 +24,7 @@ const i18n = {
             ssCurrent: "Текущий кадр",
             ankiIntegration: "Интеграция с Anki",
             clear: "Очистить",
-            dropText: "Перетащите видео и субтитры (.srt .ass) сюда",
+            dropText: "Перетащите видео и субтитры (.srt .vtt .ass .ssa) сюда",
             orText: "или ",
             chooseFiles: "выберите файлы",
             ankiURL: "AnkiConnect",
@@ -145,7 +145,7 @@ const i18n = {
             ssCurrent: "Current Frame",
             ankiIntegration: "Anki Integration",
             clear: "Clear",
-            dropText: "Drop video and subtitles (.srt .ass) here",
+            dropText: "Drop video and subtitles (.srt .vtt .ass .ssa) here",
             orText: "or ",
             chooseFiles: "choose files",
             ankiURL: "AnkiConnect",
@@ -267,7 +267,7 @@ const i18n = {
             ssCurrent: "現在のフレーム",
             ankiIntegration: "Anki連携",
             clear: "クリアする",
-            dropText: "ここに動画ファイルと字幕ファイル (.srt .ass) をドラッグ＆ドロップ",
+            dropText: "ここに動画ファイルと字幕ファイル (.srt .vtt .ass .ssa) をドラッグ＆ドロップ",
             orText: "または、",
             chooseFiles: "ファイルを選択",
             ankiURL: "AnkiConnectのURL",
@@ -369,5 +369,4 @@ const i18n = {
         }
     }
 } satisfies I18nCatalog;
-
 
