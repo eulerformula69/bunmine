@@ -22,8 +22,8 @@ from backend.library_subtitles import (
     get_episode_subtitle_context,
     search_jimaku_subtitles,
 )
+from backend.library_deletion import delete_library_series, delete_missing_library_episode
 from backend.library_db import (
-    delete_library_series,
     get_episode_playback,
     get_library_db_status,
     get_library_file_by_id,
@@ -37,7 +37,6 @@ from backend.library_db import (
 )
 from backend.library_scanner import scan_library
 from backend.services.job_service import get_job, start_job
-from backend.services.subtitle_conversion_service import get_srt_playback_subtitle
 from backend.utils_validation import is_within, to_float
 
 library_bp = Blueprint("library", __name__)
@@ -191,6 +190,20 @@ def library_episode_playback(episode_id):
     if result.get("error"):
         return jsonify({"error": result["error"]}), 404
     return jsonify(result["playback"])
+
+
+@library_bp.route("/library/episodes/<int:episode_id>", methods=["DELETE"])
+def library_episode_delete(episode_id):
+    try:
+        result = delete_missing_library_episode(LIBRARY_DB_PATH, episode_id)
+    except Exception as err:
+        return jsonify({"error": str(err)}), 500
+
+    if not result.get("found"):
+        return jsonify({"error": "Episode not found"}), 404
+    if not result.get("deleted"):
+        return jsonify({"error": "Episode still has existing media files"}), 409
+    return jsonify({"ok": True, **result})
 
 
 @library_bp.route("/library/episodes/<int:episode_id>/progress", methods=["POST"])
@@ -430,13 +443,7 @@ def serve_library_file(file_id):
         return jsonify({"error": "File is outside MEDIA_LIBRARY_DIR"}), 403
     if not file_path.exists() or not file_path.is_file():
         return jsonify({"error": "File is missing"}), 404
-    served_path = file_path
-    if result["file"].get("file_type") == "subtitle" and file_path.suffix.lower() == ".ass":
-        try:
-            served_path = get_srt_playback_subtitle(file_path, DATA_DIR / "SubtitleCache")
-        except RuntimeError as err:
-            return jsonify({"error": str(err)}), 500
-    return send_from_directory(str(served_path.parent), served_path.name, as_attachment=False)
+    return send_from_directory(str(file_path.parent), file_path.name, as_attachment=False)
 
 
 @library_bp.route("/library/series/<int:series_id>/cover/search", methods=["GET"])

@@ -385,6 +385,23 @@ button:hover,
   color: #aaa;
 }
 
+.delete-missing-episode-btn {
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid #8f3a3a;
+  border-radius: 6px;
+  background: #3a1717;
+  color: #ffd3d3;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.delete-missing-episode-btn:hover {
+  border-color: #ff8a8a;
+  background: #5a2020;
+  color: white;
+}
+
 @media (max-width: 700px) {
   .library-page {
     padding: 14px;

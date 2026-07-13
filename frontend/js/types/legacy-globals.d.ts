@@ -52,7 +52,7 @@ interface JapaneseToken {
 }
 
 declare let currentLang: string;
-declare let subtitles: SubtitleCue[];
+declare let subtitles: RuntimeSubtitleCue[];
 declare let globalSubDelay: number;
 declare let lastRuntimeSubtitleText: string;
 declare let runtimePrefetchAllRunId: number;
@@ -116,14 +116,14 @@ declare function renderSubtitleOverlay(options: {
     overlay: HTMLElement | null;
     text?: string;
     texts?: string[];
-    cues?: SubtitleCue[];
+    cues?: RuntimeSubtitleCue[];
     cueIndices?: number[];
     highlighter?: unknown;
 }): void;
-declare function parseSRT(data: string): SubtitleCue[];
-declare function parseASS(data: string): SubtitleCue[];
-declare function getActiveSubtitles(): SubtitleCue[];
-declare function getActiveSubtitleEntries(): Array<{ index: number; cue: SubtitleCue }>;
+declare function parseSRT(data: string): RuntimeSubtitleCue[];
+declare function parseASS(data: string): RuntimeSubtitleCue[];
+declare function getActiveSubtitles(): RuntimeSubtitleCue[];
+declare function getActiveSubtitleEntries(): Array<{ index: number; cue: RuntimeSubtitleCue }>;
 declare function getPrimarySubtitleIndex(): number;
 declare function selectPrimarySubtitle(index: number): void;
 declare function tokenizeJapaneseText(text: string): Promise<JapaneseToken[]>;

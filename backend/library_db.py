@@ -298,60 +298,12 @@ def init_library_db(db_path: Path) -> None:
         )
 
 
-
 def delete_library_series(db_path: Path, series_id: int) -> dict:
-    """Remove an erroneously added series from the library DB only.
+    """Compatibility wrapper for the deletion service."""
+    from backend.library_deletion import delete_library_series as delete_series
 
-    Media files on disk are not deleted. Generated library file rows, watch
-    progress and mined-card links for this series are removed so a future scan
-    can add the folder again cleanly if needed.
-    """
-    with get_db(db_path) as conn:
-        series = conn.execute(
-            "SELECT id, title, cover_file_id FROM series WHERE id = ?",
-            (series_id,),
-        ).fetchone()
-        if not series:
-            return {"found": False}
+    return delete_series(db_path, series_id)
 
-        episode_rows = conn.execute(
-            "SELECT id FROM episodes WHERE series_id = ?",
-            (series_id,),
-        ).fetchall()
-        episode_ids = [int(row["id"]) for row in episode_rows]
-
-        file_count = conn.execute(
-            "SELECT COUNT(*) AS count FROM library_files WHERE series_id = ?",
-            (series_id,),
-        ).fetchone()["count"]
-
-        if episode_ids:
-            placeholders = ", ".join("?" for _ in episode_ids)
-            conn.execute(
-                f"DELETE FROM watch_progress WHERE episode_id IN ({placeholders})",
-                tuple(episode_ids),
-            )
-            conn.execute(
-                f"DELETE FROM cards WHERE episode_id IN ({placeholders})",
-                tuple(episode_ids),
-            )
-            conn.execute(
-                f"DELETE FROM library_files WHERE episode_id IN ({placeholders})",
-                tuple(episode_ids),
-            )
-
-        conn.execute("DELETE FROM cards WHERE series_id = ?", (series_id,))
-        conn.execute("DELETE FROM library_files WHERE series_id = ?", (series_id,))
-        conn.execute("DELETE FROM episodes WHERE series_id = ?", (series_id,))
-        conn.execute("DELETE FROM series WHERE id = ?", (series_id,))
-
-        return {
-            "found": True,
-            "seriesId": series_id,
-            "title": series["title"],
-            "episodesDeleted": len(episode_ids),
-            "filesDeleted": int(file_count or 0),
-        }
 
 def get_library_db_status(db_path: Path) -> dict:
     exists = db_path.exists()

@@ -1,0 +1,10 @@
+[Script Info]
+ScriptType: v4.00+
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:01.00,0:00:02.00,Default,,0,0,0,,{2\pos(960,12)\fad(0,300)\clip(m 1 2 l 3 4)\an8\fs40}字幕
+Dialogue: 0,0:00:03.00,0:00:04.00,Default,,0,0,0,,{999123\pos(100,200)}字幕
+Dialogue: 0,0:00:05.00,0:00:06.00,Default,,0,0,0,,{\pos(100,200)\clip(m 1 2 l 3 4)}字幕
+Dialogue: 0,0:00:07.00,0:00:08.00,Default,,0,0,0,,{\p1}m 0 0 l 100 100{\p0}字幕
+Dialogue: 0,0:00:09.00,0:00:10.00,Default,,0,0,0,,普通のテキスト 123

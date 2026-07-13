@@ -85,7 +85,7 @@ interface SubtitleContextRange {
 }
 
 interface SubtitleContextSelectionState extends SubtitleContextRange {
-    items: SubtitleCue[];
+    items: RuntimeSubtitleCue[];
     text: string;
     startTime: number;
     endTime: number;

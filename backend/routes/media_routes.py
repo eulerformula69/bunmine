@@ -3,7 +3,6 @@ import os
 from flask import Blueprint, current_app, jsonify, request, send_from_directory
 
 from backend.api_response import legacy_error_response, ok_response
-from backend.services.subtitle_conversion_service import convert_ass_to_srt, get_srt_playback_subtitle
 from backend.services.dedupe_service import clean_srt_text_file
 from backend.services.media_export_service import (
     MediaExportError,
@@ -62,27 +61,15 @@ def upload_subtitle():
         return legacy_error_response("Unsupported subtitle format", 400, "INVALID_SUBTITLE_EXTENSION")
 
     video_base_name = os.path.splitext(safe_video_filename)[0]
-    if subtitle_ext == ".ass":
-        temp_ass_path = settings.video_dir / f"temp_{video_base_name}.ass"
-        srt_path = settings.video_dir / f"{video_base_name}.srt"
-        subtitle_file.save(temp_ass_path)
-        try:
-            convert_ass_to_srt(temp_ass_path, srt_path)
-            clean_srt_text_file(srt_path)
-        except RuntimeError as err:
-            if srt_path.exists():
-                srt_path.unlink()
-            return _json_error(err, 500, "FFMPEG_SUBTITLE_CONVERSION_FAILED")
-        finally:
-            if temp_ass_path.exists():
-                temp_ass_path.unlink()
-        return ok_response({"filename": srt_path.name})[0]
-
     subtitle_filename = f"{video_base_name}{subtitle_ext}"
     subtitle_path = settings.video_dir / subtitle_filename
     subtitle_file.save(subtitle_path)
     if subtitle_ext == ".srt":
         clean_srt_text_file(subtitle_path)
+    for extension in settings.allowed_subtitle_extensions:
+        stale_path = settings.video_dir / f"{video_base_name}{extension}"
+        if stale_path != subtitle_path and stale_path.exists():
+            stale_path.unlink()
     return ok_response({"filename": subtitle_filename})[0]
 
 
@@ -141,13 +128,7 @@ def serve_subtitle(filename):
         return legacy_error_response("Subtitle not found", 404, "SUBTITLE_NOT_FOUND")
     if os.path.splitext(safe_name)[1].lower() not in settings.allowed_subtitle_extensions:
         return legacy_error_response("Invalid subtitle extension", 400, "INVALID_SUBTITLE_EXTENSION")
-    served_path = subtitle_path
-    if subtitle_path.suffix.lower() == ".ass":
-        try:
-            served_path = get_srt_playback_subtitle(subtitle_path, settings.data_dir / "SubtitleCache")
-        except RuntimeError as err:
-            return _json_error(err, 500, "FFMPEG_SUBTITLE_CONVERSION_FAILED")
-    return send_from_directory(str(served_path.parent), served_path.name)
+    return send_from_directory(str(subtitle_path.parent), subtitle_path.name)
 
 
 @media_bp.route("/screenshot", methods=["POST"])
@@ -214,9 +195,11 @@ def delete_video():
     video_path = settings.video_dir / safe_filename
     if video_path.exists():
         video_path.unlink()
-    subtitle_path = settings.video_dir / f"{os.path.splitext(safe_filename)[0]}.srt"
-    if subtitle_path.exists():
-        subtitle_path.unlink()
+    video_base_name = os.path.splitext(safe_filename)[0]
+    for extension in settings.allowed_subtitle_extensions:
+        subtitle_path = settings.video_dir / f"{video_base_name}{extension}"
+        if subtitle_path.exists():
+            subtitle_path.unlink()
 
     for item in os.listdir(settings.video_dir):
         if item.startswith("temp_") and safe_filename in item:

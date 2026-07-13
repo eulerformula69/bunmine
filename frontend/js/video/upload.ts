@@ -46,9 +46,6 @@ async function uploadSubtitleInBackground(subtitleFile: File, videoFilename: str
         }
 
         console.log("Subtitle uploaded:", data.filename);
-
-        // Р’РђР–РќРћ:
-        // СЃРµСЂРІРµСЂ РІРµСЂРЅСѓР» СѓР¶Рµ .srt, РґР°Р¶Рµ РµСЃР»Рё РЅР° РІС…РѕРґ Р±С‹Р» .ass
         if (data.filename) {
             await restoreSubtitleFromServer(data.filename);
         }
@@ -68,7 +65,12 @@ async function restoreSubtitleFromServer(subtitleFilename: string): Promise<void
         }
 
         const text = await res.text();
-        subtitles = parseSRT(text);
+        const parsed = await parseSubtitleSource({
+            source: text,
+            format: detectSubtitleFormat({ filename: subtitleFilename, source: text }),
+            filename: subtitleFilename
+        });
+        subtitles = toRuntimeSubtitleCues(parsed.cues);
 
         lastRuntimeSubtitleText = "";
         runtimePrefetchAllRunId += 1;

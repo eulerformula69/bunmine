@@ -86,7 +86,7 @@ function getSubtitleTokenReading(token: JapaneseToken): string {
 }
 
 function findSubtitleTextMatchesInCues(
-    cues: SubtitleCue[],
+    cues: RuntimeSubtitleCue[],
     query: string,
     tokenize: SubtitleTokenizer
 ): SubtitleWordSearchMatch[] {
@@ -175,7 +175,7 @@ function parseSubtitleSearchTime(value: string): number | null {
     return null;
 }
 
-function findSubtitleIndexByTime(cues: SubtitleCue[], seconds: number, delaySeconds: number): number {
+function findSubtitleIndexByTime(cues: RuntimeSubtitleCue[], seconds: number, delaySeconds: number): number {
     if (!Number.isFinite(seconds)) return -1;
 
     const exactIndex = cues.findIndex((sub) => {
@@ -200,7 +200,7 @@ function findSubtitleIndexByTime(cues: SubtitleCue[], seconds: number, delaySeco
 }
 
 function buildSubtitleTimeSearchMatches(
-    cues: SubtitleCue[],
+    cues: RuntimeSubtitleCue[],
     seconds: number,
     delaySeconds: number
 ): SubtitleTimeSearchMatch[] {
