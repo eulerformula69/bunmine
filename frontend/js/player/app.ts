@@ -111,135 +111,26 @@ video.addEventListener("timeupdate", () => {
 	
 });
 
-async function getKnownBasicDictionaryForm(rawWord) {
-    const selected = String(rawWord || "").trim();
-
-    if (!selected) return "";
-
-    if (typeof tokenizeJapaneseText !== "function") {
-        console.warn("tokenizeJapaneseText is not available");
-        return selected;
-    }
-
-    try {
-        const tokens = await tokenizeJapaneseText(selected);
-
-        if (!Array.isArray(tokens) || !tokens.length) {
-            return selected;
-        }
-
-        const meaningfulTokens = tokens.filter((token) => {
-            const surface = String(token.surface_form || "").trim();
-
-            if (!surface) return false;
-
-            const pos = String(token.pos || "");
-            return !["иЁеЏ·", "еЉ©и©ћ", "еЉ©е‹•и©ћ"].includes(pos);
+const knownBasicActions = createKnownBasicActions({
+    tokenize: (text) => tokenizeJapaneseText(text),
+    request: apiJson,
+    translate: t,
+    toast: showToast,
+    markMature: (word) => {
+        addRuntimeKnownBasicWord?.(word);
+        const subtitle = getCurrentSubtitle?.();
+        renderSubtitleOverlay({
+            overlay,
+            text: subtitle ? subtitle.text : "",
+            highlighter: ankiSubtitleHighlighter,
         });
-
-        if (!meaningfulTokens.length) {
-            return selected;
-        }
-
-        // РќРѕСЂРјР°Р»РёР·СѓРµРј С‚РѕР»СЊРєРѕ РµСЃР»Рё РІС‹РґРµР»РµРЅРёРµ вЂ” РѕРґРёРЅ РіР»Р°РіРѕР»:
-        // йЈџгЃ№гЃџ -> йЈџгЃ№г‚‹
-        // и¦‹гЃѕгЃ—гЃџ -> и¦‹г‚‹
-        if (meaningfulTokens.length === 1) {
-            const token = meaningfulTokens[0];
-            const pos = String(token.pos || "");
-
-            if (pos === "е‹•и©ћ") {
-                const basic = String(token.basic_form || "").trim();
-
-                if (basic && basic !== "*") {
-                    return basic;
-                }
-            }
-        }
-
-        // Р’СЃС‘ РѕСЃС‚Р°Р»СЊРЅРѕРµ СЃРѕС…СЂР°РЅСЏРµРј РєР°Рє РІС‹РґРµР»РµРЅРѕ
-        return selected;
-    } catch (err) {
-        console.warn("Known-basic dictionary form lookup failed:", err);
-        return selected;
-    }
-}
-
-async function addWordToKnownBasic(word) {
-    const originalWord = String(word || "").trim();
-    const cleanWord = await getKnownBasicDictionaryForm(originalWord);
-
-		if (!cleanWord) {
-			showToast(t("toastNoWordSelected"), "error", 3000);
-			return;
-		}
-
-    try {
-        const { response, data } = await apiJson("/known-basic-words/add", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                word: cleanWord
-            })
-        });
-
-        if (!response.ok || data.error) {
-            throw new Error(String(data.error || "Could not add word"));
-        }
-
-        markKnownBasicWordAsMature(cleanWord);
-
-        window.getSelection()?.removeAllRanges();
-        hideAddKnownBasicButton();
-
-        if (data.added) {
-			if (originalWord && originalWord !== cleanWord) {
-				showToast(`Added to known-basic: ${originalWord} в†’ ${cleanWord}`, "success", 3000);
-			} else {
-				showToast(`Added to known-basic: ${cleanWord}`, "success", 3000);
-			}
-        } else {
-            showToast(t("toastKnownBasicAlreadyExists", { word: cleanWord }), "info", 3000);
-        }
-
-    } catch (err) {
-        console.error("Known-basic add failed:", err);
-        showToast(t("toastKnownBasicAddFailed", { message: err.message }), "error", 6000);
-    }
-}
-
-async function copyWordForYomitan(word) {
-    const cleanWord = String(word || "").trim();
-
-    if (!cleanWord) {
-        showToast(t("toastCopiedForYomitan", { word: cleanWord }), "success", 3000);
-        return;
-    }
-
-    try {
-        await navigator.clipboard.writeText(cleanWord);
-        showToast(`Copied for Yomitan: ${cleanWord}`, "success", 3000);
-    } catch (err) {
-        console.error("Copy for Yomitan failed:", err);
-        showToast(t("toastCopyFailed", { message: err.message }), "error", 5000);
-    }
-}
-
-function markKnownBasicWordAsMature(word) {
-    if (typeof addRuntimeKnownBasicWord === "function") {
-        addRuntimeKnownBasicWord(word);
-    }
-
-    const sub = getCurrentSubtitle?.();
-
-    renderSubtitleOverlay({
-        overlay,
-        text: sub ? sub.text : "",
-        highlighter: ankiSubtitleHighlighter
-    });
-}
+    },
+    hideButton: hideAddKnownBasicButton,
+    clearSelection: () => window.getSelection()?.removeAllRanges(),
+    copyText: (text) => navigator.clipboard.writeText(text),
+});
+const addWordToKnownBasic = knownBasicActions.addWord;
+const copyWordForYomitan = knownBasicActions.copyWord;
 
 async function prefetchRuntimeStatusesForAllSubtitles({
     silent = true,

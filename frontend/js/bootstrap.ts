@@ -42,6 +42,7 @@
         "/dist/js/player/playback-loop.js",
         "/dist/js/player/hotkeys.js",
         "/dist/js/player/toast.js",
+        "/dist/js/player/known-basic-actions.js",
         "/dist/js/player/anki-actions.js",
         "/dist/js/player/target-note-dropdown.js",
         "/dist/js/player/auto-attach-queue.js",
