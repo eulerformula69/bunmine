@@ -18,6 +18,10 @@ AUXILIARY_LIKE_FORMS = {
     "ええ", "たく", "がる", "おっ", "ご", "しまう", "す", "では", "はっ", "ほら", "り",
     "ま", "おい",
 }
+HONORIFIC_SUFFIX_FORMS = {
+    "ちゃん", "ちゃま", "たん", "さん", "さま", "様", "くん", "君", "先生", "先輩", "後輩",
+    "氏", "殿", "どの", "閣下", "陛下", "上様", "姉さん", "兄さん", "お姉さん", "お兄さん",
+}
 
 
 def plain_anki_text(value: object) -> str:
@@ -60,6 +64,8 @@ def is_non_lexical_token(
     pos_detail = str(token.get("posDetail") or "")
     if not surface or pos in {"記号", "フィラー"}:
         return True
+    if surface in HONORIFIC_SUFFIX_FORMS:
+        return True
     if not include_particles and (pos == "助詞" or surface in PARTICLE_LIKE_FORMS):
         return True
     if not include_auxiliary_forms and (pos == "助動詞" or surface in AUXILIARY_LIKE_FORMS):
@@ -90,6 +96,8 @@ def build_report_rows(
                 continue
             seen_positions.add(position_key)
             word, info, match_type = _match(token, known, known_basic)
+            if word in HONORIFIC_SUFFIX_FORMS:
+                continue
             if not include_particles and word in PARTICLE_LIKE_FORMS:
                 continue
             if not include_auxiliary_forms and word in AUXILIARY_LIKE_FORMS:

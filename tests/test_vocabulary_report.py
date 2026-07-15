@@ -124,7 +124,10 @@ def test_auxiliary_and_requested_conversational_forms_are_optional():
     for surface in requested_forms:
         token = {"surface": surface, "pos": "名詞", "posDetail": "一般"}
         assert is_non_lexical_token(token)
-        assert not is_non_lexical_token(token, include_auxiliary_forms=True)
+        if surface == "さん":
+            assert is_non_lexical_token(token, include_auxiliary_forms=True)
+        else:
+            assert not is_non_lexical_token(token, include_auxiliary_forms=True)
     auxiliary = {"surface": "だ", "pos": "助動詞", "posDetail": "*"}
     assert is_non_lexical_token(auxiliary)
     assert not is_non_lexical_token(auxiliary, include_auxiliary_forms=True)
@@ -145,3 +148,18 @@ def test_normalized_auxiliary_form_is_filtered_when_surface_differs():
         {"surface": "られ", "basic": "られる", "pos": "動詞", "position": 1, "candidates": ["られ", "られる"]},
     ]}]
     assert build_report_rows("S", cues, {}, set(), {"not_in_anki"})[1] == []
+
+
+def test_honorific_suffixes_are_always_filtered():
+    forms = ["ちゃん", "さん", "様", "さま", "君", "くん", "先生", "先輩", "氏", "殿"]
+    for form in forms:
+        token = {"surface": form, "basic": form, "pos": "名詞", "posDetail": "接尾"}
+        assert is_non_lexical_token(token)
+        assert is_non_lexical_token(token, include_particles=True, include_auxiliary_forms=True)
+    cues = [{"episodeId": 1, "episode": "E1", "start": 0, "end": 1, "sentence": "猫ちゃん", "tokens": [
+        {"surface": "ちゃん", "basic": "ちゃん", "pos": "名詞", "position": 2, "candidates": ["ちゃん"]},
+    ]}]
+    assert build_report_rows(
+        "S", cues, {}, set(), {"not_in_anki"},
+        include_particles=True, include_auxiliary_forms=True,
+    )[1] == []
