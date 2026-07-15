@@ -61,5 +61,8 @@ def generate_vocabulary_report(series_id: int, payload: dict):
     for info in known.values():
         if isinstance(info, dict) and not info.get("sentence"): info["sentence"] = pick_sentence(info.get("fields", {}), sentence_fields)
     known_basic = set(read_words_file(known_basic_words_path()))
-    summary, occurrences, totals = build_report_rows(series["title"], cues, known, known_basic, statuses)
+    summary, occurrences, totals = build_report_rows(
+        series["title"], cues, known, known_basic, statuses,
+        include_particles=bool(payload.get("includeParticles")),
+    )
     return create_workbook(summary, occurrences, totals, sheets), safe_report_filename(series["title"])

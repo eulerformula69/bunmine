@@ -2,9 +2,16 @@ from __future__ import annotations
 
 import html
 import re
+import unicodedata
 from collections import Counter
 
 STATUSES = {"not_in_anki", "new", "learning", "young", "mature", "suspended", "known_basic"}
+PARTICLE_LIKE_FORMS = {
+    "は", "が", "を", "に", "へ", "と", "で", "も", "の", "ん", "から", "まで", "より",
+    "や", "か", "ね", "よ", "な", "ぞ", "ぜ", "さ", "わ", "って", "ったら", "けど", "けれど",
+    "ので", "のに", "とか", "という", "なんて", "しか", "だけ", "ほど", "くらい", "ぐらい",
+    "ばかり", "でも", "ても",
+}
 
 
 def plain_anki_text(value: object) -> str:
@@ -37,14 +44,26 @@ def _match(token: dict, known: dict, known_basic: set[str]) -> tuple[str, dict, 
     return (basic if basic and basic != "*" else surface), {}, "unknown"
 
 
-def build_report_rows(series: str, cues: list[dict], known: dict, known_basic: set[str], statuses: set[str]):
+def is_non_lexical_token(token: dict, include_particles: bool = False) -> bool:
+    surface = str(token.get("surface") or "").strip()
+    pos = str(token.get("pos") or "")
+    pos_detail = str(token.get("posDetail") or "")
+    if not surface or pos in {"記号", "フィラー"}:
+        return True
+    if not include_particles and (pos == "助詞" or surface in PARTICLE_LIKE_FORMS):
+        return True
+    if pos_detail == "数" or all(character.isnumeric() for character in surface):
+        return True
+    return all(unicodedata.category(character)[0] in {"P", "S", "Z", "C"} for character in surface)
+
+
+def build_report_rows(series: str, cues: list[dict], known: dict, known_basic: set[str], statuses: set[str], include_particles: bool = False):
     occurrences, all_statuses, unique_statuses = [], Counter(), {}
-    ignored_pos = {"記号", "フィラー"}
     for cue in cues:
         seen_positions = set()
         for token in cue.get("tokens", []):
             surface = str(token.get("surface") or "").strip()
-            if not surface or token.get("pos") in ignored_pos or (token.get("pos") == "助詞" and len(surface) == 1):
+            if is_non_lexical_token(token, include_particles):
                 continue
             position_key = (cue.get("episodeId"), cue.get("start"), token.get("position"))
             if position_key in seen_positions:

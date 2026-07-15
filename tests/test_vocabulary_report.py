@@ -3,7 +3,7 @@ from datetime import date
 
 from openpyxl import load_workbook
 
-from backend.services.vocabulary_report_model import build_report_rows, pick_sentence, plain_anki_text
+from backend.services.vocabulary_report_model import build_report_rows, is_non_lexical_token, pick_sentence, plain_anki_text
 from backend.services.vocabulary_report_service import safe_report_filename
 from backend.services.vocabulary_report_service import VocabularyReportError
 from backend.services.vocabulary_report_workbook import SUMMARY_HEADERS, create_workbook
@@ -77,7 +77,7 @@ def test_analyzer_is_always_decoded_as_utf8(monkeypatch):
     monkeypatch.setattr(service, "read_anki_highlight_settings", lambda: {})
     monkeypatch.setattr(service, "known_basic_words_path", lambda: None)
     monkeypatch.setattr(service, "read_words_file", lambda _path: [])
-    monkeypatch.setattr(service, "build_report_rows", lambda *args: ([], [], {}))
+    monkeypatch.setattr(service, "build_report_rows", lambda *args, **kwargs: ([], [], {}))
     monkeypatch.setattr(service, "create_workbook", lambda *args: BytesIO(b"xlsx"))
     def fake_run(*args, **kwargs):
         captured.update(kwargs)
@@ -97,3 +97,23 @@ def test_empty_analyzer_output_has_clear_error(monkeypatch):
         assert False, "expected VocabularyReportError"
     except VocabularyReportError as error:
         assert str(error) == "Subtitle analyzer returned no data"
+
+
+def test_particles_are_optional_and_disabled_by_default():
+    cues = [{"episodeId": 1, "episode": "E1", "start": 0, "end": 1, "sentence": "のから", "tokens": [
+        {"surface": "の", "basic": "の", "pos": "名詞", "position": 1, "candidates": ["の"]},
+        {"surface": "から", "basic": "から", "pos": "助詞", "position": 2, "candidates": ["から"]},
+    ]}]
+    assert build_report_rows("S", cues, {}, set(), {"not_in_anki"})[1] == []
+    included = build_report_rows("S", cues, {}, set(), {"not_in_anki"}, include_particles=True)[1]
+    assert [row["word"] for row in included] == ["の", "から"]
+
+
+def test_numbers_punctuation_and_special_symbols_are_always_ignored():
+    for surface, pos, detail in [
+        ("１", "名詞", "数"), ("２", "名詞", "数"), ("♪", "記号", "一般"),
+        ("♪〜", "記号", "一般"), ("･", "記号", "一般"), (")）", "記号", "括弧閉"),
+        ("!?", "unknown", ""),
+    ]:
+        assert is_non_lexical_token({"surface": surface, "pos": pos, "posDetail": detail})
+        assert is_non_lexical_token({"surface": surface, "pos": pos, "posDetail": detail}, include_particles=True)
