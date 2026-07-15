@@ -111,7 +111,6 @@ const bulkSubtitleList = document.getElementById("bulkSubtitleList") as HTMLElem
 const confirmBulkSubtitleDownloadBtn = document.getElementById("confirmBulkSubtitleDownloadBtn") as HTMLButtonElement;
 const cancelBulkSubtitleDownloadBtn = document.getElementById("cancelBulkSubtitleDownloadBtn") as HTMLButtonElement;
 
-let currentSubtitleEpisode: SubtitleEpisodeSelection | null = null;
 let currentOpenedSeries: LibrarySeriesView | null = null;
 let currentOpenedEpisodes: LibraryEpisodeView[] = [];
 let currentBulkSubtitlePlan: BulkSubtitlePlan | null = null;
@@ -515,134 +514,25 @@ completedCheckbox.addEventListener("change", async () => {
     return row;
 }
 
-function openSubtitleModal() {
-    subtitleModal.classList.remove("hidden");
-    document.body.classList.add("modal-open");
-}
-
-function closeSubtitleModal() {
-    subtitleModal.classList.add("hidden");
-    document.body.classList.remove("modal-open");
-    currentSubtitleEpisode = null;
-}
-
-async function openSubtitleSearchModal(episode: LibraryEpisodeView, row: HTMLElement) {
-    if (!currentOpenedSeries) return;
-
-    currentSubtitleEpisode = { episode, row };
-
-    const episodeNumber = episode.episodeNumber ?? "?";
-    subtitleModalTitle.textContent = episode.hasSubtitle ? lt("changeJapaneseSubtitles") : lt("findJapaneseSubtitles");
-    subtitleModalSubtitle.textContent = `${currentOpenedSeries.title} · ${lt("episodeLabel", { number: episodeNumber })}`;
-    subtitleSearchInput.value = currentOpenedSeries.title;
-    subtitleResults.innerHTML = `<div class="cover-message">${escapeHtml(lt("subtitleQueryHint"))}</div>`;
-
-    openSubtitleModal();
-    subtitleSearchInput.focus();
-    subtitleSearchInput.select();
-}
-
-async function searchSubtitlesForCurrentEpisode() {
-    if (!currentSubtitleEpisode) return;
-
-    const { episode } = currentSubtitleEpisode;
-    const query = subtitleSearchInput.value.trim() || currentOpenedSeries?.title || "";
-
-    subtitleSearchBtn.disabled = true;
-    subtitleSearchBtn.textContent = lt("searching");
-    subtitleResults.innerHTML = `<div class="cover-message">${escapeHtml(lt("searchingJimaku"))}</div>`;
-
-    try {
-        const { response, data } = await librarySearchEpisodeSubtitles(episode.id, query);
-
-        if (!response.ok || data.error) {
-            throw new Error(data.error || lt("subtitleSearchFailed"));
-        }
-
-        renderSubtitleResults(data.results || []);
-    } catch (err) {
-        subtitleResults.innerHTML = `<div class="cover-message error">${escapeHtml(err.message)}</div>`;
-    } finally {
-        subtitleSearchBtn.disabled = false;
-        subtitleSearchBtn.textContent = lt("search");
-    }
-}
-
-function renderSubtitleResults(results) {
-    subtitleResults.innerHTML = "";
-
-    if (!results.length) {
-        subtitleResults.innerHTML = `<div class="cover-message">${escapeHtml(lt("noDirectSubtitles"))}</div>`;
-        return;
-    }
-
-    for (const result of results) {
-        const item = document.createElement("button");
-        item.type = "button";
-        item.className = "subtitle-result-item";
-
-        const meta = [
-            result.entryTitle,
-            result.extension,
-            formatBytes(result.sizeBytes),
-            result.lastModified ? String(result.lastModified).slice(0, 10) : null,
-        ].filter(Boolean).join(" · ");
-
-        item.innerHTML = `
-            <div class="cover-result-info">
-                <div class="cover-result-title">${escapeHtml(result.filename || lt("untitledSubtitle"))}</div>
-                <div class="cover-result-meta">${escapeHtml(meta)}</div>
-            </div>
-        `;
-
-        item.addEventListener("click", () => {
-            selectSubtitleResult(result);
-        });
-
-        subtitleResults.appendChild(item);
-    }
-}
-
-async function selectSubtitleResult(result) {
-    if (!currentSubtitleEpisode) return;
-
-    const { episode, row } = currentSubtitleEpisode;
-    subtitleResults.classList.add("is-loading");
-
-    try {
-        const { response, data } = await librarySelectEpisodeSubtitle(episode.id, {
-            source: result.source,
-            entryId: result.entryId,
-            filename: result.filename,
-            downloadUrl: result.downloadUrl
-        });
-
-        if (!response.ok || data.error) {
-            throw new Error(data.error || lt("couldNotSaveSubtitle"));
-        }
-
-        episode.hasSubtitle = true;
-        episode.subtitleFileId = (data as LibraryMutationResponse & { subtitleFileId?: number | null }).subtitleFileId;
-        episode.linkStatus = episode.hasVideo ? "linked" : "partial";
-
-        const meta = row.querySelector(".episode-meta");
-        if (meta) {
-            const watchedText = row.querySelector("[data-episode-watched-text]")?.outerHTML || "";
-            meta.innerHTML = `${episode.hasVideo ? lt("videoYes") : lt("videoNo")} <span>·</span> <span>${lt("subtitlesYes")}</span> <button class="find-subtitles-btn find-subtitles-btn-inline" type="button" ${episode.hasVideo ? "" : "disabled"} data-episode-id="${escapeHtml(episode.id)}">${lt("changeJpSubs")}</button> <span>·</span> ${watchedText}`;
-        }
-
-        const btn = row.querySelector(".find-subtitles-btn");
-        if (btn) btn.textContent = lt("changeJpSubs");
-
-        refreshCurrentSeriesLinkStatus();
-
-        closeSubtitleModal();
-    } catch (err) {
-        alert(err.message);
-    } finally {
-        subtitleResults.classList.remove("is-loading");
-    }
-}
+const subtitleController = createLibrarySubtitleController({
+    modal: subtitleModal,
+    title: subtitleModalTitle,
+    subtitle: subtitleModalSubtitle,
+    searchInput: subtitleSearchInput,
+    searchButton: subtitleSearchBtn,
+    results: subtitleResults,
+    getSeries: () => currentOpenedSeries,
+    translate: lt,
+    escapeHtml,
+    formatBytes,
+    search: librarySearchEpisodeSubtitles,
+    select: librarySelectEpisodeSubtitle,
+    refreshSeriesStatus: refreshCurrentSeriesLinkStatus,
+    reportError: (message) => alert(message),
+});
+const openSubtitleSearchModal = subtitleController.open;
+const closeSubtitleModal = subtitleController.close;
+const searchSubtitlesForCurrentEpisode = subtitleController.search;
 
 function openBulkSubtitleModal() {
     bulkSubtitleModal.classList.remove("hidden");
