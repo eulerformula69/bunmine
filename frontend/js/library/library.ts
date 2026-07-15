@@ -773,56 +773,15 @@ function updateBulkSubtitleConfirmState() {
 }
 
 function candidateKey(candidate) {
-    return String(candidate?.downloadUrl || `${candidate?.entryId || ""}:${candidate?.filename || ""}`);
+    return LibraryBulkModel.candidateKey(candidate);
 }
 
 function formatSubtitleCandidate(candidate) {
-    if (!candidate) return "";
-    return [
-        candidate.filename,
-        candidate.entryTitle,
-        candidate.extension,
-        formatBytes(candidate.sizeBytes),
-        candidate.lastModified ? String(candidate.lastModified).slice(0, 10) : null,
-    ].filter(Boolean).join(" · ");
+    return LibraryBulkModel.formatCandidate(candidate, formatBytes);
 }
 
 function getBulkSubtitleSets(plan) {
-    const items = Array.isArray(plan?.items) ? plan.items : [];
-    const totalEpisodes = items.filter((item) => Array.isArray(item.candidates) && item.candidates.length).length;
-    const byKey = new Map();
-
-    for (const item of items) {
-        const candidates = Array.isArray(item.candidates) ? item.candidates : [];
-        const usedForEpisode = new Set();
-
-        for (const candidate of candidates) {
-            const releaseKey = String(candidate.releaseKey || candidate.entryTitle || "other");
-            if (!releaseKey || usedForEpisode.has(releaseKey)) continue;
-            usedForEpisode.add(releaseKey);
-
-            if (!byKey.has(releaseKey)) {
-                byKey.set(releaseKey, {
-                    key: releaseKey,
-                    label: candidate.releaseLabel || candidate.entryTitle || lt("other"),
-                    count: 0,
-                    totalEpisodes,
-                    examples: [],
-                    candidatesByEpisodeId: new Map(),
-                });
-            }
-
-            const group = byKey.get(releaseKey);
-            group.count += 1;
-            group.candidatesByEpisodeId.set(String(item.episodeId), candidate);
-            if (group.examples.length < 2) {
-                group.examples.push(candidate.filename || candidate.entryTitle || lt("subtitle"));
-            }
-        }
-    }
-
-    return Array.from(byKey.values())
-        .sort((a, b) => b.count - a.count || String(a.label).localeCompare(String(b.label)));
+    return LibraryBulkModel.getSets(plan, lt);
 }
 
 function renderBulkSubtitleSets(plan) {
@@ -874,24 +833,8 @@ function renderBulkSubtitleSets(plan) {
 
 function applyBulkSubtitleSet(releaseKey) {
     if (!currentBulkSubtitlePlan) return;
-
     currentBulkSubtitleSetKey = releaseKey;
-
-    for (const item of currentBulkSubtitlePlan.items || []) {
-        const candidates = Array.isArray(item.candidates) ? item.candidates : [];
-        const candidate = candidates.find((candidate) => String(candidate.releaseKey || candidate.entryTitle || "other") === String(releaseKey));
-
-        if (candidate) {
-            item.selected = candidate;
-            item.status = "ready";
-            item.message = lt("selectedFromSubtitleSet");
-        } else if (candidates.length) {
-            item.selected = null;
-            item.status = "needs-review";
-            item.message = lt("noFileFromSelectedSet");
-        }
-    }
-
+    LibraryBulkModel.applySet(currentBulkSubtitlePlan, releaseKey, lt);
     renderBulkSubtitlePlan(currentBulkSubtitlePlan);
 }
 
