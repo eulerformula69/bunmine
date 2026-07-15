@@ -6,6 +6,7 @@
         "/dist/js/library/library-i18n.js",
         "/dist/js/library/library-presentation.js",
         "/dist/js/library/library-bulk-model.js",
+        "/dist/js/library/library-cover-controller.js",
         "/dist/js/library/library.js",
     ];
 

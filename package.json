@@ -10,7 +10,7 @@
     "build": "npm run build:libs && tsc -p tsconfig.json",
     "test:highlighter": "npm run build && node tests/highlighter-match-tests.mjs",
     "test:subtitles": "npm run build && node tests/subtitle-model-tests.mjs && node tests/subtitle-provider-tests.mjs",
-    "test:library": "npm run build && node tests/library-presentation-tests.mjs && node tests/library-i18n-tests.mjs && node tests/library-bulk-model-tests.mjs",
+    "test:library": "npm run build && node tests/library-presentation-tests.mjs && node tests/library-i18n-tests.mjs && node tests/library-bulk-model-tests.mjs && node tests/library-cover-controller-tests.mjs",
     "test:player": "npm run build && node tests/known-basic-actions-tests.mjs && node tests/runtime-prefetch-tests.mjs",
     "test:python": "py -m pytest -q",
     "typecheck": "tsc -p tsconfig.json --noEmit",

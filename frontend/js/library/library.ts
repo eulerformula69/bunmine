@@ -111,7 +111,6 @@ const bulkSubtitleList = document.getElementById("bulkSubtitleList") as HTMLElem
 const confirmBulkSubtitleDownloadBtn = document.getElementById("confirmBulkSubtitleDownloadBtn") as HTMLButtonElement;
 const cancelBulkSubtitleDownloadBtn = document.getElementById("cancelBulkSubtitleDownloadBtn") as HTMLButtonElement;
 
-let currentCoverSeries: LibrarySeriesView | null = null;
 let currentSubtitleEpisode: SubtitleEpisodeSelection | null = null;
 let currentOpenedSeries: LibrarySeriesView | null = null;
 let currentOpenedEpisodes: LibraryEpisodeView[] = [];
@@ -1080,116 +1079,23 @@ async function downloadSelectedBulkSubtitles() {
 
 
 
-function openCoverModal() {
-    coverModal.classList.remove("hidden");
-    document.body.classList.add("modal-open");
-}
-
-function closeCoverModal() {
-    coverModal.classList.add("hidden");
-    document.body.classList.remove("modal-open");
-    currentCoverSeries = null;
-}
-
-async function openCoverSearchModal(series) {
-    currentCoverSeries = series;
-
-    coverModalTitle.textContent = series.coverUrl ? lt("changeCover") : lt("findCover");
-    coverModalSubtitle.textContent = series.title;
-    coverSearchInput.value = series.title;
-    coverResults.innerHTML = "";
-
-    openCoverModal();
-
-    await searchCoversForCurrentSeries();
-}
-
-async function searchCoversForCurrentSeries() {
-    if (!currentCoverSeries) return;
-
-    const query = coverSearchInput.value.trim() || currentCoverSeries.title;
-
-    coverSearchBtn.disabled = true;
-    coverSearchBtn.textContent = lt("searching");
-    coverResults.innerHTML = `<div class="cover-message">${escapeHtml(lt("searchingAniList"))}</div>`;
-
-    try {
-        const { response, data } = await librarySearchSeriesCover(currentCoverSeries.id, query);
-
-        if (!response.ok || data.error) {
-            throw new Error(data.error || lt("coverSearchFailed"));
-        }
-
-        renderCoverResults(data.results || []);
-    } catch (err) {
-        coverResults.innerHTML = `<div class="cover-message error">${escapeHtml(err.message)}</div>`;
-    } finally {
-        coverSearchBtn.disabled = false;
-        coverSearchBtn.textContent = lt("search");
-    }
-}
-
-function renderCoverResults(results) {
-    coverResults.innerHTML = "";
-
-    if (!results.length) {
-        coverResults.innerHTML = `<div class="cover-message">${escapeHtml(lt("noResultsFound"))}</div>`;
-        return;
-    }
-
-    for (const result of results) {
-        const item = document.createElement("button");
-        item.type = "button";
-        item.className = "cover-result-item";
-
-        const meta = [
-            result.format,
-            result.seasonYear,
-            result.episodes ? `${result.episodes} ${lt("eps")}` : null,
-        ].filter(Boolean).join(" · ");
-
-        item.innerHTML = `
-            <img src="${escapeHtml(result.coverUrl)}" alt="">
-            <div class="cover-result-info">
-                <div class="cover-result-title">${escapeHtml(result.title || result.preferredTitle || lt("untitled"))}</div>
-                <div class="cover-result-subtitle">${escapeHtml(result.englishTitle || result.nativeTitle || "")}</div>
-                <div class="cover-result-meta">${escapeHtml(meta)}</div>
-            </div>
-        `;
-
-        item.addEventListener("click", () => {
-            selectCoverResult(result);
-        });
-
-        coverResults.appendChild(item);
-    }
-}
-
-async function selectCoverResult(result) {
-    if (!currentCoverSeries) return;
-
-    coverResults.classList.add("is-loading");
-
-    try {
-        const { response, data } = await librarySelectSeriesCover(currentCoverSeries.id, {
-            source: result.source,
-            externalId: result.externalId,
-            coverUrl: result.coverUrl
-        });
-
-        if (!response.ok || data.error) {
-            throw new Error(data.error || lt("couldNotSaveCover"));
-        }
-
-        closeCoverModal();
-        await loadLibrarySeries();
-    } catch (err) {
-        alert(err.message);
-    } finally {
-        coverResults.classList.remove("is-loading");
-    }
-}
-
+const coverController = createLibraryCoverController({
+    modal: coverModal,
+    title: coverModalTitle,
+    subtitle: coverModalSubtitle,
+    searchInput: coverSearchInput,
+    searchButton: coverSearchBtn,
+    results: coverResults,
+    translate: lt,
+    escapeHtml,
+    search: librarySearchSeriesCover,
+    select: librarySelectSeriesCover,
+    reload: loadLibrarySeries,
+    reportError: (message) => alert(message),
+});
+const openCoverSearchModal = coverController.open;
+const closeCoverModal = coverController.close;
+const searchCoversForCurrentSeries = coverController.search;
 
 async function deleteSeriesFromLibrary(seriesId, title) {
     const label = title || currentOpenedSeries?.title || lt("untitled");
