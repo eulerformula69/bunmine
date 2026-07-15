@@ -547,5 +547,3 @@ def get_library_series_detail(db_path: Path, series_id: int) -> dict:
             "linkStatus": _series_link_status(episodes_count, episodes_with_video, episodes_with_subtitle),
         }
         return {"found": True, "series": series, "episodes": episodes}
-
-
