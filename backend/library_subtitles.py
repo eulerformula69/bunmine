@@ -8,6 +8,14 @@ from pathlib import Path
 from backend.config import ALLOWED_SUBTITLE_EXTENSIONS, JIMAKU_API_TOKEN, MEDIA_LIBRARY_DIR
 from backend.library_db import get_db, get_library_series_detail
 from backend.library_scanner import normalize_title
+from backend.subtitles.jimaku_release import (
+    compact_token as _compact_token,
+    episode_numbers_equal as _episode_numbers_equal,
+    infer_episode_number as _infer_episode_number_from_filename,
+    release_info as _release_info_from_candidate,
+    release_tokens as _release_tokens_from_filename,
+    score_candidate as _score_subtitle_candidate,
+)
 from backend.utils_validation import is_within
 
 
@@ -106,90 +114,6 @@ def _episode_label(value: float | int | None) -> str:
     return f"{value:g}"
 
 
-
-def _compact_token(value: str) -> str:
-    return re.sub(r"[^a-z0-9]+", "", str(value or "").lower())
-
-
-def _release_tokens_from_filename(filename: str, entry_title: str | None = None) -> list[str]:
-    """Extract stable release/source tokens from a Jimaku subtitle filename.
-
-    The goal is not a perfect parser. It is to avoid mixing obviously different
-    timing families in bulk download review: Netflix/NF vs DSNP, EMBER vs KMPL,
-    WEB-DL vs BDRip, etc.
-    """
-    raw = str(filename or "")
-    lowered = raw.lower()
-    tokens: list[str] = []
-
-    def add(label: str, *needles: str) -> None:
-        for needle in needles:
-            if needle and needle in lowered:
-                if label not in tokens:
-                    tokens.append(label)
-                return
-
-    # Leading fansub/release group markers, e.g. [EMBER], [SubsPlease].
-    leading_group = re.match(r"^\s*\[([^\]]{2,32})\]", raw)
-    if leading_group:
-        group = leading_group.group(1).strip()
-        if group:
-            tokens.append(group)
-
-    add("Netflix", "netflix", " nf ", ".nf.", "-nf-", "[nf]", "nf-web", "web-dl.nf")
-    add("DSNP", "dsnp", "disney", "disney+")
-    add("Amazon", "amzn", "amazon")
-    add("Crunchyroll", "crunchy", "cr-web", "crunchyroll")
-    add("B-Global", "b-global", "bglobal", "b global")
-    add("Baha", "baha")
-    add("Hulu", "hulu")
-
-    add("WEB-DL", "web-dl", "webdl")
-    add("WEBRip", "webrip", "web rip")
-    add("BluRay", "bluray", "blu-ray", "bdrip", "bdremux")
-    add("HDTV", "hdtv")
-
-    add("1080p", "1080p")
-    add("720p", "720p")
-    add("2160p", "2160p", "4k")
-    add("HEVC", "hevc", "x265", "h.265", "h265")
-    add("H.264", "h.264", "h264", "x264", "avc")
-    add("DDP", "ddp", "eac3", "e-ac-3")
-    add("AAC", "aac")
-
-    add("JP", " japanese", ".jpn", ".jp.", " ja[", ".ja.", " ja-")
-    add("CC", "[cc]", ".cc.", " cc ", "closed caption")
-
-    # If nothing obvious was found, fall back to the Jimaku entry title so that
-    # files from the same entry still group together instead of becoming random.
-    if not tokens:
-        fallback = str(entry_title or "").strip()
-        if fallback:
-            tokens.append(fallback[:60])
-        else:
-            stem = re.sub(r"\.(srt|ass|vtt)$", "", raw, flags=re.IGNORECASE)
-            stem = re.sub(r"[Ss]\d{1,2}[Ee]\d{1,3}", " ", stem)
-            stem = re.sub(r"(?<!\d)\d{1,3}(?!\d)", " ", stem)
-            stem = re.sub(r"\s+", " ", stem).strip()
-            tokens.append(stem[:60] or "Other")
-
-    # De-duplicate by compact value, preserving display labels and order.
-    result: list[str] = []
-    seen: set[str] = set()
-    for token in tokens:
-        key = _compact_token(token)
-        if not key or key in seen:
-            continue
-        seen.add(key)
-        result.append(token)
-    return result
-
-
-def _release_info_from_candidate(filename: str, entry_title: str | None = None) -> dict:
-    tokens = _release_tokens_from_filename(filename, entry_title)
-    label = " · ".join(tokens[:6]) if tokens else "Other"
-    key = "|".join(_compact_token(token) for token in tokens if _compact_token(token)) or "other"
-    return {"releaseKey": key, "releaseLabel": label, "releaseTokens": tokens}
 
 def _extension_from_filename(filename: str) -> str:
     lowered = filename.lower()
@@ -313,57 +237,6 @@ def _candidate_from_jimaku_file(file_item: dict, entry_id: int, entry: dict, ser
         "episodeNumber": episode_number,
         **release_info,
     }
-
-
-def _score_subtitle_candidate(item: dict, episode_number: float | int | None = None, video_filename: str | None = None) -> tuple[int, int, str]:
-    name = str(item.get("filename") or "").lower()
-    subtitle_ext = str(item.get("extension") or "")
-    format_score = 0 if subtitle_ext == ".srt" else 1 if subtitle_ext == ".ass" else 2
-
-    ep = _episode_label(episode_number)
-    ep_raw = ep.lstrip("0") or ep
-    episode_score = 0 if ep != "unknown" and re.search(rf"(?<!\d){re.escape(ep_raw)}(?!\d)", name) else 1
-
-    video_score = 0
-    if video_filename:
-        candidate_tokens = set(_release_tokens_from_filename(str(item.get("filename") or ""), str(item.get("entryTitle") or "")))
-        video_tokens = set(_release_tokens_from_filename(video_filename, None))
-        shared = {_compact_token(token) for token in candidate_tokens} & {_compact_token(token) for token in video_tokens}
-        # Sort descending by shared token count by converting it to a negative score.
-        video_score = -len([token for token in shared if token])
-
-    return (video_score, episode_score, format_score, name)
-
-
-def _infer_episode_number_from_filename(filename: str) -> float | None:
-    name = str(filename or "")
-    sxe = re.search(r"[Ss](\d{1,2})[Ee](\d{1,3})(?:\D|$)", name)
-    if sxe:
-        return float(int(sxe.group(2)))
-
-    # Common anime forms: " - 06 ", "[06]", "Episode 06".
-    patterns = [
-        r"(?:^|[\s._\[-])(?:ep|episode)?[\s._-]*(\d{1,3})(?:v\d+)?(?:\D|$)",
-        r"\[(\d{1,3})(?:v\d+)?\]",
-    ]
-    for pattern in patterns:
-        for raw in re.findall(pattern, name, flags=re.IGNORECASE):
-            try:
-                value = int(raw)
-            except (TypeError, ValueError):
-                continue
-            if 1 <= value <= 200:
-                return float(value)
-    return None
-
-
-def _episode_numbers_equal(left, right) -> bool:
-    if left is None or right is None:
-        return False
-    try:
-        return abs(float(left) - float(right)) < 0.001
-    except (TypeError, ValueError):
-        return False
 
 
 def get_missing_subtitle_episode_contexts(db_path: Path, series_id: int, limit: int | None = None) -> dict:
