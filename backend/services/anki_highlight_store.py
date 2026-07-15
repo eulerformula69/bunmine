@@ -100,6 +100,15 @@ def merge_refresh_payload_with_saved_settings(payload: dict) -> dict:
     return merged
 
 
+def enrich_cached_word_metadata(info: dict, card_ids: list[int], fields: dict) -> dict:
+    """Add report metadata without changing the cached learning status."""
+    return {
+        **(info if isinstance(info, dict) else {}),
+        "cardIds": list(card_ids),
+        "fields": fields if isinstance(fields, dict) else {},
+    }
+
+
 
 def _default_known_anki_data():
     return {
@@ -154,4 +163,3 @@ def ensure_anki_highlight_files() -> None:
         write_known_anki_data(_default_known_anki_data())
     if not anki_highlight_settings_path().exists():
         write_anki_highlight_settings({"autoRefresh": "daily"})
-

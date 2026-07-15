@@ -16,6 +16,7 @@ from backend.services.anki_client import (
 from backend.services.anki_highlight_store import (
     anki_highlight_settings_path as _anki_highlight_settings_path,
     ensure_anki_highlight_files,
+    enrich_cached_word_metadata as _enrich_cached_word_metadata,
     known_basic_words_path as _known_basic_words_path,
     known_anki_words_path as _known_anki_words_path,
     merge_refresh_payload_with_saved_settings as _merge_refresh_payload_with_saved_settings,
@@ -198,7 +199,7 @@ def _refresh_known_anki_words_from_anki(payload: dict) -> dict:
                 for word in words:
                     old_info = previous_words.get(word) if isinstance(previous_words.get(word), dict) else {}
                     if old_info.get("locked") is True and old_info.get("status") == "mature":
-                        next_words[word] = old_info
+                        next_words[word] = _enrich_cached_word_metadata(old_info, card_ids, note_fields[note_id])
                         preserved_locked_words += 1
                     else:
                         needs_status_check = True
@@ -248,7 +249,11 @@ def _refresh_known_anki_words_from_anki(payload: dict) -> dict:
         for word in words:
             old_info = previous_words.get(word) if isinstance(previous_words.get(word), dict) else {}
             if old_info.get("locked") is True and old_info.get("status") == "mature" and not full_rebuild:
-                next_words[word] = old_info
+                next_words[word] = _enrich_cached_word_metadata(
+                    old_info,
+                    note_cards.get(note_id, []),
+                    note_fields.get(note_id, {}),
+                )
                 continue
 
             old_next_info = next_words.get(word) if isinstance(next_words.get(word), dict) else {}
