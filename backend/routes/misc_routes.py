@@ -16,6 +16,7 @@ from backend.services.anki_client import (
 from backend.services.anki_highlight_store import (
     anki_highlight_settings_path as _anki_highlight_settings_path,
     ensure_anki_highlight_files,
+    enrich_cached_word_metadata as _enrich_cached_word_metadata,
     known_basic_words_path as _known_basic_words_path,
     known_anki_words_path as _known_anki_words_path,
     merge_refresh_payload_with_saved_settings as _merge_refresh_payload_with_saved_settings,
@@ -128,6 +129,7 @@ def _refresh_known_anki_words_from_anki(payload: dict) -> dict:
     anki_url = str(payload.get("ankiUrl") or "").strip()
     deck_names = [str(item).strip() for item in payload.get("decks") or [] if str(item).strip()]
     word_fields = [str(item).strip() for item in payload.get("wordFields") or [] if str(item).strip()]
+    sentence_fields = [str(item).strip() for item in payload.get("sentenceFields") or [] if str(item).strip()]
     full_rebuild = bool(payload.get("fullRebuild"))
 
     if not anki_url:
@@ -148,6 +150,7 @@ def _refresh_known_anki_words_from_anki(payload: dict) -> dict:
         "ankiUrl": anki_url,
         "decks": deck_names,
         "wordFields": word_fields,
+        "sentenceFields": sentence_fields,
         "autoRefresh": auto_refresh,
         "lastManualRefreshAt": checked_at if not payload.get("autoRun") else saved_settings.get("lastManualRefreshAt"),
         "lastAutoRefreshAt": checked_at if payload.get("autoRun") else saved_settings.get("lastAutoRefreshAt"),
@@ -168,6 +171,7 @@ def _refresh_known_anki_words_from_anki(payload: dict) -> dict:
 
     note_words: dict[str, list[str]] = {}
     note_cards: dict[str, list[int]] = {}
+    note_fields: dict[str, dict] = {}
     card_to_note: dict[int, str] = {}
     candidate_card_ids: list[int] = []
     discovered_words = 0
@@ -187,6 +191,7 @@ def _refresh_known_anki_words_from_anki(payload: dict) -> dict:
             card_ids = _note_card_ids(note)
             note_words[note_id] = words
             note_cards[note_id] = card_ids
+            note_fields[note_id] = note.get("fields") if isinstance(note.get("fields"), dict) else {}
             discovered_words += len(words)
 
             needs_status_check = full_rebuild
@@ -194,7 +199,7 @@ def _refresh_known_anki_words_from_anki(payload: dict) -> dict:
                 for word in words:
                     old_info = previous_words.get(word) if isinstance(previous_words.get(word), dict) else {}
                     if old_info.get("locked") is True and old_info.get("status") == "mature":
-                        next_words[word] = old_info
+                        next_words[word] = _enrich_cached_word_metadata(old_info, card_ids, note_fields[note_id])
                         preserved_locked_words += 1
                     else:
                         needs_status_check = True
@@ -207,6 +212,7 @@ def _refresh_known_anki_words_from_anki(payload: dict) -> dict:
                 candidate_card_ids.append(card_id)
 
     note_status_map: dict[str, str] = {}
+    note_deck_map: dict[str, str] = {}
     for card_chunk in _chunked(candidate_card_ids, 500):
         cards_info = _anki_request(anki_url, "cardsInfo", {"cards": card_chunk}) or []
         for card in cards_info:
@@ -225,6 +231,9 @@ def _refresh_known_anki_words_from_anki(payload: dict) -> dict:
                 continue
 
             note_status_map[note_id] = _pick_better_status(note_status_map.get(note_id), _card_status(card))
+            deck_name = str(card.get("deckName") or "").strip()
+            if deck_name and (note_id not in note_deck_map or deck_name < note_deck_map[note_id]):
+                note_deck_map[note_id] = deck_name
 
     imported_words = 0
     skipped_locked_words = 0
@@ -240,7 +249,11 @@ def _refresh_known_anki_words_from_anki(payload: dict) -> dict:
         for word in words:
             old_info = previous_words.get(word) if isinstance(previous_words.get(word), dict) else {}
             if old_info.get("locked") is True and old_info.get("status") == "mature" and not full_rebuild:
-                next_words[word] = old_info
+                next_words[word] = _enrich_cached_word_metadata(
+                    old_info,
+                    note_cards.get(note_id, []),
+                    note_fields.get(note_id, {}),
+                )
                 continue
 
             old_next_info = next_words.get(word) if isinstance(next_words.get(word), dict) else {}
@@ -255,6 +268,9 @@ def _refresh_known_anki_words_from_anki(payload: dict) -> dict:
                 **old_next_info,
                 "status": best_status,
                 "noteId": normalized_note_id,
+                "cardIds": note_cards.get(note_id, []),
+                "deck": note_deck_map.get(note_id, ""),
+                "fields": note_fields.get(note_id, {}),
                 "lastCheckedAt": checked_at,
                 "locked": best_status == "mature",
             }
@@ -264,6 +280,7 @@ def _refresh_known_anki_words_from_anki(payload: dict) -> dict:
         "updatedAt": checked_at,
         "decks": deck_names,
         "wordFields": word_fields,
+        "sentenceFields": sentence_fields,
         "words": next_words,
     })
 
@@ -413,6 +430,8 @@ def save_known_anki_auto_refresh_settings():
         merged["decks"] = [str(item).strip() for item in payload.get("decks") or [] if str(item).strip()]
     if "wordFields" in payload:
         merged["wordFields"] = [str(item).strip() for item in payload.get("wordFields") or [] if str(item).strip()]
+    if "sentenceFields" in payload:
+        merged["sentenceFields"] = [str(item).strip() for item in payload.get("sentenceFields") or [] if str(item).strip()]
     if "autoRefresh" in payload:
         merged["autoRefresh"] = str(payload.get("autoRefresh") or "off").strip().lower()
 

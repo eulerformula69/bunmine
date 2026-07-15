@@ -182,4 +182,4 @@ downloadMissingSubtitlesBtn.addEventListener("click", () => {
 });
 
 applyLibraryLanguage();
-
+bindVocabularyReportController();

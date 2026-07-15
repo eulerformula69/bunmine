@@ -42,3 +42,17 @@ def test_ensure_highlight_files_creates_defaults(monkeypatch, tmp_path):
     assert store.known_basic_words_path().exists() is False
     assert store.known_anki_words_path().exists()
     assert store.anki_highlight_settings_path().exists()
+
+
+def test_enrich_locked_word_metadata_preserves_status():
+    old = {"status": "mature", "locked": True, "noteId": 42, "lastCheckedAt": "old"}
+    result = store.enrich_cached_word_metadata(
+        old,
+        [101, 102],
+        {"Sentence": {"value": "<b>日本語の例文</b>"}},
+    )
+    assert result["status"] == "mature"
+    assert result["locked"] is True
+    assert result["noteId"] == 42
+    assert result["cardIds"] == [101, 102]
+    assert result["fields"]["Sentence"]["value"] == "<b>日本語の例文</b>"

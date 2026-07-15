@@ -9,6 +9,7 @@
         "/dist/js/library/library-cover-controller.js",
         "/dist/js/library/library-subtitle-controller.js",
         "/dist/js/library/library-bulk-workflow.js",
+        "/dist/js/library/vocabulary-report-controller.js",
         "/dist/js/library/library.js",
         "/dist/js/library/library-bindings.js",
     ];
