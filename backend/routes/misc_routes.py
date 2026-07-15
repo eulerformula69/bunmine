@@ -1,13 +1,18 @@
 import json
 import time
-import urllib.error
-import urllib.request
 from datetime import datetime, timedelta, timezone
 
 from flask import Blueprint, jsonify, request
 
 from backend import app_state
 from backend.config import ANKI_HIGHLIGHT_DIR, FRONTEND_DIR
+from backend.services.anki_client import (
+    build_deck_query as _build_deck_query,
+    chunked as _chunked,
+    extract_words_from_note,
+    note_card_ids as _note_card_ids,
+    request as _anki_request,
+)
 from backend.utils_validation import safe_cache_key
 
 misc_bp = Blueprint("misc", __name__)
@@ -256,69 +261,6 @@ def _card_status(card: dict) -> str:
     return "mature" if interval >= 21 else "young"
 
 
-def _chunked(items, size: int):
-    for index in range(0, len(items), size):
-        yield items[index:index + size]
-
-
-def _anki_request(anki_url: str, action: str, params: dict | None = None):
-    body = json.dumps({"action": action, "version": 6, "params": params or {}}).encode("utf-8")
-    req = urllib.request.Request(
-        anki_url,
-        data=body,
-        headers={"Content-Type": "application/json"},
-        method="POST",
-    )
-
-    try:
-        with urllib.request.urlopen(req, timeout=60) as response:
-            data = json.loads(response.read().decode("utf-8"))
-    except urllib.error.URLError as err:
-        reason = getattr(err, "reason", err)
-        raise RuntimeError(f"Cannot reach AnkiConnect at {anki_url}. Make sure Anki is open and AnkiConnect is installed. Details: {reason}") from err
-    except TimeoutError as err:
-        raise RuntimeError(f"AnkiConnect request timed out while running {action}.") from err
-
-    if data.get("error"):
-        raise RuntimeError(f"AnkiConnect {action} failed: {data['error']}")
-    return data.get("result")
-
-
-def _escape_anki_search_value(value: str) -> str:
-    return str(value or "").replace("\\", "\\\\").replace('"', '\\"')
-
-
-def _build_deck_query(deck_names: list[str]) -> str:
-    return " OR ".join(f'deck:"{_escape_anki_search_value(deck)}"' for deck in deck_names if deck)
-
-
-def _extract_words_from_note(note: dict, word_fields: list[str]) -> list[str]:
-    fields = note.get("fields") if isinstance(note.get("fields"), dict) else {}
-    words: list[str] = []
-    seen: set[str] = set()
-
-    for field_name in word_fields:
-        field = fields.get(field_name) if isinstance(fields.get(field_name), dict) else {}
-        word = _normalize_highlight_word(field.get("value"))
-        if not word or word in seen:
-            continue
-        seen.add(word)
-        words.append(word)
-
-    return words
-
-
-def _note_card_ids(note: dict) -> list[int]:
-    cards = note.get("cards") if isinstance(note.get("cards"), list) else []
-    result: list[int] = []
-    for raw_card_id in cards:
-        try:
-            result.append(int(raw_card_id))
-        except (TypeError, ValueError):
-            continue
-    return result
-
-
 def _refresh_known_anki_words_from_anki(payload: dict) -> dict:
     anki_url = str(payload.get("ankiUrl") or "").strip()
     deck_names = [str(item).strip() for item in payload.get("decks") or [] if str(item).strip()]
@@ -375,7 +317,7 @@ def _refresh_known_anki_words_from_anki(payload: dict) -> dict:
             if not note_id:
                 continue
 
-            words = _extract_words_from_note(note, word_fields)
+            words = extract_words_from_note(note, word_fields, _normalize_highlight_word)
             if not words:
                 continue
 
@@ -752,7 +694,7 @@ def _refresh_single_known_anki_word_from_anki(payload: dict) -> dict:
 
     words: list[str] = []
     if note_info:
-        words = _extract_words_from_note(note_info, word_fields)
+        words = extract_words_from_note(note_info, word_fields, _normalize_highlight_word)
     if explicit_word and explicit_word not in words:
         words.append(explicit_word)
 
@@ -832,5 +774,4 @@ def refresh_known_anki_words():
         return jsonify({"error": str(err)}), 400
     except Exception as err:
         return jsonify({"error": str(err)}), 500
-
 

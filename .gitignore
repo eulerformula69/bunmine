@@ -29,4 +29,5 @@ known-basic-words.json
 NEXT.md
 library.sqlite3
 library.backup.db
+repomix-output.xml
 .tmp_pytest_cache/

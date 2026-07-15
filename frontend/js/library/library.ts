@@ -1,81 +1,6 @@
 type LibraryDict = Record<string, string>;
 type LibraryLanguageCatalog = Record<string, { name: string; dict: LibraryDict }>;
 
-interface LibrarySeriesView extends LibrarySeries {
-    cardsCount?: number;
-    episodesWithVideo?: number;
-    episodesWithSubtitle?: number;
-    coverUrl?: string | null;
-}
-
-interface LibraryEpisodeView extends LibraryEpisode {
-    hasVideo?: boolean;
-    hasSubtitle?: boolean;
-    linkStatus?: string;
-    videoFilename?: string | null;
-    subtitleFilename?: string | null;
-}
-
-interface SubtitleEpisodeSelection {
-    episode: LibraryEpisodeView;
-    row: HTMLElement;
-}
-
-interface LibraryJobData extends ApiPayload {
-    job?: {
-        id?: string;
-        status?: string;
-        error?: string;
-        result?: {
-            error?: string;
-            filesFound?: number;
-            [key: string]: unknown;
-        };
-    };
-}
-
-interface SubtitleCandidate {
-    source?: string;
-    entryId?: string | number;
-    entryTitle?: string;
-    releaseKey?: string;
-    releaseLabel?: string;
-    filename?: string;
-    downloadUrl?: string;
-    [key: string]: unknown;
-}
-
-interface BulkSubtitlePlanItem {
-    episodeId: string | number;
-    episodeNumber?: string | number | null;
-    episodeTitle?: string | null;
-    status?: string;
-    message?: string;
-    selected?: SubtitleCandidate | null;
-    candidates?: SubtitleCandidate[];
-    alternativesCount?: number;
-    [key: string]: unknown;
-}
-
-interface BulkSubtitlePlan {
-    items?: BulkSubtitlePlanItem[];
-    entriesChecked?: number;
-    [key: string]: unknown;
-}
-
-interface CoverSearchResult {
-    source?: string;
-    externalId?: string | number;
-    coverUrl?: string;
-    title?: string;
-    preferredTitle?: string;
-    englishTitle?: string;
-    nativeTitle?: string;
-    format?: string;
-    seasonYear?: string | number;
-    episodes?: number;
-}
-
 const LIBRARY_I18N: LibraryLanguageCatalog = {
     en: {
         name: "English",
@@ -274,15 +199,7 @@ function renderSeriesTitle(series) {
 }
 
 function recomputeSeriesLinkStatusFromEpisodes(episodes) {
-    const items = Array.isArray(episodes) ? episodes : [];
-    if (!items.length) return "missing";
-
-    const episodesWithVideo = items.filter((episode) => episode.hasVideo).length;
-    const episodesWithSubtitle = items.filter((episode) => episode.hasSubtitle).length;
-
-    if (episodesWithVideo <= 0 && episodesWithSubtitle <= 0) return "missing";
-    if (episodesWithVideo === items.length && episodesWithSubtitle === items.length) return "linked";
-    return "partial";
+    return LibraryPresentation.linkStatus(episodes);
 }
 
 function refreshCurrentSeriesLinkStatus() {
@@ -302,13 +219,11 @@ function refreshCurrentSeriesLinkStatus() {
 }
 
 function statusLabel(status) {
-    if (status === "linked") return lt("allLinked");
-    if (status === "partial") return lt("partiallyLinked");
-    return lt("missingFiles");
+    return LibraryPresentation.statusLabel(status, lt);
 }
 
 function statusKeyLabel(status) {
-    return lt(status === "ready" ? "ready" : status === "needs-review" ? "needsReview" : status === "failed" ? "failed" : "skipped");
+    return LibraryPresentation.planStatusLabel(status, lt);
 }
 
 const seriesGrid = document.getElementById("seriesGrid") as HTMLElement;
@@ -404,28 +319,11 @@ function updateCurrentSeriesStatsText(delta) {
 }
 
 function formatLibraryTime(seconds) {
-    const value = Number(seconds || 0);
-
-    if (value <= 0) return "0m";
-
-    const hours = Math.floor(value / 3600);
-    const minutes = Math.floor((value % 3600) / 60);
-
-    if (hours > 0) {
-        return `${hours}h ${minutes}m`;
-    }
-
-    return `${minutes}m`;
+    return LibraryPresentation.formatTime(seconds);
 }
 
 function formatBytes(bytes) {
-    const value = Number(bytes || 0);
-
-    if (value <= 0) return "";
-    if (value < 1024) return `${value} B`;
-    if (value < 1024 * 1024) return `${Math.round(value / 1024)} KB`;
-
-    return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+    return LibraryPresentation.formatBytes(bytes);
 }
 
 
@@ -442,11 +340,7 @@ function statusTitle(status) {
 }
 
 function escapeHtml(value) {
-    return String(value ?? "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;");
+    return LibraryPresentation.escapeHtml(value);
 }
 
 async function loadLibrarySeries() {
