@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import vm from "node:vm";
 
 const highlighterPath = fileURLToPath(new URL("../dist/js/highlighter/anki-highlighter.js", import.meta.url));
+const matchModelPath = fileURLToPath(new URL("../dist/js/highlighter/anki-match-model.js", import.meta.url));
 const comprehensionLevelPath = fileURLToPath(new URL("../dist/js/subtitles/comprehension-level.js", import.meta.url));
 const tokenFixtures = new Map();
 
@@ -21,6 +22,7 @@ const context = {
 
 vm.createContext(context);
 vm.runInContext(readFileSync(comprehensionLevelPath, "utf8"), context, { filename: comprehensionLevelPath });
+vm.runInContext(readFileSync(matchModelPath, "utf8"), context, { filename: matchModelPath });
 vm.runInContext(readFileSync(highlighterPath, "utf8"), context, { filename: highlighterPath });
 
 function resetKnownWords(...words) {

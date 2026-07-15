@@ -27,6 +27,7 @@
         "libs/kuromoji/kuromoji.js",
         "/dist/js/japanese/japanese-tokenizer.js",
         "/dist/js/highlighter/subtitles-highlighter.js",
+        "/dist/js/highlighter/anki-match-model.js",
         "/dist/js/highlighter/anki-highlighter.js",
         "/dist/js/subtitles/timing.js",
         "/dist/js/subtitles/context-selection.js",
