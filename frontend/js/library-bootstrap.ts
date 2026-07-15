@@ -3,6 +3,7 @@
         "/dist/js/core/api.js",
         "/dist/js/library/library-api.js",
         "/dist/js/library/library-types.js",
+        "/dist/js/library/library-i18n.js",
         "/dist/js/library/library-presentation.js",
         "/dist/js/library/library.js",
     ];
