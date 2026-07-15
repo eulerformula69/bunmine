@@ -17,6 +17,7 @@ const catalogResultSummary = document.getElementById("catalogResultSummary") as 
 const catalogEmpty = document.getElementById("catalogEmpty") as HTMLElement;
 const catalogView = document.getElementById("catalogView") as HTMLElement;
 const seriesView = document.getElementById("seriesView") as HTMLElement;
+const libraryHeader = document.querySelector(".library-header") as HTMLElement;
 const scanLibraryBtn = document.getElementById("scanLibraryBtn") as HTMLButtonElement;
 const addAnimeBtn = document.getElementById("addAnimeBtn") as HTMLButtonElement;
 const librarySearchInput = document.getElementById("librarySearchInput") as HTMLInputElement;
@@ -197,6 +198,8 @@ function renderFileRow(episode: LibraryEpisodeView) {
 async function openSeries(seriesId: string | number, updateHash = true) {
     catalogView.classList.add("hidden");
     seriesView.classList.remove("hidden");
+    libraryHeader.classList.add("hidden");
+    document.body.classList.add("series-route");
     seriesTitle.textContent = lt("loading");
     episodeList.replaceChildren();
     fileList.replaceChildren();
@@ -224,6 +227,8 @@ async function openSeries(seriesId: string | number, updateHash = true) {
 function closeSeriesView(updateHash = true) {
     seriesView.classList.add("hidden");
     catalogView.classList.remove("hidden");
+    libraryHeader.classList.remove("hidden");
+    document.body.classList.remove("series-route");
     currentOpenedSeries = null;
     currentOpenedEpisodes = [];
     if (updateHash) history.pushState({}, "", location.pathname);

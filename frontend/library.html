@@ -43,30 +43,34 @@
   </section>
 
   <section id="seriesView" class="series-view hidden" aria-live="polite">
-    <button id="closeSeriesPanelBtn" class="back-button" type="button" data-i18n="backToLibrary">Back to library</button>
-    <header class="series-detail-header">
-      <div id="seriesDetailCover" class="detail-cover"></div>
-      <div class="detail-heading">
-        <p id="seriesStatus" class="status-pill"></p>
-        <h2 id="seriesTitle"></h2>
-        <p id="seriesStats" class="muted"></p>
-        <p id="seriesCurrentEpisode" class="detail-current"></p>
-        <a id="seriesPrimaryAction" class="button primary large" href="/"></a>
-      </div>
-    </header>
-    <div id="seriesTabs" class="series-tabs" role="tablist">
-      <button type="button" class="active" data-tab="episodes" data-i18n="episodes">Episodes</button>
-      <button type="button" data-tab="files" data-i18n="files">Files</button>
-      <button type="button" data-tab="tools" data-i18n="tools">Tools</button>
-    </div>
-    <div id="episodesTab" class="tab-panel"><div id="episodeList" class="episode-list"></div></div>
-    <div id="filesTab" class="tab-panel hidden"><div id="fileList" class="file-list"></div></div>
-    <div id="toolsTab" class="tab-panel hidden">
-      <div class="tool-groups">
-        <section class="tool-group"><h3 data-i18n="subtitlesGroup">Subtitles</h3><button id="downloadMissingSubtitlesBtn" class="button secondary" type="button" data-i18n="downloadMissingJpSubs">Download missing JP subs</button></section>
-        <section class="tool-group"><h3 data-i18n="mediaGroup">Media</h3><div class="tool-actions"><button id="changeSeriesCoverBtn" class="button secondary" type="button" data-i18n="changeCover">Change cover</button><button id="relinkSeriesFilesBtn" class="button secondary" type="button" data-i18n="relinkFiles">Relink files</button></div></section>
-        <section class="tool-group danger-zone"><h3 data-i18n="dangerZone">Danger zone</h3><p class="muted" data-i18n="deleteSeriesHint">Removes the library record, not files on disk.</p><button id="deleteSeriesBtn" class="button danger" type="button" data-i18n="deleteSeries">Delete</button></section>
-      </div>
+    <div class="series-detail-layout">
+      <aside class="series-identity">
+        <button id="closeSeriesPanelBtn" class="back-button" type="button" data-i18n="backToLibrary">Back to library</button>
+        <div id="seriesDetailCover" class="detail-cover"></div>
+        <div class="detail-heading">
+          <p id="seriesStatus" class="status-pill"></p>
+          <h2 id="seriesTitle"></h2>
+          <p id="seriesStats" class="muted"></p>
+          <p id="seriesCurrentEpisode" class="detail-current"></p>
+          <a id="seriesPrimaryAction" class="button primary large" href="/"></a>
+        </div>
+      </aside>
+      <section class="series-content">
+        <div id="seriesTabs" class="series-tabs" role="tablist">
+          <button type="button" class="active" data-tab="episodes" data-i18n="episodes">Episodes</button>
+          <button type="button" data-tab="files" data-i18n="files">Files</button>
+          <button type="button" data-tab="tools" data-i18n="tools">Tools</button>
+        </div>
+        <div id="episodesTab" class="tab-panel"><div id="episodeList" class="episode-list"></div></div>
+        <div id="filesTab" class="tab-panel hidden"><div id="fileList" class="file-list"></div></div>
+        <div id="toolsTab" class="tab-panel hidden">
+          <div class="tool-groups">
+            <section class="tool-group"><h3 data-i18n="subtitlesGroup">Subtitles</h3><button id="downloadMissingSubtitlesBtn" class="button secondary" type="button" data-i18n="downloadMissingJpSubs">Download missing JP subs</button></section>
+            <section class="tool-group"><h3 data-i18n="mediaGroup">Media</h3><div class="tool-actions"><button id="changeSeriesCoverBtn" class="button secondary" type="button" data-i18n="changeCover">Change cover</button><button id="relinkSeriesFilesBtn" class="button secondary" type="button" data-i18n="relinkFiles">Relink files</button></div></section>
+            <section class="tool-group danger-zone"><h3 data-i18n="dangerZone">Danger zone</h3><p class="muted" data-i18n="deleteSeriesHint">Removes the library record, not files on disk.</p><button id="deleteSeriesBtn" class="button danger" type="button" data-i18n="deleteSeries">Delete</button></section>
+          </div>
+        </div>
+      </section>
     </div>
   </section>
 
