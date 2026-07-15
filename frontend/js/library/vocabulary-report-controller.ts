@@ -2,7 +2,8 @@ function buildVocabularyReportPayload(root: ParentNode = document) {
     const statuses = Array.from(root.querySelectorAll<HTMLInputElement>('input[name="reportStatus"]:checked')).map(input => input.value);
     const selectedSheets = new Set(Array.from(root.querySelectorAll<HTMLInputElement>('input[name="reportSheet"]:checked')).map(input => input.value));
     const includeParticles = root.querySelector<HTMLInputElement>('#reportIncludeParticles')?.checked ?? false;
-    return { statuses, includeParticles, sheets: { summary: selectedSheets.has("summary"), occurrences: selectedSheets.has("occurrences"), statistics: selectedSheets.has("statistics") } };
+    const includeAuxiliaryForms = root.querySelector<HTMLInputElement>('#reportIncludeAuxiliaryForms')?.checked ?? false;
+    return { statuses, includeParticles, includeAuxiliaryForms, sheets: { summary: selectedSheets.has("summary"), occurrences: selectedSheets.has("occurrences"), statistics: selectedSheets.has("statistics") } };
 }
 
 async function downloadVocabularyReport(seriesId: string | number, root: ParentNode = document) {

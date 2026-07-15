@@ -12,6 +12,12 @@ PARTICLE_LIKE_FORMS = {
     "ので", "のに", "とか", "という", "なんて", "しか", "だけ", "ほど", "くらい", "ぐらい",
     "ばかり", "でも", "ても",
 }
+AUXILIARY_LIKE_FORMS = {
+    "だ", "た", "ない", "ます", "う", "れる", "さん", "どう", "まし", "あっ", "お", "たい", "っす", "なん",
+    "じゃん", "もの", "あ", "たち", "ぬ", "ら", "く", "ちゃう", "うい", "られる", "おお",
+    "ええ", "たく", "がる", "おっ", "ご", "しまう", "す", "では", "はっ", "ほら", "り",
+    "ま", "おい",
+}
 
 
 def plain_anki_text(value: object) -> str:
@@ -44,7 +50,11 @@ def _match(token: dict, known: dict, known_basic: set[str]) -> tuple[str, dict, 
     return (basic if basic and basic != "*" else surface), {}, "unknown"
 
 
-def is_non_lexical_token(token: dict, include_particles: bool = False) -> bool:
+def is_non_lexical_token(
+    token: dict,
+    include_particles: bool = False,
+    include_auxiliary_forms: bool = False,
+) -> bool:
     surface = str(token.get("surface") or "").strip()
     pos = str(token.get("pos") or "")
     pos_detail = str(token.get("posDetail") or "")
@@ -52,24 +62,38 @@ def is_non_lexical_token(token: dict, include_particles: bool = False) -> bool:
         return True
     if not include_particles and (pos == "助詞" or surface in PARTICLE_LIKE_FORMS):
         return True
+    if not include_auxiliary_forms and (pos == "助動詞" or surface in AUXILIARY_LIKE_FORMS):
+        return True
     if pos_detail == "数" or all(character.isnumeric() for character in surface):
         return True
     return all(unicodedata.category(character)[0] in {"P", "S", "Z", "C"} for character in surface)
 
 
-def build_report_rows(series: str, cues: list[dict], known: dict, known_basic: set[str], statuses: set[str], include_particles: bool = False):
+def build_report_rows(
+    series: str,
+    cues: list[dict],
+    known: dict,
+    known_basic: set[str],
+    statuses: set[str],
+    include_particles: bool = False,
+    include_auxiliary_forms: bool = False,
+):
     occurrences, all_statuses, unique_statuses = [], Counter(), {}
     for cue in cues:
         seen_positions = set()
         for token in cue.get("tokens", []):
             surface = str(token.get("surface") or "").strip()
-            if is_non_lexical_token(token, include_particles):
+            if is_non_lexical_token(token, include_particles, include_auxiliary_forms):
                 continue
             position_key = (cue.get("episodeId"), cue.get("start"), token.get("position"))
             if position_key in seen_positions:
                 continue
             seen_positions.add(position_key)
             word, info, match_type = _match(token, known, known_basic)
+            if not include_particles and word in PARTICLE_LIKE_FORMS:
+                continue
+            if not include_auxiliary_forms and word in AUXILIARY_LIKE_FORMS:
+                continue
             status = str(info.get("status") or "not_in_anki")
             if status not in STATUSES:
                 status = "not_in_anki"

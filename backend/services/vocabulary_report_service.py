@@ -64,5 +64,6 @@ def generate_vocabulary_report(series_id: int, payload: dict):
     summary, occurrences, totals = build_report_rows(
         series["title"], cues, known, known_basic, statuses,
         include_particles=bool(payload.get("includeParticles")),
+        include_auxiliary_forms=bool(payload.get("includeAuxiliaryForms")),
     )
     return create_workbook(summary, occurrences, totals, sheets), safe_report_filename(series["title"])

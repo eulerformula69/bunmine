@@ -117,3 +117,31 @@ def test_numbers_punctuation_and_special_symbols_are_always_ignored():
     ]:
         assert is_non_lexical_token({"surface": surface, "pos": pos, "posDetail": detail})
         assert is_non_lexical_token({"surface": surface, "pos": pos, "posDetail": detail}, include_particles=True)
+
+
+def test_auxiliary_and_requested_conversational_forms_are_optional():
+    requested_forms = "だ た ない ます う れる さん どう まし あっ お たい っす なん じゃん もの あ たち ぬ ら く ちゃう うい られる おお ええ たく がる おっ ご しまう す では はっ ほら り ま おい".split()
+    for surface in requested_forms:
+        token = {"surface": surface, "pos": "名詞", "posDetail": "一般"}
+        assert is_non_lexical_token(token)
+        assert not is_non_lexical_token(token, include_auxiliary_forms=True)
+    auxiliary = {"surface": "だ", "pos": "助動詞", "posDetail": "*"}
+    assert is_non_lexical_token(auxiliary)
+    assert not is_non_lexical_token(auxiliary, include_auxiliary_forms=True)
+
+
+def test_auxiliary_toggle_changes_report_rows():
+    cues = [{"episodeId": 1, "episode": "E1", "start": 0, "end": 1, "sentence": "だった", "tokens": [
+        {"surface": "だ", "basic": "だ", "pos": "助動詞", "position": 1, "candidates": ["だ"]},
+        {"surface": "た", "basic": "た", "pos": "助動詞", "position": 2, "candidates": ["た"]},
+    ]}]
+    assert build_report_rows("S", cues, {}, set(), {"not_in_anki"})[1] == []
+    included = build_report_rows("S", cues, {}, set(), {"not_in_anki"}, include_auxiliary_forms=True)[1]
+    assert [row["word"] for row in included] == ["だ", "た"]
+
+
+def test_normalized_auxiliary_form_is_filtered_when_surface_differs():
+    cues = [{"episodeId": 1, "episode": "E1", "start": 0, "end": 1, "sentence": "られ", "tokens": [
+        {"surface": "られ", "basic": "られる", "pos": "動詞", "position": 1, "candidates": ["られ", "られる"]},
+    ]}]
+    assert build_report_rows("S", cues, {}, set(), {"not_in_anki"})[1] == []
