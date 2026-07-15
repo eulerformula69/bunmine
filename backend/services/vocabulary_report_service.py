@@ -39,9 +39,23 @@ def generate_vocabulary_report(series_id: int, payload: dict):
     if not statuses or not statuses <= STATUSES: raise VocabularyReportError("Select at least one valid status")
     if not any(sheets.get(name) for name in ("summary", "occurrences", "statistics")): raise VocabularyReportError("Select at least one sheet")
     series, files = _series_files(series_id)
-    process = subprocess.run(["node", "tools/vocabulary-analyzer.mjs"], input=json.dumps({"files": files}), text=True, capture_output=True, cwd=PROJECT_DIR, timeout=600)
+    process = subprocess.run(
+        ["node", "tools/vocabulary-analyzer.mjs"],
+        input=json.dumps({"files": files}, ensure_ascii=False),
+        text=True,
+        encoding="utf-8",
+        errors="strict",
+        capture_output=True,
+        cwd=PROJECT_DIR,
+        timeout=600,
+    )
     if process.returncode: raise VocabularyReportError(f"Could not analyze subtitles: {process.stderr.strip()}")
-    cues = json.loads(process.stdout)
+    if not process.stdout:
+        raise VocabularyReportError("Subtitle analyzer returned no data")
+    try:
+        cues = json.loads(process.stdout)
+    except json.JSONDecodeError as error:
+        raise VocabularyReportError("Subtitle analyzer returned invalid data") from error
     cache = read_known_anki_data(); known = cache.get("words", {})
     settings = read_anki_highlight_settings(); sentence_fields = settings.get("sentenceFields") or ["Sentence", "Example", "ExpressionSentence", "Context"]
     for info in known.values():
