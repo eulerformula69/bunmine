@@ -6,6 +6,15 @@ function buildVocabularyReportPayload(root: ParentNode = document) {
     return { statuses, includeParticles, includeAuxiliaryForms, sheets: { summary: selectedSheets.has("summary"), occurrences: selectedSheets.has("occurrences"), statistics: selectedSheets.has("statistics") } };
 }
 
+function vocabularyReportFilename(contentDisposition: string): string {
+    const utf8Name = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
+    if (utf8Name) {
+        try { return decodeURIComponent(utf8Name.trim()); } catch { /* use regular filename */ }
+    }
+    const regularName = contentDisposition.match(/filename=(?:"([^"]+)"|([^;]+))/i);
+    return (regularName?.[1] || regularName?.[2] || "vocabulary_report.xlsx").trim();
+}
+
 async function downloadVocabularyReport(seriesId: string | number, root: ParentNode = document) {
     const button = root.querySelector<HTMLButtonElement>("#confirmVocabularyReportBtn");
     const status = root.querySelector<HTMLElement>("#vocabularyReportStatus");
@@ -26,7 +35,7 @@ async function downloadVocabularyReport(seriesId: string | number, root: ParentN
         const response = await fetch(`/library/vocabulary-report/${encodeURIComponent(jobId)}/download`);
         if (!response.ok) throw new Error(lt("reportFailed"));
         const blob = await response.blob(); const disposition = response.headers.get("Content-Disposition") || "";
-        const filename = decodeURIComponent(disposition.match(/filename\*=UTF-8''([^;]+)/i)?.[1] || "vocabulary_report.xlsx");
+        const filename = vocabularyReportFilename(disposition);
         const url = URL.createObjectURL(blob); const link = document.createElement("a"); link.href = url; link.download = filename; link.click(); URL.revokeObjectURL(url);
         if (status) status.textContent = lt("reportReady");
     } catch (error) {
