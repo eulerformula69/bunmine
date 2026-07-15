@@ -26,6 +26,7 @@ interface PlayerSettings {
 	highlightColorUnknown?: string;
 	highlightDeckNames?: string;
 	highlightWordField?: string;
+	ankiSentenceFields?: string;
 	ankiHighlightAutoRefresh?: string;
 	ankiHighlightAutoRefreshInterval?: string;
 	showComprehensionI0?: boolean;
@@ -104,6 +105,7 @@ function collectSettings(): PlayerSettings {
 		highlightColorUnknown: getSettingsInput("highlightColorUnknown")?.value || "#ffffff",
 		highlightDeckNames: getSettingsInput("highlightDeckNames")?.value || "",
 		highlightWordField: getSettingsInput("highlightWordField")?.value || "Word",
+		ankiSentenceFields: getSettingsInput("ankiSentenceFields")?.value || "Sentence, Example, ExpressionSentence, Context",
 		ankiHighlightAutoRefreshInterval: getSettingsSelect("ankiHighlightAutoRefreshInterval")?.value || "off",
 		showComprehensionI0: getSettingsInput("showComprehensionI0")?.checked ?? true,
 		showComprehensionI1: getSettingsInput("showComprehensionI1")?.checked ?? true,
@@ -143,6 +145,8 @@ async function saveAnkiHighlightAutoRefreshSettings(settings: PlayerSettings): P
         .split(/[,\n]/)
         .map((item) => item.trim())
         .filter(Boolean);
+    const sentenceFields = String(settings.ankiSentenceFields || "Sentence, Example, ExpressionSentence, Context")
+        .split(/[,\n]/).map((item) => item.trim()).filter(Boolean);
 
     const { response, data } = await apiJson<SaveAnkiHighlightAutoRefreshResponse>("/known-anki-words/auto-refresh-settings", {
         method: "POST",
@@ -151,6 +155,7 @@ async function saveAnkiHighlightAutoRefreshSettings(settings: PlayerSettings): P
             ankiUrl: settings.ankiUrl || "",
             decks,
             wordFields,
+            sentenceFields,
             autoRefresh: settings.ankiHighlightAutoRefreshInterval || "off"
         })
     });
@@ -223,6 +228,8 @@ function loadSettings(): void {
 	if (highlightWordField) {
 		highlightWordField.value = settings.highlightWordField || "Word";
 	}
+	const ankiSentenceFields = getSettingsInput("ankiSentenceFields");
+	if (ankiSentenceFields) ankiSentenceFields.value = settings.ankiSentenceFields || "Sentence, Example, ExpressionSentence, Context";
 
 	const ankiHighlightAutoRefreshInterval = getSettingsSelect("ankiHighlightAutoRefreshInterval");
 	if (ankiHighlightAutoRefreshInterval) {
@@ -369,6 +376,7 @@ function initSettingsAutosave(): void {
         "highlightColorUnknown",
         "highlightDeckNames",
         "highlightWordField",
+        "ankiSentenceFields",
         "ankiHighlightAutoRefreshInterval",
         "showComprehensionI0",
         "showComprehensionI1",

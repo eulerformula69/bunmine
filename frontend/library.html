@@ -32,6 +32,7 @@
 		  </div>
 
 		  <div class="series-panel-actions">
+			<button id="exportVocabularyBtn" type="button" data-i18n="exportVocabulary">Export vocabulary report</button>
 			<button id="downloadMissingSubtitlesBtn" type="button" data-i18n="downloadMissingJpSubs">Download missing JP subs</button>
 			<button id="changeSeriesCoverBtn" type="button" data-i18n="changeCover">Change cover</button>
 			<button id="relinkSeriesFilesBtn" type="button" data-i18n="relinkFiles">Relink files</button>
@@ -70,6 +71,24 @@
       <button id="confirmBulkSubtitleDownloadBtn" type="button" disabled data-i18n="downloadSelected">Download selected</button>
       <button id="cancelBulkSubtitleDownloadBtn" type="button" data-i18n="cancel">Cancel</button>
     </div>
+  </section>
+</div>
+
+<div id="vocabularyReportModal" class="library-modal hidden">
+  <section class="cover-panel vocabulary-report-panel" role="dialog" aria-modal="true" aria-labelledby="vocabularyReportTitle">
+    <div class="series-panel-header"><h2 id="vocabularyReportTitle" data-i18n="exportVocabulary">Export vocabulary report</h2><button id="closeVocabularyReportBtn" type="button" data-i18n="close">Close</button></div>
+    <p data-i18n="reportScopeEntire">Scope: Entire series</p>
+    <fieldset><legend data-i18n="includeStatuses">Include statuses</legend>
+      <label><input name="reportStatus" value="not_in_anki" type="checkbox" checked> <span data-i18n="statusUnknown">Unknown / not in Anki</span></label>
+      <label><input name="reportStatus" value="new" type="checkbox" checked> New</label><label><input name="reportStatus" value="learning" type="checkbox" checked> Learning</label>
+      <label><input name="reportStatus" value="young" type="checkbox" checked> Young</label><label><input name="reportStatus" value="mature" type="checkbox"> Mature</label>
+      <label><input name="reportStatus" value="suspended" type="checkbox"> Suspended</label><label><input name="reportStatus" value="known_basic" type="checkbox"> Known Basic</label>
+    </fieldset>
+    <fieldset><legend data-i18n="reportSheets">Sheets</legend>
+      <label><input name="reportSheet" value="summary" type="checkbox" checked> Vocabulary Summary</label><label><input name="reportSheet" value="occurrences" type="checkbox" checked> Occurrences</label><label><input name="reportSheet" value="statistics" type="checkbox" checked> Statistics</label>
+    </fieldset>
+    <p id="vocabularyReportStatus" class="cover-message"></p>
+    <div class="bulk-subtitle-actions"><button id="confirmVocabularyReportBtn" type="button" data-i18n="prepareReport">Prepare report</button><button id="cancelVocabularyReportBtn" type="button" data-i18n="cancel">Cancel</button></div>
   </section>
 </div>
 

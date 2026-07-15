@@ -74,6 +74,7 @@ def write_anki_highlight_settings(payload: dict) -> dict:
         "ankiUrl": str(payload.get("ankiUrl") or "").strip(),
         "decks": [str(item).strip() for item in payload.get("decks") or [] if str(item).strip()],
         "wordFields": [str(item).strip() for item in payload.get("wordFields") or [] if str(item).strip()],
+        "sentenceFields": [str(item).strip() for item in payload.get("sentenceFields") or [] if str(item).strip()],
         "autoRefresh": str(payload.get("autoRefresh") or "daily").strip().lower(),
         "lastManualRefreshAt": payload.get("lastManualRefreshAt"),
         "lastAutoRefreshAt": payload.get("lastAutoRefreshAt"),
@@ -105,6 +106,7 @@ def _default_known_anki_data():
         "updatedAt": None,
         "decks": [],
         "wordFields": [],
+        "sentenceFields": [],
         "words": {},
     }
 
@@ -126,6 +128,7 @@ def read_known_anki_data() -> dict:
         "updatedAt": data.get("updatedAt"),
         "decks": data.get("decks") if isinstance(data.get("decks"), list) else [],
         "wordFields": data.get("wordFields") if isinstance(data.get("wordFields"), list) else [],
+        "sentenceFields": data.get("sentenceFields") if isinstance(data.get("sentenceFields"), list) else [],
         "words": words,
     }
 
@@ -136,6 +139,7 @@ def write_known_anki_data(data: dict) -> dict:
         "updatedAt": data.get("updatedAt"),
         "decks": data.get("decks") if isinstance(data.get("decks"), list) else [],
         "wordFields": data.get("wordFields") if isinstance(data.get("wordFields"), list) else [],
+        "sentenceFields": data.get("sentenceFields") if isinstance(data.get("sentenceFields"), list) else [],
         "words": data.get("words") if isinstance(data.get("words"), dict) else {},
     }
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -150,5 +154,4 @@ def ensure_anki_highlight_files() -> None:
         write_known_anki_data(_default_known_anki_data())
     if not anki_highlight_settings_path().exists():
         write_anki_highlight_settings({"autoRefresh": "daily"})
-
 

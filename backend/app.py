@@ -4,6 +4,7 @@ from flask import Flask
 from flask_cors import CORS
 
 from backend.routes.library_routes import library_bp
+from backend.routes.vocabulary_report_routes import vocabulary_report_bp
 from backend.routes.media_routes import media_bp
 from backend.routes.misc_routes import misc_bp
 from backend.routes.static_routes import static_bp
@@ -23,6 +24,7 @@ def create_app(settings: Settings | None = None) -> Flask:
         CORS(app)
 
     app.register_blueprint(library_bp)
+    app.register_blueprint(vocabulary_report_bp)
     app.register_blueprint(media_bp)
     app.register_blueprint(misc_bp)
     app.register_blueprint(static_bp)
@@ -57,5 +59,4 @@ def create_app(settings: Settings | None = None) -> Flask:
 
 
 app = create_app()
-
 
