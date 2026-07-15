@@ -92,8 +92,11 @@ def test_library_series_list_and_detail_report_link_status_and_counts(tmp_path):
     assert series["completedEpisodes"] == 1
     assert series["cardsCount"] == 1
     assert series["minedWordsCount"] == 1
+    assert series["lastWatchedAt"] is not None
+    assert series["currentTimeSeconds"] == 30
     assert detail["series"]["linkStatus"] == "linked"
     assert detail["episodes"][0]["linkStatus"] == "linked"
+    assert detail["episodes"][0]["videoFilename"].endswith("Show - 01.mkv")
 
 
 def test_library_series_detail_marks_partial_when_subtitle_is_missing(tmp_path):

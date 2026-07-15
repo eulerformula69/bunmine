@@ -2,117 +2,78 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Bunmine Library</title>
   <link rel="icon" href="icons/favicon.ico" sizes="any" />
   <link rel="stylesheet" href="styles/library.css" />
 </head>
 <body>
 <main class="library-page">
-  <div class="library-shell">
-    <header class="library-header">
-      <div>
-        <h1 data-i18n="libraryTitle">Bunmine Library</h1>
-        <p id="librarySummary" class="library-summary" data-i18n="loading">Loading...</p>
-      </div>
+  <header class="library-header">
+    <div>
+      <p class="eyebrow">Bunmine</p>
+      <h1 data-i18n="libraryTitle">Bunmine Library</h1>
+      <p id="librarySummary" class="library-summary" data-i18n="loading">Loading...</p>
+    </div>
+    <div class="library-actions">
+      <button id="scanLibraryBtn" class="button secondary" type="button" data-i18n="scanLibrary">Scan library</button>
+      <a class="button primary" href="/" data-i18n="player">Player</a>
+    </div>
+  </header>
 
-      <div class="library-actions">
-        <button id="scanLibraryBtn" type="button" data-i18n="scanLibrary">Scan library</button>
-        <a class="player-link" href="/" data-i18n="player">Player</a>
+  <section id="catalogView" class="catalog-layout">
+    <aside class="library-sidebar" aria-label="Library filters">
+      <label class="search-field">
+        <span data-i18n="searchByTitle">Search by title</span>
+        <input id="librarySearchInput" type="search" autocomplete="off" data-i18n-placeholder="searchPlaceholder" />
+      </label>
+      <nav id="libraryFilters" class="filter-nav"></nav>
+    </aside>
+    <section class="catalog-content">
+      <div class="catalog-toolbar">
+        <div>
+          <h2 data-i18n="myLibrary">My library</h2>
+          <p id="catalogResultSummary" class="muted"></p>
+        </div>
+        <button id="addAnimeBtn" class="button ghost" type="button" data-i18n="addAnime">Add anime</button>
+      </div>
+      <section id="seriesGrid" class="series-grid"></section>
+      <div id="catalogEmpty" class="empty-state hidden" data-i18n="noMatchingSeries">No series match these filters.</div>
+    </section>
+  </section>
+
+  <section id="seriesView" class="series-view hidden" aria-live="polite">
+    <button id="closeSeriesPanelBtn" class="back-button" type="button" data-i18n="backToLibrary">Back to library</button>
+    <header class="series-detail-header">
+      <div id="seriesDetailCover" class="detail-cover"></div>
+      <div class="detail-heading">
+        <p id="seriesStatus" class="status-pill"></p>
+        <h2 id="seriesTitle"></h2>
+        <p id="seriesStats" class="muted"></p>
+        <p id="seriesCurrentEpisode" class="detail-current"></p>
+        <a id="seriesPrimaryAction" class="button primary large" href="/"></a>
       </div>
     </header>
-
-    <section id="seriesGrid" class="series-grid"></section>
-
-	<div id="seriesModal" class="library-modal hidden">
-	  <section id="seriesPanel" class="series-panel" role="dialog" aria-modal="true" aria-labelledby="seriesTitle">
-		<div class="series-panel-header series-detail-header">
-		  <div>
-			<h2 id="seriesTitle"></h2>
-			<p id="seriesStats"></p>
-		  </div>
-
-		  <div class="series-panel-actions">
-			<button id="downloadMissingSubtitlesBtn" type="button" data-i18n="downloadMissingJpSubs">Download missing JP subs</button>
-			<button id="changeSeriesCoverBtn" type="button" data-i18n="changeCover">Change cover</button>
-			<button id="relinkSeriesFilesBtn" type="button" data-i18n="relinkFiles">Relink files</button>
-			<button id="deleteSeriesBtn" class="danger-button" type="button" data-i18n="deleteSeries">Delete</button>
-			<button id="closeSeriesPanelBtn" type="button" data-i18n="close">Close</button>
-		  </div>
-		</div>
-
-		<div id="episodeList" class="episode-list"></div>
-	  </section>
-	</div>
-  </div>
-
-
-<div id="bulkSubtitleModal" class="library-modal hidden">
-  <section class="cover-panel bulk-subtitle-panel" role="dialog" aria-modal="true" aria-labelledby="bulkSubtitleModalTitle">
-    <div class="series-panel-header">
-      <div>
-        <h2 id="bulkSubtitleModalTitle" data-i18n="downloadMissingJapaneseSubtitles">Download missing Japanese subtitles</h2>
-        <p id="bulkSubtitleModalSubtitle"></p>
+    <div id="seriesTabs" class="series-tabs" role="tablist">
+      <button type="button" class="active" data-tab="episodes" data-i18n="episodes">Episodes</button>
+      <button type="button" data-tab="files" data-i18n="files">Files</button>
+      <button type="button" data-tab="tools" data-i18n="tools">Tools</button>
+    </div>
+    <div id="episodesTab" class="tab-panel"><div id="episodeList" class="episode-list"></div></div>
+    <div id="filesTab" class="tab-panel hidden"><div id="fileList" class="file-list"></div></div>
+    <div id="toolsTab" class="tab-panel hidden">
+      <div class="tool-groups">
+        <section class="tool-group"><h3 data-i18n="subtitlesGroup">Subtitles</h3><button id="downloadMissingSubtitlesBtn" class="button secondary" type="button" data-i18n="downloadMissingJpSubs">Download missing JP subs</button></section>
+        <section class="tool-group"><h3 data-i18n="mediaGroup">Media</h3><div class="tool-actions"><button id="changeSeriesCoverBtn" class="button secondary" type="button" data-i18n="changeCover">Change cover</button><button id="relinkSeriesFilesBtn" class="button secondary" type="button" data-i18n="relinkFiles">Relink files</button></div></section>
+        <section class="tool-group danger-zone"><h3 data-i18n="dangerZone">Danger zone</h3><p class="muted" data-i18n="deleteSeriesHint">Removes the library record, not files on disk.</p><button id="deleteSeriesBtn" class="button danger" type="button" data-i18n="deleteSeries">Delete</button></section>
       </div>
-      <button id="closeBulkSubtitleModalBtn" type="button" data-i18n="close">Close</button>
-    </div>
-
-    <label class="cover-search-label" for="bulkSubtitleSearchInput" data-i18n="subtitleSearchTitle">Subtitle search title (query)</label>
-    <div class="cover-search-row">
-      <input id="bulkSubtitleSearchInput" type="text" />
-      <button id="bulkSubtitleSearchBtn" type="button" data-i18n="search">Search</button>
-    </div>
-
-    <div id="bulkSubtitleStatus" class="cover-message" data-i18n="subtitleQueryHint">Edit the Jimaku query, then press Search.</div>
-    <div id="bulkSubtitleSets" class="bulk-subtitle-sets"></div>
-    <div id="bulkSubtitleList" class="bulk-subtitle-list"></div>
-
-    <div class="bulk-subtitle-actions">
-      <button id="confirmBulkSubtitleDownloadBtn" type="button" disabled data-i18n="downloadSelected">Download selected</button>
-      <button id="cancelBulkSubtitleDownloadBtn" type="button" data-i18n="cancel">Cancel</button>
     </div>
   </section>
-</div>
 
-<div id="subtitleModal" class="library-modal hidden">
-  <section class="cover-panel" role="dialog" aria-modal="true" aria-labelledby="subtitleModalTitle">
-    <div class="series-panel-header">
-      <div>
-        <h2 id="subtitleModalTitle" data-i18n="findJapaneseSubtitles">Find Japanese subtitles</h2>
-        <p id="subtitleModalSubtitle"></p>
-      </div>
-      <button id="closeSubtitleModalBtn" type="button" data-i18n="close">Close</button>
-    </div>
-
-    <div class="cover-search-row">
-      <input id="subtitleSearchInput" type="text" />
-      <button id="subtitleSearchBtn" type="button" data-i18n="search">Search</button>
-    </div>
-
-    <div id="subtitleResults" class="cover-results subtitle-results"></div>
-  </section>
-</div>
-
-<div id="coverModal" class="library-modal hidden">
-  <section class="cover-panel" role="dialog" aria-modal="true" aria-labelledby="coverModalTitle">
-    <div class="series-panel-header">
-      <div>
-        <h2 id="coverModalTitle" data-i18n="findCover">Find cover</h2>
-        <p id="coverModalSubtitle"></p>
-      </div>
-      <button id="closeCoverModalBtn" type="button" data-i18n="close">Close</button>
-    </div>
-
-    <div class="cover-search-row">
-      <input id="coverSearchInput" type="text" />
-      <button id="coverSearchBtn" type="button" data-i18n="search">Search</button>
-    </div>
-
-    <div id="coverResults" class="cover-results"></div>
-  </section>
-</div>  
-  
+  <div id="bulkSubtitleModal" class="library-modal hidden"><section class="modal-panel bulk-subtitle-panel" role="dialog" aria-modal="true" aria-labelledby="bulkSubtitleModalTitle"><div class="modal-header"><div><h2 id="bulkSubtitleModalTitle" data-i18n="downloadMissingJapaneseSubtitles">Download missing Japanese subtitles</h2><p id="bulkSubtitleModalSubtitle"></p></div><button id="closeBulkSubtitleModalBtn" type="button" data-i18n="close">Close</button></div><label class="field-label" for="bulkSubtitleSearchInput" data-i18n="subtitleSearchTitle">Subtitle search title</label><div class="search-row"><input id="bulkSubtitleSearchInput" type="text" /><button id="bulkSubtitleSearchBtn" type="button" data-i18n="search">Search</button></div><div id="bulkSubtitleStatus" class="cover-message" data-i18n="subtitleQueryHint">Edit the query, then press Search.</div><div id="bulkSubtitleSets" class="bulk-subtitle-sets"></div><div id="bulkSubtitleList" class="bulk-subtitle-list"></div><div class="modal-actions"><button id="confirmBulkSubtitleDownloadBtn" type="button" disabled data-i18n="downloadSelected">Download selected</button><button id="cancelBulkSubtitleDownloadBtn" type="button" data-i18n="cancel">Cancel</button></div></section></div>
+  <div id="subtitleModal" class="library-modal hidden"><section class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="subtitleModalTitle"><div class="modal-header"><div><h2 id="subtitleModalTitle" data-i18n="findJapaneseSubtitles">Find Japanese subtitles</h2><p id="subtitleModalSubtitle"></p></div><button id="closeSubtitleModalBtn" type="button" data-i18n="close">Close</button></div><div class="search-row"><input id="subtitleSearchInput" type="text" /><button id="subtitleSearchBtn" type="button" data-i18n="search">Search</button></div><div id="subtitleResults" class="cover-results subtitle-results"></div></section></div>
+  <div id="coverModal" class="library-modal hidden"><section class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="coverModalTitle"><div class="modal-header"><div><h2 id="coverModalTitle" data-i18n="findCover">Find cover</h2><p id="coverModalSubtitle"></p></div><button id="closeCoverModalBtn" type="button" data-i18n="close">Close</button></div><div class="search-row"><input id="coverSearchInput" type="text" /><button id="coverSearchBtn" type="button" data-i18n="search">Search</button></div><div id="coverResults" class="cover-results"></div></section></div>
 </main>
-
-  <script type="module" src="/dist/js/library-bootstrap.js"></script>
+<script type="module" src="/dist/js/library-bootstrap.js"></script>
 </body>
 </html>

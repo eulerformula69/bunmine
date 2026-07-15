@@ -1,185 +1,73 @@
 scanLibraryBtn.addEventListener("click", async () => {
     scanLibraryBtn.disabled = true;
     scanLibraryBtn.textContent = lt("scanning");
-
     try {
-        await startAndPollLibraryJob("/library/scan", {}, lt("scanFailed"));
+        await startAndPollLibraryJob("/library/scan");
         await loadLibrarySeries();
-    } catch (err) {
-        alert(err.message);
-    } finally {
-        scanLibraryBtn.disabled = false;
-        scanLibraryBtn.textContent = lt("scanLibrary");
-    }
+    } catch (error) { showError(error); }
+    finally { scanLibraryBtn.disabled = false; scanLibraryBtn.textContent = lt("scanLibrary"); }
 });
 
-closeSeriesPanelBtn.addEventListener("click", () => {
-    closeSeriesModal();
-});
-
-document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") {
-        closeSeriesModal();
-        closeCoverModal();
-        closeSubtitleModal();
-        closeBulkSubtitleModal();
-    }
-});
-
-seriesModal.addEventListener("click", (event) => {
-    if (event.target === seriesModal) {
-        closeSeriesModal();
-    }
-});
-
-loadLibrarySeries().catch((err) => {
-    console.error(err);
-    librarySummary.textContent = err.message;
-});
-
-function openSeriesModal() {
-    seriesModal.classList.remove("hidden");
-    document.body.classList.add("modal-open");
-}
-
-function closeSeriesModal() {
-    seriesModal.classList.add("hidden");
-    document.body.classList.remove("modal-open");
-    currentOpenedSeries = null;
-    currentOpenedEpisodes = [];
-}
-
-closeCoverModalBtn.addEventListener("click", () => {
-    closeCoverModal();
-});
-
-coverSearchBtn.addEventListener("click", () => {
-    searchCoversForCurrentSeries();
-});
-
-coverSearchInput.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") {
-        searchCoversForCurrentSeries();
-    }
-});
-
-coverModal.addEventListener("click", (event) => {
-    if (event.target === coverModal) {
-        closeCoverModal();
-    }
-});
-
-closeSubtitleModalBtn.addEventListener("click", () => {
-    closeSubtitleModal();
-});
-
-subtitleSearchBtn.addEventListener("click", () => {
-    searchSubtitlesForCurrentEpisode();
-});
-
-subtitleSearchInput.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") {
-        searchSubtitlesForCurrentEpisode();
-    }
-});
-
-subtitleModal.addEventListener("click", (event) => {
-    if (event.target === subtitleModal) {
-        closeSubtitleModal();
-    }
-});
-
-closeBulkSubtitleModalBtn.addEventListener("click", () => {
-    closeBulkSubtitleModal();
-});
-
-cancelBulkSubtitleDownloadBtn.addEventListener("click", () => {
-    closeBulkSubtitleModal();
-});
-
-confirmBulkSubtitleDownloadBtn.addEventListener("click", () => {
-    downloadSelectedBulkSubtitles();
-});
-
-bulkSubtitleSearchBtn.addEventListener("click", () => {
-    analyzeMissingSubtitlesForCurrentSeries();
-});
-
-bulkSubtitleSearchInput.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") {
-        analyzeMissingSubtitlesForCurrentSeries();
-    }
-});
-
-bulkSubtitleModal.addEventListener("click", (event) => {
-    if (event.target === bulkSubtitleModal) {
-        closeBulkSubtitleModal();
-    }
-});
-
-if (bulkSubtitleSets) {
-    bulkSubtitleSets.addEventListener("click", (event) => {
-        const button = (event.target as HTMLElement).closest(".bulk-subtitle-set-btn") as HTMLButtonElement | null;
-        if (!button || button.disabled) return;
-        applyBulkSubtitleSet(button.dataset.releaseKey);
-    });
-}
-
-bulkSubtitleList.addEventListener("change", (event) => {
-    const target = event.target as HTMLElement | null;
-
-    if (target && target.classList.contains("bulk-subtitle-checkbox")) {
-        updateBulkSubtitleConfirmState();
-        return;
-    }
-
-    if (target && target.classList.contains("bulk-subtitle-select")) {
-        const select = target as HTMLSelectElement;
-        const episodeId = String(select.dataset.episodeId);
-        const value = String(select.value || "");
-        const item = (currentBulkSubtitlePlan?.items || []).find((item) => String(item.episodeId) === episodeId);
-        if (!item) return;
-
-        const candidate = (item.candidates || []).find((candidate) => candidateKey(candidate) === value);
-        if (candidate) {
-            item.selected = candidate;
-            item.status = "ready";
-            item.message = lt("selectedManually");
-        } else {
-            item.selected = null;
-            item.status = item.candidates?.length ? "needs-review" : "skipped";
-            item.message = item.candidates?.length ? lt("chooseSubtitleSetOrManual") : lt("noSubtitleSelected");
-        }
-
-        renderBulkSubtitlePlan(currentBulkSubtitlePlan);
-    }
-});
-
-seriesGrid.addEventListener("click", (event) => {
-    const button = (event.target as HTMLElement).closest(".series-delete-card-btn") as HTMLButtonElement | null;
+addAnimeBtn.addEventListener("click", () => addAnimeFromPath().catch(showError));
+closeSeriesPanelBtn.addEventListener("click", () => closeSeriesView());
+librarySearchInput.addEventListener("input", () => { filterState.query = librarySearchInput.value; renderCatalog(); });
+libraryFilters.addEventListener("click", (event) => {
+    const button = (event.target as HTMLElement).closest<HTMLButtonElement>("button");
     if (!button) return;
-    event.preventDefault();
-    event.stopPropagation();
-    deleteSeriesFromLibrary(button.dataset.seriesId, button.dataset.seriesTitle);
+    if (button.dataset.filter) filterState.filter = button.dataset.filter as LibrarySeriesFilter;
+    if (button.dataset.sort) filterState.sort = button.dataset.sort as LibrarySeriesSort;
+    renderCatalog();
 });
 
-if (deleteSeriesBtn) {
-    deleteSeriesBtn.addEventListener("click", () => {
-        if (!currentOpenedSeries) return;
-        deleteSeriesFromLibrary(currentOpenedSeries.id, currentOpenedSeries.title);
-    });
+seriesTabs.addEventListener("click", (event) => {
+    const button = (event.target as HTMLElement).closest<HTMLButtonElement>("button[data-tab]");
+    if (!button) return;
+    seriesTabs.querySelectorAll("button").forEach((item) => item.classList.toggle("active", item === button));
+    document.querySelectorAll(".tab-panel").forEach((panel) => panel.classList.add("hidden"));
+    document.getElementById(`${button.dataset.tab}Tab`)?.classList.remove("hidden");
+});
+
+changeSeriesCoverBtn.addEventListener("click", () => { if (currentOpenedSeries) openCoverSearchModal(currentOpenedSeries); });
+relinkSeriesFilesBtn.addEventListener("click", () => relinkCurrentSeriesFiles().catch(showError));
+downloadMissingSubtitlesBtn.addEventListener("click", () => prepareMissingSubtitlesForCurrentSeries());
+deleteSeriesBtn.addEventListener("click", () => { if (currentOpenedSeries) deleteSeriesFromLibrary(currentOpenedSeries.id, currentOpenedSeries.title).catch(showError); });
+
+closeCoverModalBtn.addEventListener("click", closeCoverModal);
+coverSearchBtn.addEventListener("click", searchCoversForCurrentSeries);
+coverSearchInput.addEventListener("keydown", (event) => { if (event.key === "Enter") searchCoversForCurrentSeries(); });
+closeSubtitleModalBtn.addEventListener("click", closeSubtitleModal);
+subtitleSearchBtn.addEventListener("click", searchSubtitlesForCurrentEpisode);
+subtitleSearchInput.addEventListener("keydown", (event) => { if (event.key === "Enter") searchSubtitlesForCurrentEpisode(); });
+closeBulkSubtitleModalBtn.addEventListener("click", closeBulkSubtitleModal);
+cancelBulkSubtitleDownloadBtn.addEventListener("click", closeBulkSubtitleModal);
+confirmBulkSubtitleDownloadBtn.addEventListener("click", downloadSelectedBulkSubtitles);
+bulkSubtitleSearchBtn.addEventListener("click", analyzeMissingSubtitlesForCurrentSeries);
+bulkSubtitleSearchInput.addEventListener("keydown", (event) => { if (event.key === "Enter") analyzeMissingSubtitlesForCurrentSeries(); });
+bulkSubtitleSets.addEventListener("click", (event) => {
+    const button = (event.target as HTMLElement).closest<HTMLButtonElement>(".bulk-subtitle-set-btn");
+    if (button && !button.disabled) applyBulkSubtitleSet(button.dataset.releaseKey);
+});
+bulkSubtitleList.addEventListener("change", (event) => {
+    const target = event.target as HTMLInputElement | HTMLSelectElement;
+    if (target.classList.contains("bulk-subtitle-checkbox")) return updateBulkSubtitleConfirmState();
+    if (!target.classList.contains("bulk-subtitle-select")) return;
+    const item = (currentBulkSubtitlePlan?.items || []).find((value) => String(value.episodeId) === String(target.dataset.episodeId));
+    if (!item) return;
+    const candidate = (item.candidates || []).find((value) => candidateKey(value) === target.value);
+    item.selected = candidate || null;
+    item.status = candidate ? "ready" : item.candidates?.length ? "needs-review" : "skipped";
+    item.message = candidate ? lt("selectedManually") : lt("noSubtitleSelected");
+    renderBulkSubtitlePlan(currentBulkSubtitlePlan);
+});
+
+for (const modal of [coverModal, subtitleModal, bulkSubtitleModal]) {
+    modal.addEventListener("click", (event) => { if (event.target === modal) modal.classList.add("hidden"); });
 }
-
-relinkSeriesFilesBtn.addEventListener("click", relinkCurrentSeriesFiles);
-
-changeSeriesCoverBtn.addEventListener("click", () => {
-    if (!currentOpenedSeries) return;
-    openCoverSearchModal(currentOpenedSeries);
+document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape") return;
+    closeCoverModal(); closeSubtitleModal(); closeBulkSubtitleModal();
 });
-
-downloadMissingSubtitlesBtn.addEventListener("click", () => {
-    prepareMissingSubtitlesForCurrentSeries();
-});
+window.addEventListener("popstate", openSeriesFromHash);
 
 applyLibraryLanguage();
-
+loadLibrarySeries().catch((error) => { console.error(error); librarySummary.textContent = error.message; });
