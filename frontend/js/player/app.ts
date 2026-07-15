@@ -132,97 +132,21 @@ const knownBasicActions = createKnownBasicActions({
 const addWordToKnownBasic = knownBasicActions.addWord;
 const copyWordForYomitan = knownBasicActions.copyWord;
 
-async function prefetchRuntimeStatusesForAllSubtitles({
-    silent = true,
-    startIndex = null
-} = {}) {
-    if (!Array.isArray(subtitles) || !subtitles.length) return;
-    if (runtimePrefetchAllInProgress) return;
-
-    const runId = ++runtimePrefetchAllRunId;
-    runtimePrefetchAllInProgress = true;
-    runtimeHighlightPrefetchReady = false;
-
-    const chunkSize = 100;
-    const chunkDelayMs = 50;
-    const subtitleWindowSize = 20;
-
-    try {
-        await loadHighlightWordIndexes?.();
-
-        if (typeof getJapaneseTokenizer === "function") {
-            await getJapaneseTokenizer();
-        }
-
-        let currentIdx = Number.isInteger(startIndex)
-            ? startIndex
-            : subtitles.indexOf(getCurrentSubtitle?.());
-
-        if (currentIdx < 0) currentIdx = 0;
-
-        const startIdx = Math.max(0, currentIdx);
-        const endIdx = Math.min(
-            subtitles.length - 1,
-            startIdx + subtitleWindowSize - 1
-        );
-
-        runtimePrefetchWindowStart = startIdx;
-        runtimePrefetchWindowEnd = endIdx;
-        runtimeNextPrefetchStart = endIdx + 1;
-
-        const subtitlesToPrefetch = subtitles.slice(startIdx, endIdx + 1);
-
-        console.log(
-            `Runtime window prefetch: subtitles ${startIdx}-${endIdx} / ${subtitles.length}`
-        );
-
-        const allCandidates = new Set<string>();
-
-        for (let i = 0; i < subtitlesToPrefetch.length; i += 1) {
-            if (runId !== runtimePrefetchAllRunId) return;
-
-            const text = subtitlesToPrefetch[i]?.text;
-            if (!text) continue;
-
-            const candidates = collectSubtitleCandidates(text);
-
-            for (const candidate of candidates) {
-                if (!ankiRuntimeWordStatusMap.has(candidate)) {
-                    allCandidates.add(candidate);
-                }
-            }
-        }
-
-        const candidates = [...allCandidates];
-
-        console.log(`Runtime batch prefetch started: ${candidates.length} candidates`);
-
-        for (let i = 0; i < candidates.length; i += chunkSize) {
-            if (runId !== runtimePrefetchAllRunId) return;
-
-            const chunk = candidates.slice(i, i + chunkSize);
-
-            console.log(
-                `Runtime batch prefetch ${Math.floor(i / chunkSize) + 1}/${Math.ceil(candidates.length / chunkSize)}: ${chunk.length}`
-            );
-
-            await ensureStatusesForCandidates(chunk, { silent: true });
-
-            await new Promise((resolve) => setTimeout(resolve, chunkDelayMs));
-        }
-
-        if (runId === runtimePrefetchAllRunId) {
-            runtimeHighlightPrefetchReady = true;
-            console.log("Runtime window prefetch finished");
-            rerenderCurrentSubtitleWithAnkiHighlighter?.();
-        }
-    } catch (err) {
-        console.warn("Runtime batch prefetch failed:", err);
-    } finally {
-        if (runId === runtimePrefetchAllRunId) {
-            runtimePrefetchAllInProgress = false;
-        }
-    }
+const runtimePrefetchController = createRuntimePrefetchController({
+    state: window.BunmineState,
+    getSubtitles: () => subtitles,
+    getCurrentSubtitle: () => getCurrentSubtitle?.(),
+    loadWordIndexes: () => loadHighlightWordIndexes?.() || Promise.resolve(),
+    loadTokenizer: () => typeof getJapaneseTokenizer === "function"
+        ? getJapaneseTokenizer()
+        : Promise.resolve(),
+    collectCandidates: collectSubtitleCandidates,
+    hasStatus: (candidate) => ankiRuntimeWordStatusMap.has(candidate),
+    ensureStatuses: ensureStatusesForCandidates,
+    rerender: () => rerenderCurrentSubtitleWithAnkiHighlighter?.(),
+});
+async function prefetchRuntimeStatusesForAllSubtitles(options = {}) {
+    await runtimePrefetchController.prefetch(options);
 }
 
 [dropzone, videoContainer].forEach((zone) => {
