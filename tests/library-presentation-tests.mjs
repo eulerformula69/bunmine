@@ -18,5 +18,14 @@ assert.equal(presentation.linkStatus([{ hasVideo: true, hasSubtitle: false }]), 
 assert.equal(presentation.linkStatus([{ hasVideo: true, hasSubtitle: true }]), "linked");
 assert.equal(presentation.statusLabel("partial", translate), "partiallyLinked");
 assert.equal(presentation.planStatusLabel("needs-review", translate), "needsReview");
+const base = { id: 1, title: "Beta", episodesCount: 2, completedEpisodes: 0, episodesWithVideo: 2, episodesWithSubtitle: 1 };
+assert.equal(presentation.seriesStatus(base), "not-started");
+assert.equal(presentation.seriesStatus({ ...base, currentTimeSeconds: 20 }), "watching");
+assert.equal(presentation.seriesStatus({ ...base, completedEpisodes: 2 }), "completed");
+assert.equal(presentation.matchesFilter(base, "missing-subtitles"), true);
+assert.deepEqual(presentation.filterAndSort([base, { ...base, id: 2, title: "Alpha" }], { filter: "all", sort: "title", query: "a" }).map((item) => item.title), ["Alpha", "Beta"]);
+assert.equal(presentation.primaryAction(base, [{ id: 10, hasVideo: true, completed: false }]).kind, "start");
+assert.equal(presentation.primaryAction({ ...base, currentTimeSeconds: 20 }, [{ id: 10, hasVideo: true, currentTimeSeconds: 20 }]).kind, "continue");
+assert.equal(presentation.primaryAction({ ...base, completedEpisodes: 2 }, [{ id: 10, hasVideo: true, completed: true }]).kind, "open");
 
 console.log("Library presentation tests passed");

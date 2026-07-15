@@ -5,6 +5,21 @@ interface LibrarySeriesView extends LibrarySeries {
     coverUrl?: string | null;
 }
 
+type LibrarySeriesStatus = "not-started" | "watching" | "completed";
+type LibrarySeriesFilter = "all" | LibrarySeriesStatus | "missing-video" | "missing-subtitles" | "file-problems";
+type LibrarySeriesSort = "last-watched" | "progress" | "title" | "recently-added";
+
+interface LibraryFilterState {
+    filter: LibrarySeriesFilter;
+    sort: LibrarySeriesSort;
+    query: string;
+}
+
+interface LibraryPrimaryAction {
+    kind: "start" | "continue" | "open";
+    episodeId: number | null;
+}
+
 interface LibraryEpisodeView extends LibraryEpisode {
     hasVideo?: boolean;
     hasSubtitle?: boolean;

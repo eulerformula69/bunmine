@@ -143,6 +143,50 @@ Object.assign(LIBRARY_I18N.ja.dict, {
     deleteMissingEpisodeFailed: "エピソードを削除できませんでした"
 });
 
+Object.assign(LIBRARY_I18N.en.dict, {
+    languageStudy: "Language study",
+    searchByTitle: "Search by title", searchPlaceholder: "Anime title...", myLibrary: "My library", all: "All",
+    watching: "Watching", notStarted: "Not started", completed: "Completed", files: "Files", tools: "Tools",
+    episodes: "Episodes", missingVideo: "Missing video", missingSubtitles: "Missing Japanese subtitles",
+    fileProblems: "File or linking problems", sorting: "Sorting", recentlyWatched: "Recently watched",
+    byProgress: "By progress", byTitle: "By title", recentlyAdded: "Recently added",
+    showingSeries: "Showing {count} of {total}", noMatchingSeries: "No series match these filters.",
+    startWatching: "Start watching", continueWatching: "Continue", continueAt: "Continue at {time}",
+    backToLibrary: "Back to library", inProgress: "In progress", noJp: "No JP", openEpisodes: "Open episodes",
+    detailProgress: "Watched {watched} of {total}", currentEpisode: "Current episode: {number}",
+    allEpisodesCompleted: "All available episodes are completed", subtitlesGroup: "Subtitles", mediaGroup: "Media",
+    dangerZone: "Danger zone", deleteSeriesHint: "Removes the library record, not files on disk."
+});
+
+Object.assign(LIBRARY_I18N.ru.dict, {
+    languageStudy: "Изучение языка",
+    searchByTitle: "Поиск по названию", searchPlaceholder: "Название аниме...", myLibrary: "Моя библиотека", all: "Все",
+    watching: "Смотрю", notStarted: "Не начато", completed: "Просмотрено", files: "Файлы", tools: "Инструменты",
+    episodes: "Эпизоды", missingVideo: "Без видео", missingSubtitles: "Без японских субтитров",
+    fileProblems: "Проблемы с файлами или привязкой", sorting: "Сортировка", recentlyWatched: "Недавно смотрел",
+    byProgress: "По прогрессу", byTitle: "По названию", recentlyAdded: "Недавно добавлено",
+    showingSeries: "Показано {count} из {total}", noMatchingSeries: "По этим фильтрам ничего не найдено.",
+    startWatching: "Начать просмотр", continueWatching: "Продолжить", continueAt: "Продолжить с {time}",
+    backToLibrary: "Назад в библиотеку", inProgress: "В процессе", noJp: "Нет JP", openEpisodes: "Открыть эпизоды",
+    detailProgress: "Просмотрено {watched} из {total}", currentEpisode: "Текущий эпизод: {number}",
+    allEpisodesCompleted: "Все доступные эпизоды просмотрены", subtitlesGroup: "Субтитры", mediaGroup: "Медиа",
+    dangerZone: "Опасная зона", deleteSeriesHint: "Удаляет запись из библиотеки, но не файлы на диске."
+});
+
+Object.assign(LIBRARY_I18N.ja.dict, {
+    languageStudy: "言語学習",
+    searchByTitle: "タイトル検索", searchPlaceholder: "アニメタイトル...", myLibrary: "マイライブラリ", all: "すべて",
+    watching: "視聴中", notStarted: "未視聴", completed: "視聴済み", files: "ファイル", tools: "ツール",
+    episodes: "エピソード", missingVideo: "動画なし", missingSubtitles: "日本語字幕なし", fileProblems: "ファイル問題",
+    sorting: "並び替え", recentlyWatched: "最近視聴", byProgress: "進捗順", byTitle: "タイトル順", recentlyAdded: "追加順",
+    showingSeries: "{total}件中{count}件", noMatchingSeries: "該当するシリーズはありません。", startWatching: "視聴開始",
+    continueWatching: "続ける", continueAt: "{time}から続ける", backToLibrary: "ライブラリへ戻る", inProgress: "視聴中",
+    noJp: "JPなし", openEpisodes: "エピソードを開く", detailProgress: "{total}話中{watched}話視聴済み",
+    currentEpisode: "現在のエピソード: {number}", allEpisodesCompleted: "すべてのエピソードを視聴済み",
+    subtitlesGroup: "字幕", mediaGroup: "メディア", dangerZone: "危険な操作",
+    deleteSeriesHint: "ディスク上のファイルは削除せず、ライブラリ情報のみ削除します。"
+});
+
 let libraryCurrentLang = loadLibraryLanguage();
 
 function loadLibraryLanguage() {

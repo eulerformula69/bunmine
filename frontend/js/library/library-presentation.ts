@@ -1,6 +1,52 @@
 type LibraryTranslate = (key: string, params?: Record<string, unknown>) => string;
 
 const LibraryPresentation = {
+    progressThresholdSeconds: 5,
+
+    seriesStatus(series: LibrarySeriesView): LibrarySeriesStatus {
+        const total = Number(series.episodesCount || 0);
+        const completed = Number(series.completedEpisodes || 0);
+        if (total > 0 && completed >= total) return "completed";
+        if (completed > 0 || Number(series.inProgressEpisodes || 0) > 0 || Number(series.currentTimeSeconds || 0) > 5) {
+            return "watching";
+        }
+        return "not-started";
+    },
+
+    primaryAction(series: LibrarySeriesView, episodes: LibraryEpisodeView[] = []): LibraryPrimaryAction {
+        const status = this.seriesStatus(series);
+        const playable = episodes.filter((episode) => episode.hasVideo);
+        const current = playable.find((episode) => !episode.completed && Number(episode.currentTimeSeconds || 0) > 5);
+        const next = playable.find((episode) => !episode.completed);
+        if (current) return { kind: "continue", episodeId: current.id };
+        if (status === "not-started" && next) return { kind: "start", episodeId: next.id };
+        if (status === "watching" && next) return { kind: "continue", episodeId: next.id };
+        return { kind: "open", episodeId: playable[0]?.id || null };
+    },
+
+    matchesFilter(series: LibrarySeriesView, filter: LibrarySeriesFilter): boolean {
+        if (filter === "all") return true;
+        if (filter === "missing-video") return Number(series.episodesWithVideo || 0) < Number(series.episodesCount || 0);
+        if (filter === "missing-subtitles") return Number(series.episodesWithSubtitle || 0) < Number(series.episodesCount || 0);
+        if (filter === "file-problems") return series.linkStatus !== "linked";
+        return this.seriesStatus(series) === filter;
+    },
+
+    filterAndSort(series: LibrarySeriesView[], state: LibraryFilterState): LibrarySeriesView[] {
+        const query = state.query.trim().toLocaleLowerCase();
+        const result = series.filter((item) => (
+            this.matchesFilter(item, state.filter) && (!query || String(item.title || "").toLocaleLowerCase().includes(query))
+        ));
+        return result.sort((left, right) => {
+            if (state.sort === "title") return String(left.title).localeCompare(String(right.title));
+            if (state.sort === "progress") {
+                const ratio = (item: LibrarySeriesView) => Number(item.completedEpisodes || 0) / Math.max(1, Number(item.episodesCount || 0));
+                return ratio(right) - ratio(left) || String(left.title).localeCompare(String(right.title));
+            }
+            const field = state.sort === "recently-added" ? "createdAt" : "lastWatchedAt";
+            return String(right[field] || "").localeCompare(String(left[field] || "")) || String(left.title).localeCompare(String(right.title));
+        });
+    },
     formatTime(seconds: unknown): string {
         const value = Number(seconds || 0);
         if (value <= 0) return "0m";

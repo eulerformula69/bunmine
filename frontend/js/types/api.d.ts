@@ -61,6 +61,14 @@ interface LibrarySeries {
     totalEpisodes?: number;
     videoCount?: number;
     subtitleCount?: number;
+    episodesWithVideo?: number;
+    episodesWithSubtitle?: number;
+    inProgressEpisodes?: number;
+    currentTimeSeconds?: number;
+    watchedSeconds?: number;
+    lastWatchedAt?: string | null;
+    createdAt?: string | null;
+    coverUrl?: string | null;
 }
 
 interface LibraryEpisode {
@@ -74,6 +82,11 @@ interface LibraryEpisode {
     currentTimeSeconds?: number;
     watchedSeconds?: number;
     durationSeconds?: number;
+    hasVideo?: boolean;
+    hasSubtitle?: boolean;
+    videoFilename?: string | null;
+    subtitleFilename?: string | null;
+    lastWatchedAt?: string | null;
 }
 
 interface LibrarySeriesListResponse extends ApiPayload {
