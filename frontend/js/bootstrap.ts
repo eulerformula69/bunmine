@@ -44,6 +44,7 @@
         "/dist/js/player/toast.js",
         "/dist/js/player/known-basic-actions.js",
         "/dist/js/player/runtime-prefetch.js",
+        "/dist/js/player/shell-bindings.js",
         "/dist/js/player/anki-actions.js",
         "/dist/js/player/target-note-dropdown.js",
         "/dist/js/player/auto-attach-queue.js",

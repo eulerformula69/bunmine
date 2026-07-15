@@ -29,13 +29,6 @@
 } = playerContext.dom as Required<PlayerDom>;
 
 
-video.volume = Number(volume.value);
-
-volume.addEventListener("input", () => {
-    const nextVolume = Math.max(0, Math.min(1, parseFloat(volume.value) || 0));
-    video.volume = nextVolume;
-});
-
 video.addEventListener("timeupdate", () => {
     const activeSubtitles = getActiveSubtitles();
     const sub = getCurrentSubtitle() || null;
@@ -149,87 +142,20 @@ async function prefetchRuntimeStatusesForAllSubtitles(options = {}) {
     await runtimePrefetchController.prefetch(options);
 }
 
-[dropzone, videoContainer].forEach((zone) => {
-    zone.addEventListener("dragover", (e) => {
-        e.preventDefault();
-        zone.style.cursor = "pointer";
-    });
-
-    zone.addEventListener("drop", (e) => {
-        e.preventDefault();
-        handleFiles(e.dataTransfer.files);
-    });
-});
-
-
-document.getElementById("clickToUpload").onclick = () => multiInput.click();
-multiInput.addEventListener("change", (e) => handleFiles((e.target as HTMLInputElement).files));
-
-dropzone.addEventListener("drop", (e) => {
-    e.preventDefault();
-    handleFiles(e.dataTransfer.files);
-});
-dropzone.addEventListener("dragover", (e) => e.preventDefault());
-
-playPause.onclick = (e) => {
-    e.stopPropagation();
-
-    if (video.paused) video.play();
-    else video.pause();
-};
-
-videoContainer.addEventListener("click", (event) => {
-    const target = event.target;
-    if (target instanceof Element && target.closest("#controls, .subtitle-overlay-line")) return;
-
-    if (video.paused) video.play();
-    else video.pause();
-});
-
-closeSettingsBtn.onclick = () => {
-    settingsModal.classList.add("hidden");
-};
-
-settingsModal.addEventListener("click", (e) => {
-    if (e.target === settingsModal) {
-        settingsModal.classList.add("hidden");
-    }
-});
-
-document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") {
-        settingsModal.classList.add("hidden");
-    }
-});
-
-document.querySelectorAll<HTMLElement>(".settings-tab").forEach((tab) => {
-    tab.addEventListener("click", () => {
-        const targetTab = tab.dataset.settingsTab;
-
-        document.querySelectorAll(".settings-tab").forEach((item) => {
-            item.classList.toggle("active", item === tab);
-        });
-
-        document.querySelectorAll<HTMLElement>(".settings-page").forEach((page) => {
-            page.classList.toggle(
-                "active",
-                page.dataset.settingsPage === targetTab
-            );
-        });
-    });
-});
-
-progress.oninput = () => {
-    video.currentTime = (Number(progress.value) / 100) * video.duration;
-};
-
-videoContainer.addEventListener("mousemove", (e) => {
-    const rect = videoContainer.getBoundingClientRect();
-    const relativeY = e.clientY - rect.top;
-    const isBottom = relativeY >= rect.height - 120;
-
-    controls.style.opacity = isBottom ? "1" : "0";
-    controls.style.pointerEvents = isBottom ? "auto" : "none";
+bindPlayerShell({
+    video,
+    volume,
+    dropzone,
+    videoContainer,
+    multiInput,
+    playPause,
+    settingsModal,
+    closeSettingsButton: closeSettingsBtn,
+    progress,
+    controls,
+    videoPickerModal,
+    videoPickerCancelButton: videoPickerCancelBtn,
+    handleFiles,
 });
 
 const targetNoteDropdown = createTargetNoteDropdownController({
@@ -245,81 +171,15 @@ const targetNoteDropdown = createTargetNoteDropdownController({
 
 const refreshTargetNoteList = targetNoteDropdown.refresh;
 const initTargetNoteDropdown = targetNoteDropdown.init;
-document.addEventListener("keydown", (e) => {
-    if (isTypingTarget(e.target)) return;
-
-    if (e.code === "ArrowLeft") {
-        e.preventDefault();
-
-        if (e.shiftKey) {
-            seekBySeconds(-5);
-            return;
-        }
-
-        seekBySubtitle(-1);
-    }
-
-    if (e.code === "ArrowRight") {
-        e.preventDefault();
-
-        if (e.shiftKey) {
-            seekBySeconds(5);
-            return;
-        }
-
-        seekBySubtitle(1);
-    }
-});
-
-document.addEventListener("keydown", (e) => {
-    if (isTypingTarget(e.target)) return;
-
-    if (e.key === "f" || e.key === "F") {
-        e.preventDefault();
-        toggleFullscreenMode();
-        return;
-    }
-
-    if (e.code === "Comma") {
-        e.preventDefault();
-        stepFrame(-1);
-        return;
-    }
-
-    if (e.code === "Period") {
-        e.preventDefault();
-        stepFrame(1);
-        return;
-    }
-
-    if (e.code === "Space") {
-        e.preventDefault();
-
-        if (video.paused) {
-            video.play();
-        } else {
-            video.pause();
-        }
-
-        return;
-    }
-
-    if (e.code === "KeyR") {
-        e.preventDefault();
-        replayCurrentSubtitle();
-        return;
-    }
-
-    if (e.code === "Slash") {
-        e.preventDefault();
-        focusSubtitleWordSearch();
-        return;
-    }
-
-    if (e.code === "KeyS") {
-        e.preventDefault();
-        toggleBtn.click();
-    }
+bindPlayerHotkeys({
+    seekBySeconds,
+    seekBySubtitle,
+    toggleFullscreen: toggleFullscreenMode,
+    stepFrame,
+    togglePlayback: () => video.paused ? video.play() : video.pause(),
+    replaySubtitle: replayCurrentSubtitle,
+    focusSearch: focusSubtitleWordSearch,
+    toggleSubtitles: () => toggleBtn.click(),
 });
 
 function maybePromptSubtitleDepthReset() {
@@ -701,13 +561,6 @@ document.getElementById("refreshAnkiHighlighterBtn")?.addEventListener("click", 
     prefetchRuntimeStatusesForAllSubtitles({ silent: true });
 });
 
-document.addEventListener("visibilitychange", () => {
-    if (document.hidden && !video.paused) {
-        video.play().catch(() => {});
-
-    }
-});
-
 addKnownBasicBtn?.addEventListener("mousedown", (e) => {
     e.preventDefault();
 });
@@ -771,11 +624,6 @@ document.addEventListener("mousedown", (e) => {
         scheduleAutoAttachCancelIfSelectionCleared();
         hideAddKnownBasicButton();
     }
-});
-
-videoPickerCancelBtn?.addEventListener("click", () => {
-    videoPickerModal?.classList.add("hidden");
-    dropzone.classList.remove("hidden");
 });
 
 document.addEventListener("selectionchange", () => {
