@@ -16,6 +16,7 @@ libraryFilters.addEventListener("click", (event) => {
     if (!button) return;
     if (button.dataset.filter) filterState.filter = button.dataset.filter as LibrarySeriesFilter;
     if (button.dataset.sort) filterState.sort = button.dataset.sort as LibrarySeriesSort;
+    saveLibraryViewState();
     renderCatalog();
 });
 
