@@ -81,6 +81,14 @@ function formatBytes(value: unknown) { return LibraryPresentation.formatBytes(va
 function formatLibraryTime(value: unknown) { return LibraryPresentation.formatTime(value); }
 function statusKeyLabel(status: string) { return LibraryPresentation.planStatusLabel(status, lt); }
 function statusLabel(status: LibrarySeriesStatus) { return lt(status === "not-started" ? "notStarted" : status); }
+function linkStatusIcon(status: string | undefined) {
+    if (status === "linked") return "/icons/chain-ok.svg";
+    if (status === "partial") return "/icons/chain-missing.svg";
+    return "/icons/chain-broken.svg";
+}
+function linkStatusTitle(status: string | undefined) {
+    return lt(status === "linked" ? "allLinked" : status === "partial" ? "partiallyLinked" : "missingFiles");
+}
 
 const FILTER_GROUPS: Array<{ label: string; items: Array<[LibrarySeriesFilter, string]> }> = [
     { label: "myLibrary", items: [["all", "all"], ["watching", "watching"], ["not-started", "notStarted"], ["completed", "completed"]] },
@@ -141,11 +149,10 @@ function renderSeriesCard(item: LibrarySeriesView) {
     const completed = Number(item.completedEpisodes || 0);
     const progress = total ? Math.round(completed / total * 100) : 0;
     const status = LibraryPresentation.seriesStatus(item);
-    const hasProblems = item.linkStatus !== "linked";
     const cover = item.coverUrl
         ? `<img src="${escapeHtml(item.coverUrl)}" alt="">`
         : `<span class="cover-letter">${escapeHtml(String(item.title || "?").slice(0, 1))}</span>`;
-    card.innerHTML = `<div class="series-cover">${cover}${hasProblems ? `<span class="file-warning" title="${escapeHtml(lt("fileProblems"))}">!</span>` : ""}<span class="card-action">${escapeHtml(lt(status === "not-started" ? "startWatching" : status === "watching" ? "continueWatching" : "open"))}</span></div><div class="series-card-body"><h3>${escapeHtml(item.title)}</h3><p class="series-state">${escapeHtml(statusLabel(status))} · <span data-completed-episodes>${completed}</span>/<span data-total-episodes>${total}</span></p><div class="progress-bar"><span style="width:${progress}%"></span></div>${Number(item.currentTimeSeconds || 0) > 5 && status === "watching" ? `<p class="continue-note">${escapeHtml(lt("continueAt", { time: formatLibraryTime(item.currentTimeSeconds) }))}</p>` : ""}</div>`;
+    card.innerHTML = `<div class="series-cover">${cover}<span class="card-action">${escapeHtml(lt(status === "not-started" ? "startWatching" : status === "watching" ? "continueWatching" : "open"))}</span></div><div class="series-card-body"><h3>${escapeHtml(item.title)}</h3><p class="series-state">${escapeHtml(statusLabel(status))} · <span data-completed-episodes>${completed}</span>/<span data-total-episodes>${total}</span></p><div class="progress-bar"><span style="width:${progress}%"></span></div>${Number(item.currentTimeSeconds || 0) > 5 && status === "watching" ? `<p class="continue-note">${escapeHtml(lt("continueAt", { time: formatLibraryTime(item.currentTimeSeconds) }))}</p>` : ""}</div>`;
     const open = () => openSeries(item.id);
     card.addEventListener("click", open);
     card.addEventListener("keydown", (event) => { if (event.key === "Enter" || event.key === " ") open(); });
@@ -178,7 +185,7 @@ function renderEpisodeRow(episode: LibraryEpisodeView) {
     const row = document.createElement("article");
     row.className = `episode-row${episode.hasVideo ? " clickable" : ""}`;
     const action = Number(episode.currentTimeSeconds || 0) > 5 ? lt("continueWatching") : lt("open");
-    row.innerHTML = `<div class="episode-number">${escapeHtml(episodeNumber(episode))}</div><div class="episode-main"><h3>${escapeHtml(episode.title || lt("episodeLabel", { number: episodeNumber(episode) }))}</h3><p><span class="episode-state">${escapeHtml(episodeState(episode))}</span>${Number(episode.currentTimeSeconds || 0) > 5 ? ` · ${escapeHtml(formatLibraryTime(episode.currentTimeSeconds))} / ${escapeHtml(formatLibraryTime(episode.durationSeconds))}` : ""} · <span class="file-badge ${episode.hasSubtitle ? "ok" : "warning"}">${escapeHtml(episode.hasSubtitle ? "JP ✓" : lt("noJp"))}</span>${!episode.hasVideo ? ` · <span class="file-badge warning">${escapeHtml(lt("missingVideo"))}</span>` : ""}</p></div><div class="episode-actions"><label class="complete-toggle"><input class="episode-completed-checkbox" type="checkbox" ${episode.completed ? "checked" : ""}><span>${escapeHtml(lt("watched"))}</span></label><a class="button small ${episode.hasVideo ? "primary" : "disabled"}" href="/?episodeId=${encodeURIComponent(episode.id)}">${escapeHtml(action)}</a></div>`;
+    row.innerHTML = `<div class="episode-number">${escapeHtml(episodeNumber(episode))}</div><img class="link-status-icon" src="${linkStatusIcon(episode.linkStatus)}" alt="${escapeHtml(linkStatusTitle(episode.linkStatus))}" title="${escapeHtml(linkStatusTitle(episode.linkStatus))}"><div class="episode-main"><h3>${escapeHtml(episode.title || lt("episodeLabel", { number: episodeNumber(episode) }))}</h3><p><span class="episode-state">${escapeHtml(episodeState(episode))}</span>${Number(episode.currentTimeSeconds || 0) > 5 ? ` · ${escapeHtml(formatLibraryTime(episode.currentTimeSeconds))} / ${escapeHtml(formatLibraryTime(episode.durationSeconds))}` : ""}${!episode.hasSubtitle ? ` · ${escapeHtml(lt("noJp"))}` : ""}${!episode.hasVideo ? ` · ${escapeHtml(lt("missingVideo"))}` : ""}</p></div><div class="episode-actions"><label class="complete-toggle"><input class="episode-completed-checkbox" type="checkbox" ${episode.completed ? "checked" : ""}><span>${escapeHtml(lt("watched"))}</span></label><a class="button small ${episode.hasVideo ? "primary" : "disabled"}" href="/?episodeId=${encodeURIComponent(episode.id)}">${escapeHtml(action)}</a></div>`;
     const checkbox = row.querySelector<HTMLInputElement>("input")!;
     checkbox.addEventListener("click", (event) => event.stopPropagation());
     checkbox.addEventListener("change", () => toggleEpisodeCompleted(episode, checkbox));
@@ -189,7 +196,7 @@ function renderEpisodeRow(episode: LibraryEpisodeView) {
 function renderFileRow(episode: LibraryEpisodeView) {
     const row = document.createElement("article");
     row.className = "file-row";
-    row.innerHTML = `<div><h3>${escapeHtml(lt("episodeLabel", { number: episodeNumber(episode) }))}</h3><p>${escapeHtml(episode.videoFilename || lt("missingVideo"))}</p><p>${escapeHtml(episode.subtitleFilename || lt("missingSubtitles"))}</p></div><div class="file-actions"><button class="button small subtitle-file-action" type="button" ${episode.hasVideo ? "" : "disabled"}>${escapeHtml(episode.hasSubtitle ? lt("changeJpSubs") : lt("findJpSubs"))}</button>${!episode.hasVideo && !episode.hasSubtitle ? `<button class="button small danger delete-missing-episode-btn" type="button">${escapeHtml(lt("deleteMissingEpisode"))}</button>` : ""}</div>`;
+    row.innerHTML = `<img class="link-status-icon" src="${linkStatusIcon(episode.linkStatus)}" alt="${escapeHtml(linkStatusTitle(episode.linkStatus))}" title="${escapeHtml(linkStatusTitle(episode.linkStatus))}"><div><h3>${escapeHtml(lt("episodeLabel", { number: episodeNumber(episode) }))}</h3><p>${escapeHtml(episode.videoFilename || lt("missingVideo"))}</p><p>${escapeHtml(episode.subtitleFilename || lt("missingSubtitles"))}</p></div><div class="file-actions"><button class="button small subtitle-file-action" type="button" ${episode.hasVideo ? "" : "disabled"}>${escapeHtml(episode.hasSubtitle ? lt("changeJpSubs") : lt("findJpSubs"))}</button>${!episode.hasVideo && !episode.hasSubtitle ? `<button class="button small danger delete-missing-episode-btn" type="button">${escapeHtml(lt("deleteMissingEpisode"))}</button>` : ""}</div>`;
     row.querySelector<HTMLButtonElement>(".subtitle-file-action")?.addEventListener("click", () => openSubtitleSearchModal(episode, row));
     row.querySelector<HTMLButtonElement>(".delete-missing-episode-btn")?.addEventListener("click", () => deleteMissingEpisode(episode));
     return row;
@@ -211,7 +218,15 @@ async function openSeries(seriesId: string | number, updateHash = true) {
     const status = LibraryPresentation.seriesStatus(series);
     const primary = LibraryPresentation.primaryAction(series, currentOpenedEpisodes);
     const current = currentOpenedEpisodes.find((item) => !item.completed && Number(item.currentTimeSeconds || 0) > 5) || currentOpenedEpisodes.find((item) => !item.completed);
-    seriesTitle.textContent = series.title;
+    seriesTitle.replaceChildren();
+    const titleIcon = document.createElement("img");
+    titleIcon.className = "series-link-status-icon";
+    titleIcon.src = linkStatusIcon(series.linkStatus);
+    titleIcon.alt = linkStatusTitle(series.linkStatus);
+    titleIcon.title = linkStatusTitle(series.linkStatus);
+    const titleText = document.createElement("span");
+    titleText.textContent = series.title;
+    seriesTitle.append(titleIcon, titleText);
     seriesStatus.textContent = statusLabel(status);
     seriesStats.textContent = lt("detailProgress", { watched: series.completedEpisodes, total: series.episodesCount || 0 });
     seriesCurrentEpisode.textContent = current ? lt("currentEpisode", { number: episodeNumber(current) }) : lt("allEpisodesCompleted");
