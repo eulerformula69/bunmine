@@ -13,6 +13,19 @@ from backend.services.anki_client import (
     note_card_ids as _note_card_ids,
     request as _anki_request,
 )
+from backend.services.anki_highlight_store import (
+    anki_highlight_settings_path as _anki_highlight_settings_path,
+    ensure_anki_highlight_files,
+    known_basic_words_path as _known_basic_words_path,
+    known_anki_words_path as _known_anki_words_path,
+    merge_refresh_payload_with_saved_settings as _merge_refresh_payload_with_saved_settings,
+    read_anki_highlight_settings as _read_anki_highlight_settings,
+    read_known_anki_data as _read_known_anki_data,
+    read_words_file as _read_words_file,
+    write_anki_highlight_settings as _write_anki_highlight_settings,
+    write_known_anki_data as _write_known_anki_data,
+    write_words_file as _write_words_file,
+)
 from backend.utils_validation import safe_cache_key
 
 misc_bp = Blueprint("misc", __name__)
@@ -36,104 +49,6 @@ STATUS_PRIORITY = {
 
 def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
-
-
-def _anki_highlight_file(filename: str):
-    ANKI_HIGHLIGHT_DIR.mkdir(parents=True, exist_ok=True)
-    return ANKI_HIGHLIGHT_DIR / filename
-
-
-def _legacy_known_basic_path():
-    return FRONTEND_DIR / "known-basic-words.json"
-
-
-def _read_words_file(path):
-    if not path.exists():
-        return []
-
-    data = json.loads(path.read_text(encoding="utf-8"))
-    if isinstance(data, list):
-        return data
-    if isinstance(data, dict) and isinstance(data.get("words"), list):
-        return data["words"]
-    raise ValueError(f"Invalid {path.name} format")
-
-
-def _write_words_file(path, words):
-    path.parent.mkdir(parents=True, exist_ok=True)
-    normalized_words = []
-    seen = set()
-    for item in words:
-        word = str(item).strip()
-        if not word or word in seen:
-            continue
-        seen.add(word)
-        normalized_words.append(word)
-
-    path.write_text(json.dumps(normalized_words, ensure_ascii=False, indent=2), encoding="utf-8")
-    return normalized_words
-
-
-def _known_basic_words_path():
-    target = _anki_highlight_file("known-basic-words.json")
-    legacy = _legacy_known_basic_path()
-
-    if not target.exists() and legacy.exists():
-        try:
-            words = _read_words_file(legacy)
-            _write_words_file(target, words)
-        except Exception:
-            # Let the route below surface the legacy parse error if needed.
-            pass
-
-    return target
-
-
-def _known_anki_words_path():
-    return _anki_highlight_file("known-anki-words.json")
-
-
-def _anki_highlight_settings_path():
-    return _anki_highlight_file("anki-highlight-settings.json")
-
-
-def _read_anki_highlight_settings() -> dict:
-    path = _anki_highlight_settings_path()
-    if not path.exists():
-        return {}
-    data = json.loads(path.read_text(encoding="utf-8"))
-    return data if isinstance(data, dict) else {}
-
-
-def _write_anki_highlight_settings(payload: dict) -> dict:
-    settings = {
-        "ankiUrl": str(payload.get("ankiUrl") or "").strip(),
-        "decks": [str(item).strip() for item in payload.get("decks") or [] if str(item).strip()],
-        "wordFields": [str(item).strip() for item in payload.get("wordFields") or [] if str(item).strip()],
-        "autoRefresh": str(payload.get("autoRefresh") or "daily").strip().lower(),
-        "lastManualRefreshAt": payload.get("lastManualRefreshAt"),
-        "lastAutoRefreshAt": payload.get("lastAutoRefreshAt"),
-        "lastAutoRefreshError": payload.get("lastAutoRefreshError"),
-        "lastAutoRefreshResult": payload.get("lastAutoRefreshResult"),
-        "lastStartupStaleCheckAt": payload.get("lastStartupStaleCheckAt"),
-        "lastStartupStaleCheckResult": payload.get("lastStartupStaleCheckResult"),
-        "lastPlayerStaleCheckAt": payload.get("lastPlayerStaleCheckAt"),
-        "lastPlayerStaleCheckResult": payload.get("lastPlayerStaleCheckResult"),
-    }
-    if settings["autoRefresh"] not in {"off", "daily", "weekly"}:
-        settings["autoRefresh"] = "daily"
-    path = _anki_highlight_settings_path()
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(settings, ensure_ascii=False, indent=2), encoding="utf-8")
-    return settings
-
-
-def _merge_refresh_payload_with_saved_settings(payload: dict) -> dict:
-    saved = _read_anki_highlight_settings()
-    merged = dict(saved)
-    merged.update({key: value for key, value in payload.items() if value is not None})
-    return merged
-
 
 
 def _parse_utc_iso(value: str | None):
@@ -169,58 +84,6 @@ def _is_auto_refresh_stale(settings: dict) -> bool:
     if anchor.tzinfo is None:
         anchor = anchor.replace(tzinfo=timezone.utc)
     return now - anchor >= interval
-
-def _default_known_anki_data():
-    return {
-        "updatedAt": None,
-        "decks": [],
-        "wordFields": [],
-        "words": {},
-    }
-
-
-def _read_known_anki_data() -> dict:
-    path = _known_anki_words_path()
-    if not path.exists():
-        return _default_known_anki_data()
-
-    data = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(data, dict):
-        raise ValueError("Invalid known-anki-words.json format")
-
-    words = data.get("words")
-    if not isinstance(words, dict):
-        raise ValueError("Invalid known-anki-words.json format")
-
-    return {
-        "updatedAt": data.get("updatedAt"),
-        "decks": data.get("decks") if isinstance(data.get("decks"), list) else [],
-        "wordFields": data.get("wordFields") if isinstance(data.get("wordFields"), list) else [],
-        "words": words,
-    }
-
-
-def _write_known_anki_data(data: dict) -> dict:
-    path = _known_anki_words_path()
-    normalized = {
-        "updatedAt": data.get("updatedAt"),
-        "decks": data.get("decks") if isinstance(data.get("decks"), list) else [],
-        "wordFields": data.get("wordFields") if isinstance(data.get("wordFields"), list) else [],
-        "words": data.get("words") if isinstance(data.get("words"), dict) else {},
-    }
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(normalized, ensure_ascii=False, indent=2), encoding="utf-8")
-    return normalized
-
-
-def ensure_anki_highlight_files() -> None:
-    _known_basic_words_path()
-    known_anki_path = _known_anki_words_path()
-    if not known_anki_path.exists():
-        _write_known_anki_data(_default_known_anki_data())
-    if not _anki_highlight_settings_path().exists():
-        _write_anki_highlight_settings({"autoRefresh": "daily"})
-
 
 def _normalize_highlight_word(value) -> str:
     # Keep this intentionally close to the browser normalizer: remove HTML-ish field markup,
@@ -774,4 +637,3 @@ def refresh_known_anki_words():
         return jsonify({"error": str(err)}), 400
     except Exception as err:
         return jsonify({"error": str(err)}), 500
-
