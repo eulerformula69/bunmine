@@ -442,7 +442,7 @@ def get_library_series_list(db_path: Path) -> list[dict]:
                 COUNT(DISTINCT CASE WHEN wp.completed = 1 THEN e.id END) AS completed_episodes,
                 COUNT(DISTINCT CASE WHEN wp.current_time_seconds > 5 AND wp.completed = 0 THEN e.id END) AS in_progress_episodes,
                 COALESCE(SUM(wp.watched_seconds), 0) AS watched_seconds,
-                MAX(wp.current_time_seconds) AS latest_current_time_seconds,
+                MAX(CASE WHEN wp.completed = 0 THEN wp.current_time_seconds END) AS latest_current_time_seconds,
                 MAX(wp.last_watched_at) AS last_watched_at,
                 s.created_at,
                 COUNT(DISTINCT c.id) AS cards_count,

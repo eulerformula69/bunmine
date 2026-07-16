@@ -22,6 +22,8 @@ const base = { id: 1, title: "Beta", episodesCount: 2, completedEpisodes: 0, epi
 assert.equal(presentation.seriesStatus(base), "not-started");
 assert.equal(presentation.seriesStatus({ ...base, currentTimeSeconds: 20 }), "watching");
 assert.equal(presentation.seriesStatus({ ...base, completedEpisodes: 2 }), "completed");
+assert.equal(presentation.episodeCanResume({ completed: false, currentTimeSeconds: 20 }), true);
+assert.equal(presentation.episodeCanResume({ completed: true, currentTimeSeconds: 20 }), false);
 assert.equal(presentation.matchesFilter(base, "missing-subtitles"), true);
 assert.deepEqual(presentation.filterAndSort([base, { ...base, id: 2, title: "Alpha" }], { filter: "all", sort: "title", query: "a" }).map((item) => item.title), ["Alpha", "Beta"]);
 assert.equal(presentation.primaryAction(base, [{ id: 10, hasVideo: true, completed: false }]).kind, "start");

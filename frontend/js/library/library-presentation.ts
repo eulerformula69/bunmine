@@ -3,6 +3,10 @@ type LibraryTranslate = (key: string, params?: Record<string, unknown>) => strin
 const LibraryPresentation = {
     progressThresholdSeconds: 5,
 
+    episodeCanResume(episode: LibraryEpisodeView): boolean {
+        return !episode.completed && Number(episode.currentTimeSeconds || 0) > this.progressThresholdSeconds;
+    },
+
     seriesStatus(series: LibrarySeriesView): LibrarySeriesStatus {
         const total = Number(series.episodesCount || 0);
         const completed = Number(series.completedEpisodes || 0);
@@ -16,7 +20,7 @@ const LibraryPresentation = {
     primaryAction(series: LibrarySeriesView, episodes: LibraryEpisodeView[] = []): LibraryPrimaryAction {
         const status = this.seriesStatus(series);
         const playable = episodes.filter((episode) => episode.hasVideo);
-        const current = playable.find((episode) => !episode.completed && Number(episode.currentTimeSeconds || 0) > 5);
+        const current = playable.find((episode) => this.episodeCanResume(episode));
         const next = playable.find((episode) => !episode.completed);
         if (current) return { kind: "continue", episodeId: current.id };
         if (status === "not-started" && next) return { kind: "start", episodeId: next.id };
