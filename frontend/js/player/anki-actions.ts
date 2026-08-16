@@ -116,6 +116,13 @@ function hasKanji(text: string): boolean {
     return /[\u3400-\u9fff]/.test(String(text || ""));
 }
 
+function normalizeAnkiFuriganaWhitespace(text: string): string {
+    return String(text || "").replace(
+        /[\u00a0\u1680\u2000-\u200a\u202f\u205f\u3000]/g,
+        " "
+    );
+}
+
 function escapeAnkiFieldText(text: string): string {
     return String(text || "")
         .replace(/\\/g, "\\\\")
@@ -196,7 +203,11 @@ function getNoteWord(noteInfo: { fields?: Record<string, { value?: unknown }> } 
 }
 
 async function buildSentenceFurigana(text: string): Promise<string> {
-    const source = String(text || "");
+    // Anki's bracket-furigana parser only treats an ASCII space as a reliable
+    // reading-group separator. Subtitle formats commonly contain visually
+    // identical full-width or non-breaking spaces, so normalize them before
+    // token positions and separators are copied into the generated field.
+    const source = normalizeAnkiFuriganaWhitespace(text);
 
     if (!source) return "";
 
