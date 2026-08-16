@@ -123,6 +123,10 @@ function normalizeAnkiFuriganaWhitespace(text: string): string {
     );
 }
 
+function encodeAnkiFuriganaSpaces(text: string): string {
+    return String(text || "").replace(/ /g, "&nbsp;");
+}
+
 function escapeAnkiFieldText(text: string): string {
     return String(text || "")
         .replace(/\\/g, "\\\\")
@@ -213,7 +217,7 @@ async function buildSentenceFurigana(text: string): Promise<string> {
 
     if (typeof tokenizeJapaneseText !== "function") {
         console.warn("tokenizeJapaneseText is not available");
-        return source;
+        return encodeAnkiFuriganaSpaces(source);
     }
 
     const tokens = await tokenizeJapaneseText(source);
@@ -268,7 +272,10 @@ async function buildSentenceFurigana(text: string): Promise<string> {
         result += source.slice(lastEnd);
     }
 
-    return result;
+    // Anki fields are HTML. Literal spaces sent through AnkiConnect can be
+    // collapsed before the furigana filter sees them, while a space retyped in
+    // Anki's editor is stored as &nbsp;. Emit the same stable separator here.
+    return encodeAnkiFuriganaSpaces(result);
 }
 
 function katakanaToHiragana(text: string): string {
