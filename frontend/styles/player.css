@@ -68,25 +68,12 @@ video {
 .subtitle-overlay-line {
   display: table;
   margin: 0 auto 0.12em;
-  padding: 0.08em 0.22em 0.14em;
-  border-radius: 0.22em;
   cursor: pointer;
-  opacity: 0.78;
-  transition: opacity 120ms ease-out, background-color 120ms ease-out, transform 120ms ease-out;
+  opacity: 0.88;
 }
 
 .subtitle-overlay-line.primary {
   opacity: 1;
-  background: rgba(0, 0, 0, 0.3);
-}
-
-.subtitle-overlay-line:hover {
-  opacity: 1;
-  background: rgba(136, 0, 255, 0.2);
-}
-
-.subtitle-overlay-line:active {
-  transform: scale(0.985);
 }
 
 .subtitle-overlay-line.subtitle-alignment-1,
@@ -421,53 +408,49 @@ video {
   line-height: 1;
 }
 
-.subtitle-context-controls {
+.subtitle-depth-handle-row {
+  position: absolute;
+  left: 50%;
+  height: 0;
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-top: 8px;
-  padding-top: 7px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.subtitle-context-stepper {
-  flex: 0 0 28px;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 28px 28px;
   align-items: center;
-  width: 100%;
-  min-height: 28px;
-  box-sizing: border-box;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 7px;
-  background: rgba(0, 0, 0, 0.18);
+  justify-content: center;
+  overflow: visible;
+  cursor: ns-resize;
+  user-select: none;
+  z-index: 5;
+  transform: translateX(-50%);
 }
 
-.subtitle-context-stepper span {
-  padding-left: 8px;
-  color: rgba(255, 255, 255, 0.72);
-  font-size: 11px;
-  white-space: nowrap;
+.subtitle-depth-handle-row[data-kind="back"] {
+  top: 0;
 }
 
-.subtitle-context-stepper button {
-  align-self: stretch;
+.subtitle-depth-handle-row[data-kind="forward"] {
+  bottom: 0;
+}
+
+.subtitle-depth-handle {
+  width: 28px;
+  height: 8px;
   border: 0;
-  border-left: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.06);
-  color: white;
-  font-size: 16px;
-  transition: transform 80ms ease-out, background-color 100ms ease-out;
+  border-radius: 999px;
+  background: #a544c0;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35), 0 2px 8px rgba(165, 68, 192, 0.35);
+  cursor: ns-resize;
 }
 
-.subtitle-context-stepper button:hover:not(:disabled) {
-  background: rgba(169, 124, 230, 0.25);
+.subtitle-depth-handle:hover {
+  background: #bc58d8;
 }
 
-.subtitle-context-stepper button:disabled {
-  opacity: 0.28;
-  cursor: default;
+body.subtitle-depth-dragging,
+body.subtitle-depth-dragging * {
+  cursor: ns-resize !important;
+}
+
+.subtitle-depth-handle:focus {
+  outline: none;
 }
 
 /* Dropzone / preview */
@@ -1195,9 +1178,8 @@ video {
 
 @media (prefers-reduced-motion: reduce) {
   #sidebar,
-  .subtitle-overlay-line,
   .subtitle,
-  .subtitle-context-stepper button {
+  .subtitle-depth-handle {
     transition-duration: 1ms !important;
   }
 }

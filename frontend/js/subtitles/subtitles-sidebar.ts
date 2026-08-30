@@ -5,6 +5,7 @@ function initSubtitleSidebar() {
     initSubtitleSearchPanel();
     initSubtitleSidebarToggle();
     initSubtitleSidebarResizer();
+    initSubtitleContextDrag();
 }
 
 function initSubtitleSidebarToggle() {
@@ -527,8 +528,12 @@ function renderSubtitles() {
             updatePlayButton();
         };
 
-		if (context.currentIdx >= 0 && idx === context.currentIdx) {
-			div.appendChild(createSubtitleContextControls(context));
+		if (context.currentIdx >= 0 && idx === context.startIdx) {
+			div.appendChild(createSubtitleDepthHandleElement("back", startSubtitleContextDrag));
+		}
+
+		if (context.currentIdx >= 0 && idx === context.endIdx) {
+			div.appendChild(createSubtitleDepthHandleElement("forward", startSubtitleContextDrag));
 		}
 
 		list.appendChild(div);

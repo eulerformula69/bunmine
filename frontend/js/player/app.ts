@@ -29,9 +29,22 @@
 } = playerContext.dom as Required<PlayerDom>;
 
 
+function hasActiveSubtitleTextSelection(): boolean {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0 || selection.isCollapsed) return false;
+
+    const anchor = selection.anchorNode;
+    const focus = selection.focusNode;
+    return Boolean(
+        (anchor && (overlay.contains(anchor) || sidebar.contains(anchor))) ||
+        (focus && (overlay.contains(focus) || sidebar.contains(focus)))
+    );
+}
+
 video.addEventListener("timeupdate", () => {
     const activeSubtitles = getActiveSubtitles();
     const sub = getCurrentSubtitle() || null;
+    const isSelectingSubtitleText = hasActiveSubtitleTextSelection();
 
     if (sub?.text && sub.text !== lastRuntimeSubtitleText) {
         lastRuntimeSubtitleText = sub.text;
@@ -71,17 +84,19 @@ video.addEventListener("timeupdate", () => {
 		}
 	}
 
-    renderSubtitleOverlay({
-        overlay,
-        cues: activeSubtitles,
-        cueIndices: getActiveSubtitleEntries().map(({ index }) => index),
-        highlighter: ankiSubtitleHighlighter
-    });
+    if (!isSelectingSubtitleText) {
+        renderSubtitleOverlay({
+            overlay,
+            cues: activeSubtitles,
+            cueIndices: getActiveSubtitleEntries().map(({ index }) => index),
+            highlighter: ankiSubtitleHighlighter
+        });
+    }
 
     progress.value = String((video.currentTime / video.duration) * 100 || 0);
     timeLabel.textContent = `${formatTime(video.currentTime)} / ${formatTime(video.duration)}`;
 
-    if (!video.paused && sub) {
+    if (!video.paused && sub && !isSelectingSubtitleText) {
         const idx = subtitles.indexOf(sub);
         syncSubtitleStyle(idx);
     }

@@ -36,6 +36,7 @@
         "/dist/js/subtitles/comprehension-level.js",
         "/dist/js/subtitles/render-model.js",
         "/dist/js/subtitles/sidebar-render.js",
+        "/dist/js/subtitles/context-drag.js",
         "/dist/js/subtitles/navigation.js",
         "/dist/js/subtitles/sidebar-actions.js",
         "/dist/js/subtitles/subtitles.js",

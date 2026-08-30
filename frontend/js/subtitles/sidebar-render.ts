@@ -4,8 +4,6 @@ interface SubtitleContextRangeLike {
     currentIdx: number;
     startIdx: number;
     endIdx: number;
-    backDepth: number;
-    forwardDepth: number;
 }
 
 function applySubtitleRowState(
@@ -77,57 +75,22 @@ function appendSubtitleTextWithSearchHighlight(
     container.appendChild(document.createTextNode(after));
 }
 
-function createSubtitleContextControls(context: SubtitleContextRangeLike): HTMLElement {
-    const dict = i18n[currentLang]?.dict || i18n.en.dict;
-    const controls = document.createElement("div");
-    controls.className = "subtitle-context-controls";
-    controls.setAttribute("aria-label", dict.subtitleContextLabel || "Card context");
+function createSubtitleDepthHandleElement(
+    kind: SubtitleDepthKind,
+    onStartDrag: (kind: SubtitleDepthKind, event: MouseEvent) => void
+): HTMLElement {
+    const row = document.createElement("div");
+    row.className = "subtitle-depth-handle-row";
+    row.dataset.kind = kind;
 
-    const createStepper = (
-        kind: "back" | "forward",
-        label: string,
-        value: number,
-        canAdd: boolean
-    ) => {
-        const group = document.createElement("div");
-        group.className = "subtitle-context-stepper";
+    const handle = document.createElement("button");
+    handle.type = "button";
+    handle.className = "subtitle-depth-handle";
+    handle.dataset.kind = kind;
+    handle.title = kind === "back" ? "Previous subtitles" : "Next subtitles";
+    handle.setAttribute("aria-label", handle.title);
+    handle.addEventListener("mousedown", (event) => onStartDrag(kind, event));
 
-        const text = document.createElement("span");
-        text.textContent = `${label} ${value}`;
-
-        const remove = document.createElement("button");
-        remove.type = "button";
-        remove.textContent = "−";
-        remove.disabled = value === 0;
-        remove.setAttribute("aria-label", `${dict.removeFromContext || "Remove"}: ${label}`);
-
-        const add = document.createElement("button");
-        add.type = "button";
-        add.textContent = "+";
-        add.disabled = !canAdd;
-        add.setAttribute("aria-label", `${dict.addToContext || "Add"}: ${label}`);
-
-        remove.addEventListener("click", (event) => {
-            event.stopPropagation();
-            setSubtitleContextDepths(kind === "back"
-                ? { backDepth: Math.max(0, value - 1) }
-                : { forwardDepth: Math.max(0, value - 1) });
-        });
-        add.addEventListener("click", (event) => {
-            event.stopPropagation();
-            setSubtitleContextDepths(kind === "back"
-                ? { backDepth: value + 1 }
-                : { forwardDepth: value + 1 });
-        });
-
-        group.append(text, remove, add);
-        return group;
-    };
-
-    controls.append(
-        createStepper("back", dict.previousContext || "Previous", context.backDepth, context.startIdx > 0),
-        createStepper("forward", dict.nextContext || "Next", context.forwardDepth, context.endIdx < subtitles.length - 1)
-    );
-
-    return controls;
+    row.appendChild(handle);
+    return row;
 }
