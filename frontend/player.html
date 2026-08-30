@@ -86,10 +86,6 @@
       <div class="settings-page" data-settings-page="visuals">
         <h2 data-i18n="visuals">Visuals</h2>
 
-        <button id="toggleSubs" class="settings-action-btn" data-i18n="hideSubs">
-          Hide Subs
-        </button>
-
         <label data-i18n="fontSize">Font size:</label>
         <input type="range" id="fontSizeRange" class="slider" min="20" max="80" step="1" value="40">
 
@@ -302,6 +298,10 @@
 	  ⛶
 	</button>
 
+	<button id="toggleSubs" type="button" class="icon-btn subtitle-panel-toggle" aria-expanded="true" aria-controls="sidebar">
+	  <span class="subtitle-panel-toggle-icon" aria-hidden="true">▤</span>
+	</button>
+
 	<button id="settingsBtn" class="icon-btn" title="Settings" aria-label="Settings">
 	  ⚙
 	</button>
@@ -317,8 +317,13 @@
   </div>
 </div>
 
-<div id="resizer"></div>
-<div id="sidebar"></div>
+<div id="resizer" aria-hidden="true"></div>
+<aside id="sidebar" aria-label="Subtitles">
+  <header class="subtitle-sidebar-header">
+    <h2 data-i18n="subtitlesPanelTitle">Subtitles</h2>
+    <button id="closeSubtitleSidebarBtn" type="button" class="subtitle-sidebar-close" aria-label="Close subtitles">×</button>
+  </header>
+</aside>
 
 <script type="module" src="/dist/js/bootstrap.js"></script>
 

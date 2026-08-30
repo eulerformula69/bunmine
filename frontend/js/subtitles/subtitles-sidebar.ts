@@ -5,7 +5,6 @@ function initSubtitleSidebar() {
     initSubtitleSearchPanel();
     initSubtitleSidebarToggle();
     initSubtitleSidebarResizer();
-    initSubtitleContextDrag();
 }
 
 function initSubtitleSidebarToggle() {
@@ -14,12 +13,10 @@ function initSubtitleSidebarToggle() {
 
     toggleBtn.dataset.sidebarInitialized = "true";
 
-    toggleBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
+    const closeButton = document.getElementById("closeSubtitleSidebarBtn");
 
-        const isHidden = sidebar.classList.contains("hidden");
-
-        if (!isHidden) {
+    const setOpen = (isOpen: boolean) => {
+        if (!isOpen) {
             const currentWidth = sidebar.style.width || `${Math.round(sidebar.getBoundingClientRect().width)}px`;
             if (currentWidth && currentWidth !== "0px") lastSidebarWidth = currentWidth;
 
@@ -31,12 +28,40 @@ function initSubtitleSidebarToggle() {
             resizer.classList.remove("hidden");
 
             const saved = JSON.parse(localStorage.getItem("subtitlePlayerSettings") || "{}").sidebarWidth;
-            sidebar.style.width = lastSidebarWidth || saved || "260px";
+            sidebar.style.width = lastSidebarWidth || saved || "320px";
         }
 
-        const langKey = sidebar.classList.contains("hidden") ? "showSubs" : "hideSubs";
-        toggleBtn.textContent = i18n[currentLang].dict[langKey];
+        toggleBtn.classList.toggle("active", isOpen);
+        toggleBtn.setAttribute("aria-expanded", String(isOpen));
+        updateSubtitleSidebarLabels();
+    };
+
+    toggleBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        setOpen(sidebar.classList.contains("hidden"));
     });
+
+    closeButton?.addEventListener("click", () => setOpen(false));
+    setOpen(!sidebar.classList.contains("hidden"));
+}
+
+function updateSubtitleSidebarLabels() {
+    if (!toggleBtn || !sidebar) return;
+
+    const dict = i18n[currentLang]?.dict || i18n.en.dict;
+    const isOpen = !sidebar.classList.contains("hidden");
+    const toggleLabel = dict[isOpen ? "hideSubs" : "showSubs"];
+    const closeButton = document.getElementById("closeSubtitleSidebarBtn");
+    const sidebarTitle = sidebar.querySelector(".subtitle-sidebar-header h2");
+
+    toggleBtn.title = toggleLabel;
+    toggleBtn.setAttribute("aria-label", toggleLabel);
+    sidebar.setAttribute("aria-label", dict.subtitlesPanelTitle || "Subtitles");
+    if (sidebarTitle) sidebarTitle.textContent = dict.subtitlesPanelTitle || "Subtitles";
+    if (closeButton) {
+        closeButton.title = dict.closeSubtitlesPanel || "Close subtitles";
+        closeButton.setAttribute("aria-label", closeButton.title);
+    }
 }
 
 function initSubtitleSidebarResizer() {
@@ -451,106 +476,6 @@ function commitSearchMatch() {
 
 // rendering
 
-function initSubtitleContextDrag() {
-    if (document.body.dataset.subtitleContextDragInitialized === "true") return;
-
-    document.body.dataset.subtitleContextDragInitialized = "true";
-
-    document.addEventListener("mousemove", onSubtitleContextDragMove);
-    document.addEventListener("mouseup", stopSubtitleContextDrag);
-}
-
-function startSubtitleContextDrag(kind: SubtitleDepthKind, event: MouseEvent) {
-    if (!subtitles.length) return;
-
-    const context = getSubtitleContextRange();
-
-    if (context.currentIdx < 0) return;
-
-    event.preventDefault();
-    event.stopPropagation();
-
-	subtitleContextDragState = {
-		kind,
-		currentIdx: context.currentIdx,
-		startY: event.clientY,
-		activated: false
-	};
-
-	document.body.style.cursor = "row-resize";
-	document.documentElement.style.cursor = "row-resize";
-	document.body.style.userSelect = "none";
-	document.body.classList.add("subtitle-depth-dragging");
-}
-
-function onSubtitleContextDragMove(event: MouseEvent) {
-    if (!subtitleContextDragState) return;
-
-    const dragDeadZonePx = 14;
-    const distanceY = Math.abs(event.clientY - subtitleContextDragState.startY);
-
-    if (!subtitleContextDragState.activated) {
-        if (distanceY < dragDeadZonePx) return;
-
-        subtitleContextDragState.activated = true;
-    }
-
-    updateSubtitleContextDepthFromPointer(
-        subtitleContextDragState.kind,
-        event.clientY,
-        subtitleContextDragState.currentIdx
-    );
-}
-
-function stopSubtitleContextDrag() {
-    if (!subtitleContextDragState) return;
-
-    subtitleContextDragState = null;
-	document.body.style.cursor = "";
-	document.documentElement.style.cursor = "";
-    document.body.style.userSelect = "auto";
-	document.body.classList.remove("subtitle-depth-dragging");
-}
-
-function updateSubtitleContextDepthFromPointer(kind: SubtitleDepthKind, clientY: number, currentIdx: number) {
-    if (!subtitleElements.length) return;
-
-    const allowedElements = subtitleElements.filter(({ index }) => {
-        return kind === "back"
-            ? index <= currentIdx
-            : index >= currentIdx;
-    });
-
-    if (!allowedElements.length) return;
-
-    let nearestIndex = allowedElements[0].index;
-    let nearestDistance = Infinity;
-
-    allowedElements.forEach(({ div, index }) => {
-        const rect = div.getBoundingClientRect();
-        const centerY = rect.top + (rect.height / 2);
-        const distance = Math.abs(centerY - clientY);
-
-        if (distance < nearestDistance) {
-            nearestDistance = distance;
-            nearestIndex = index;
-        }
-    });
-
-    if (kind === "back") {
-        setSubtitleContextDepths({
-            backDepth: Math.max(0, currentIdx - nearestIndex),
-            forwardDepth: subtitleContextForwardDepth
-        });
-        return;
-    }
-
-    setSubtitleContextDepths({
-        backDepth: subtitleContextBackDepth,
-        forwardDepth: Math.max(0, nearestIndex - currentIdx)
-    });
-}
-
 function renderSubtitles() {
     initSubtitleSearchPanel();
 
@@ -583,38 +508,27 @@ function renderSubtitles() {
         div.appendChild(timeContainer);
         div.appendChild(textContent);
 
-		div.onclick = () => {
+		div.onclick = (event) => {
+            if ((event.target as Element).closest(".subtitle-context-controls")) return;
+
             clearSearchMatches();
             lastClickedSubtitleIdx = idx;
 
-            if (lastClickedSubtitleIdx === idx) {
-                if (video.paused) {
-                    video.play();
-                } else {
-                    video.pause();
-                    video.currentTime = sub.start + globalSubDelay + 0.05;
-                }
-				} else {
-					video.pause();
-					syncSubtitleStyle(idx);
-					video.currentTime = sub.start + globalSubDelay + 0.05;
+            video.pause();
+            video.currentTime = sub.start + globalSubDelay + 0.05;
+            syncSubtitleStyle(idx);
 
-					renderSubtitleOverlay({
-						overlay,
-						text: sub.text,
-						highlighter: ankiSubtitleHighlighter
-					});
-				}
+            renderSubtitleOverlay({
+                overlay,
+                text: sub.text,
+                highlighter: ankiSubtitleHighlighter
+            });
 
             updatePlayButton();
         };
 
-		if (context.currentIdx >= 0 && idx === context.startIdx) {
-			div.appendChild(createSubtitleDepthHandleElement("back", startSubtitleContextDrag));
-		}
-
-		if (context.currentIdx >= 0 && idx === context.endIdx) {
-			div.appendChild(createSubtitleDepthHandleElement("forward", startSubtitleContextDrag));
+		if (context.currentIdx >= 0 && idx === context.currentIdx) {
+			div.appendChild(createSubtitleContextControls(context));
 		}
 
 		list.appendChild(div);

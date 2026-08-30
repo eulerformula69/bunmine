@@ -302,10 +302,7 @@ function applyLanguage(lang: string): void {
         if (key && dictionary[key]) el.textContent = dictionary[key];
     });
 
-    if (typeof sidebar !== "undefined" && toggleBtn) {
-        const langKey = sidebar.classList.contains("hidden") ? "showSubs" : "hideSubs";
-        toggleBtn.textContent = dictionary[langKey];
-    }
+    if (typeof updateSubtitleSidebarLabels === "function") updateSubtitleSidebarLabels();
 
     const autoOption = document.querySelector<HTMLOptionElement>("#targetNoteSelect option[value='']");
     if (autoOption && dictionary.lastAdded) {

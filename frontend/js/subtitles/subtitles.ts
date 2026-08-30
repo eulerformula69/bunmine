@@ -154,7 +154,9 @@ function renderSubtitleOverlay(options) {
         if (cueIndex >= 0) {
             line.addEventListener("click", (event) => {
                 event.stopPropagation();
+                video.pause();
                 selectPrimarySubtitle(cueIndex);
+                updatePlayButton();
                 renderSubtitleOverlay({
                     overlay,
                     cues: getActiveSubtitles(),

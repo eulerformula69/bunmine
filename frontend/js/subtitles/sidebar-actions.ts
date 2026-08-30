@@ -70,4 +70,5 @@ function focusSubtitleWordSearch(): void {
 
 function updateSubtitleSearchPanelLanguage(): void {
     updateSubtitleSearchPanelLabels();
+    updateSubtitleSidebarLabels();
 }
