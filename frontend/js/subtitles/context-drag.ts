@@ -1,12 +1,26 @@
+interface ActiveSubtitleContextDrag {
+    kind: SubtitleDepthKind;
+    currentIdx: number;
+    pointerId: number;
+    grabOffsetY: number;
+    ghost: HTMLElement;
+    lastTargetIndex: number;
+    frameId: number | null;
+    pendingClientY: number;
+}
+
+let activeSubtitleContextDrag: ActiveSubtitleContextDrag | null = null;
+
 function initSubtitleContextDrag() {
     if (document.body.dataset.subtitleContextDragInitialized === "true") return;
 
     document.body.dataset.subtitleContextDragInitialized = "true";
-    document.addEventListener("mousemove", onSubtitleContextDragMove);
-    document.addEventListener("mouseup", stopSubtitleContextDrag);
+    document.addEventListener("pointermove", onSubtitleContextDragMove);
+    document.addEventListener("pointerup", stopSubtitleContextDrag);
+    document.addEventListener("pointercancel", stopSubtitleContextDrag);
 }
 
-function startSubtitleContextDrag(kind: SubtitleDepthKind, event: MouseEvent) {
+function startSubtitleContextDrag(kind: SubtitleDepthKind, event: PointerEvent) {
     if (!subtitles.length) return;
 
     const context = getSubtitleContextRange();
@@ -15,45 +29,85 @@ function startSubtitleContextDrag(kind: SubtitleDepthKind, event: MouseEvent) {
     event.preventDefault();
     event.stopPropagation();
 
-    subtitleContextDragState = {
+    const handle = event.currentTarget as HTMLElement;
+    const rect = handle.getBoundingClientRect();
+    const ghost = handle.cloneNode(true) as HTMLElement;
+    ghost.classList.add("subtitle-depth-handle-ghost");
+    ghost.style.left = `${rect.left}px`;
+    ghost.style.top = `${rect.top}px`;
+    ghost.style.width = `${rect.width}px`;
+    ghost.style.height = `${rect.height}px`;
+    document.body.appendChild(ghost);
+
+    activeSubtitleContextDrag = {
         kind,
         currentIdx: context.currentIdx,
-        startY: event.clientY,
-        activated: false
+        pointerId: event.pointerId,
+        grabOffsetY: event.clientY - rect.top,
+        ghost,
+        lastTargetIndex: kind === "back" ? context.startIdx : context.endIdx,
+        frameId: null,
+        pendingClientY: event.clientY
     };
 
+    ghost.setPointerCapture?.(event.pointerId);
     document.body.style.cursor = "row-resize";
     document.documentElement.style.cursor = "row-resize";
     document.body.style.userSelect = "none";
     document.body.classList.add("subtitle-depth-dragging");
 }
 
-function onSubtitleContextDragMove(event: MouseEvent) {
-    if (!subtitleContextDragState) return;
+function onSubtitleContextDragMove(event: PointerEvent) {
+    const drag = activeSubtitleContextDrag;
+    if (!drag || event.pointerId !== drag.pointerId) return;
 
-    const dragDeadZonePx = 14;
-    const distanceY = Math.abs(event.clientY - subtitleContextDragState.startY);
+    drag.pendingClientY = event.clientY;
+    if (drag.frameId !== null) return;
 
-    if (!subtitleContextDragState.activated) {
-        if (distanceY < dragDeadZonePx) return;
-        subtitleContextDragState.activated = true;
-    }
+    drag.frameId = requestAnimationFrame(() => {
+        if (!activeSubtitleContextDrag) return;
 
-    updateSubtitleContextDepthFromPointer(
-        subtitleContextDragState.kind,
-        event.clientY,
-        subtitleContextDragState.currentIdx
-    );
+        const currentDrag = activeSubtitleContextDrag;
+        currentDrag.frameId = null;
+        currentDrag.ghost.style.top = `${currentDrag.pendingClientY - currentDrag.grabOffsetY}px`;
+        updateSubtitleContextDepthFromPointer(
+            currentDrag.kind,
+            currentDrag.pendingClientY,
+            currentDrag.currentIdx
+        );
+    });
 }
 
-function stopSubtitleContextDrag() {
-    if (!subtitleContextDragState) return;
+function stopSubtitleContextDrag(event: PointerEvent) {
+    const drag = activeSubtitleContextDrag;
+    if (!drag || event.pointerId !== drag.pointerId) return;
 
-    subtitleContextDragState = null;
+    if (drag.frameId !== null) cancelAnimationFrame(drag.frameId);
+    activeSubtitleContextDrag = null;
     document.body.style.cursor = "";
     document.documentElement.style.cursor = "";
     document.body.style.userSelect = "auto";
     document.body.classList.remove("subtitle-depth-dragging");
+
+    requestAnimationFrame(() => settleSubtitleContextDragGhost(drag));
+}
+
+function settleSubtitleContextDragGhost(drag: ActiveSubtitleContextDrag) {
+    const target = document.querySelector<HTMLElement>(
+        `.subtitle-depth-handle[data-kind="${drag.kind}"]`
+    );
+
+    if (!target) {
+        drag.ghost.remove();
+        return;
+    }
+
+    const targetRect = target.getBoundingClientRect();
+    drag.ghost.classList.add("settling");
+    drag.ghost.style.left = `${targetRect.left}px`;
+    drag.ghost.style.top = `${targetRect.top}px`;
+    drag.ghost.addEventListener("transitionend", () => drag.ghost.remove(), { once: true });
+    window.setTimeout(() => drag.ghost.remove(), 240);
 }
 
 function updateSubtitleContextDepthFromPointer(kind: SubtitleDepthKind, clientY: number, currentIdx: number) {
@@ -78,9 +132,13 @@ function updateSubtitleContextDepthFromPointer(kind: SubtitleDepthKind, clientY:
     });
 
     if (kind === "back") {
+        if (activeSubtitleContextDrag?.lastTargetIndex === nearestIndex) return;
+        if (activeSubtitleContextDrag) activeSubtitleContextDrag.lastTargetIndex = nearestIndex;
         setSubtitleContextDepths({ backDepth: Math.max(0, currentIdx - nearestIndex) });
         return;
     }
 
+    if (activeSubtitleContextDrag?.lastTargetIndex === nearestIndex) return;
+    if (activeSubtitleContextDrag) activeSubtitleContextDrag.lastTargetIndex = nearestIndex;
     setSubtitleContextDepths({ forwardDepth: Math.max(0, nearestIndex - currentIdx) });
 }

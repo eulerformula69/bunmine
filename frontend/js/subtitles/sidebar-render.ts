@@ -77,7 +77,7 @@ function appendSubtitleTextWithSearchHighlight(
 
 function createSubtitleDepthHandleElement(
     kind: SubtitleDepthKind,
-    onStartDrag: (kind: SubtitleDepthKind, event: MouseEvent) => void
+    onStartDrag: (kind: SubtitleDepthKind, event: PointerEvent) => void
 ): HTMLElement {
     const row = document.createElement("div");
     row.className = "subtitle-depth-handle-row";
@@ -89,7 +89,7 @@ function createSubtitleDepthHandleElement(
     handle.dataset.kind = kind;
     handle.title = kind === "back" ? "Previous subtitles" : "Next subtitles";
     handle.setAttribute("aria-label", handle.title);
-    handle.addEventListener("mousedown", (event) => onStartDrag(kind, event));
+    handle.addEventListener("pointerdown", (event) => onStartDrag(kind, event));
 
     row.appendChild(handle);
     return row;

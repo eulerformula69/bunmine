@@ -438,6 +438,7 @@ video {
   background: #a544c0;
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35), 0 2px 8px rgba(165, 68, 192, 0.35);
   cursor: ns-resize;
+  touch-action: none;
 }
 
 .subtitle-depth-handle:hover {
@@ -451,6 +452,23 @@ body.subtitle-depth-dragging * {
 
 .subtitle-depth-handle:focus {
   outline: none;
+}
+
+.subtitle-depth-handle-ghost {
+  position: fixed;
+  z-index: 1000;
+  margin: 0;
+  pointer-events: none;
+  will-change: top, left;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35), 0 4px 14px rgba(165, 68, 192, 0.55);
+}
+
+.subtitle-depth-handle-ghost.settling {
+  opacity: 0.75;
+  transition:
+    top 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    left 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 180ms ease-out;
 }
 
 /* Dropzone / preview */
@@ -1179,7 +1197,8 @@ body.subtitle-depth-dragging * {
 @media (prefers-reduced-motion: reduce) {
   #sidebar,
   .subtitle,
-  .subtitle-depth-handle {
+  .subtitle-depth-handle,
+  .subtitle-depth-handle-ghost.settling {
     transition-duration: 1ms !important;
   }
 }
