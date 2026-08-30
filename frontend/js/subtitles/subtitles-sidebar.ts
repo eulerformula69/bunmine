@@ -198,6 +198,11 @@ function setSubtitleContextDepths({
     subtitleContextBackDepth = normalizeSubtitleContextDepth(backDepth);
     subtitleContextForwardDepth = normalizeSubtitleContextDepth(forwardDepth);
 
+    if (typeof isSubtitleContextDragging === "function" && isSubtitleContextDragging()) {
+        renderSubtitles();
+        return;
+    }
+
 	requestAnimationFrame(() => {
 		restoreSubtitleFromCurrentTime();
 	});

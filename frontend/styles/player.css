@@ -459,16 +459,22 @@ body.subtitle-depth-dragging * {
   z-index: 1000;
   margin: 0;
   pointer-events: none;
-  will-change: top, left;
+  will-change: transform;
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35), 0 4px 14px rgba(165, 68, 192, 0.55);
 }
 
 .subtitle-depth-handle-ghost.settling {
   opacity: 0.75;
   transition:
-    top 180ms cubic-bezier(0.22, 1, 0.36, 1),
-    left 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
     opacity 180ms ease-out;
+}
+
+body[data-subtitle-depth-drag-kind="back"]
+  .subtitle-depth-handle[data-kind="back"]:not(.subtitle-depth-handle-ghost),
+body[data-subtitle-depth-drag-kind="forward"]
+  .subtitle-depth-handle[data-kind="forward"]:not(.subtitle-depth-handle-ghost) {
+  opacity: 0;
 }
 
 /* Dropzone / preview */
