@@ -199,13 +199,23 @@ function setSubtitleContextDepths({
     subtitleContextForwardDepth = normalizeSubtitleContextDepth(forwardDepth);
 
     if (typeof isSubtitleContextDragging === "function" && isSubtitleContextDragging()) {
-        renderSubtitles();
+        updateSubtitleContextRangePreview();
         return;
     }
 
 	requestAnimationFrame(() => {
 		restoreSubtitleFromCurrentTime();
 	});
+}
+
+function updateSubtitleContextRangePreview() {
+    const context = getSubtitleContextRange();
+
+    subtitleElements.forEach(({ div, index }) => {
+        const isInRange = context.currentIdx >= 0 && index >= context.startIdx && index <= context.endIdx;
+        div.classList.toggle("capture-range", isInRange);
+        div.classList.toggle("active", index === context.currentIdx);
+    });
 }
 
 function resetSubtitleContextDepths() {

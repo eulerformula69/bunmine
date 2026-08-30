@@ -88,12 +88,15 @@ function stopSubtitleContextDrag(event: PointerEvent) {
     if (!drag || event.pointerId !== drag.pointerId) return;
 
     if (drag.frameId !== null) cancelAnimationFrame(drag.frameId);
+    drag.ghost.style.transform = `translateY(${event.clientY - drag.startClientY}px)`;
+    updateSubtitleContextDepthFromPointer(drag.kind, event.clientY, drag.currentIdx);
     activeSubtitleContextDrag = null;
     document.body.style.cursor = "";
     document.documentElement.style.cursor = "";
     document.body.style.userSelect = "auto";
     document.body.classList.remove("subtitle-depth-dragging");
 
+    renderSubtitles();
     requestAnimationFrame(() => settleSubtitleContextDragGhost(drag));
 }
 
@@ -132,7 +135,8 @@ function updateSubtitleContextDepthFromPointer(kind: SubtitleDepthKind, clientY:
 
     allowedElements.forEach(({ div, index }) => {
         const rect = div.getBoundingClientRect();
-        const distance = Math.abs((rect.top + rect.height / 2) - clientY);
+        const boundaryY = kind === "back" ? rect.top : rect.bottom;
+        const distance = Math.abs(boundaryY - clientY);
 
         if (distance < nearestDistance) {
             nearestDistance = distance;
