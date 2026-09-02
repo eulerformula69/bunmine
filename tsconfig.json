@@ -11,6 +11,8 @@
     "alwaysStrict": false,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
+    "incremental": true,
+    "tsBuildInfoFile": "dist/.tsbuildinfo",
     "rootDir": "frontend",
     "outDir": "dist"
   },
