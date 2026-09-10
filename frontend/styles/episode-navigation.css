@@ -13,14 +13,9 @@
   transition: opacity 150ms ease;
 }
 
-#videoContainer:hover .episode-navigation,
+.episode-navigation:hover,
 .episode-navigation:focus-within {
   opacity: 1;
-}
-
-#videoContainer:hover .episode-navigation a,
-.episode-navigation:focus-within a {
-  pointer-events: auto;
 }
 
 .episode-navigation[hidden], .episode-navigation a[hidden] {
@@ -28,7 +23,7 @@
 }
 
 .episode-navigation a {
-  pointer-events: none;
+  pointer-events: auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
