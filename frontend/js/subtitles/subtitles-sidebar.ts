@@ -346,6 +346,7 @@ function hasActiveSubtitleSearch() {
 }
 
 function clearSearchMatches() {
+    if (!subtitleSearchMatches.length && subtitleSearchIndex === -1) return;
     subtitleSearchMatches = [];
     subtitleSearchIndex = -1;
 
@@ -490,72 +491,6 @@ function commitSearchMatch() {
     renderSubtitles();
 }
 
-// rendering
-
-function renderSubtitles() {
-    initSubtitleSearchPanel();
-
-    const list = document.getElementById("subtitleList");
-    if (!list) return;
-
-    list.innerHTML = "";
-    subtitleElements = [];
-
-    const context = getSubtitleContextRange();
-    const currentSearchMatch = getCurrentSearchMatch();
-
-		subtitles.forEach((sub, idx) => {
-		const div = document.createElement("div");
-		
-        div.className = "subtitle";
-        div.dataset.index = String(idx);
-
-        applySubtitleRowState(div, idx, context, currentSearchMatch);
-
-        const timeContainer = createSubtitleTimeContainer(
-            sub.start + globalSubDelay,
-            sub.end + globalSubDelay
-        );
-
-        const textContent = document.createElement("div");
-        textContent.className = "text-content";
-        appendSubtitleTextWithSearchHighlight(textContent, sub.text, currentSearchMatch, idx);
-
-        div.appendChild(timeContainer);
-        div.appendChild(textContent);
-
-		div.onclick = (event) => {
-            if ((event.target as Element).closest(".subtitle-context-controls")) return;
-
-            clearSearchMatches();
-            lastClickedSubtitleIdx = idx;
-
-            video.pause();
-            video.currentTime = sub.start + globalSubDelay + 0.05;
-            syncSubtitleStyle(idx);
-
-            renderSubtitleOverlay({
-                overlay,
-                text: sub.text,
-                highlighter: ankiSubtitleHighlighter
-            });
-
-            updatePlayButton();
-        };
-
-		if (context.currentIdx >= 0 && idx === context.startIdx) {
-			div.appendChild(createSubtitleDepthHandleElement("back", startSubtitleContextDrag));
-		}
-
-		if (context.currentIdx >= 0 && idx === context.endIdx) {
-			div.appendChild(createSubtitleDepthHandleElement("forward", startSubtitleContextDrag));
-		}
-
-		list.appendChild(div);
-		subtitleElements.push({ index: idx, div, sub });
-    });
-}
-
 // navigation
 
 function seekBySubtitle(offset: number) {
@@ -584,14 +519,7 @@ function syncSubtitleStyle(idx: number) {
 
     renderSubtitles();
 
-    subtitleElements.forEach(({ div, index }) => {
-        if (index === idx) {
-            div.classList.add("active");
-            div.scrollIntoView({ behavior: "smooth", block: "center" });
-        } else {
-            div.classList.remove("active");
-        }
-    });
+    subtitleElements[idx]?.div.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
 function restoreSubtitleFromCurrentTime() {

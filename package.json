@@ -10,7 +10,7 @@
     "build:ts": "tsc -p tsconfig.json",
     "build": "npm run build:libs && npm run build:ts",
     "test:highlighter": "npm run build && node tests/highlighter-match-tests.mjs",
-    "test:subtitles": "npm run build && node tests/subtitle-model-tests.mjs && node tests/subtitle-provider-tests.mjs && node tests/subtitle-overlay-tests.mjs",
+    "test:subtitles": "npm run build && node tests/subtitle-model-tests.mjs && node tests/subtitle-provider-tests.mjs && node tests/subtitle-overlay-tests.mjs && node tests/subtitle-sidebar-tests.mjs",
     "test:library": "npm run build && node tests/library-presentation-tests.mjs && node tests/library-i18n-tests.mjs && node tests/library-bulk-model-tests.mjs && node tests/library-cover-controller-tests.mjs && node tests/library-subtitle-controller-tests.mjs && node tests/vocabulary-report-controller-tests.mjs",
     "test:player": "npm run build && node tests/known-basic-actions-tests.mjs && node tests/runtime-prefetch-tests.mjs && node tests/anki-furigana-tests.mjs && node tests/episode-navigation-tests.mjs",
     "test:python": "py -m pytest -q",
