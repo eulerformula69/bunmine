@@ -149,7 +149,18 @@ function renderSubtitleOverlay(options) {
         if (cueIndex >= 0) line.dataset.subtitleIndex = String(cueIndex);
         if (cueIndex === primaryIndex) line.classList.add("primary");
         applySubtitleCueStyle(line, cue);
-        renderSubtitleOverlayLine(line, text, cueIndex === primaryIndex ? highlighter : null);
+        const comprehensionLevel = typeof getSubtitleComprehensionLevel === "function"
+            ? getSubtitleComprehensionLevel(text, highlighter)
+            : null;
+        if (cueIndex === primaryIndex || (primaryIndex < 0 && position === 0)) {
+            updateSubtitleComprehensionBadge(comprehensionLevel);
+        }
+        if (
+            comprehensionLevel &&
+            typeof shouldShowSubtitleForComprehensionLevel === "function" &&
+            !shouldShowSubtitleForComprehensionLevel(comprehensionLevel)
+        ) continue;
+        renderSubtitleOverlayLine(line, text, highlighter);
 
         if (cueIndex >= 0) {
             line.addEventListener("click", (event) => {
@@ -212,21 +223,6 @@ function applyPositionedSubtitleRegion(region, cue) {
 }
 
 function renderSubtitleOverlayLine(overlayEl, text, highlighter) {
-
-    const comprehensionLevel = typeof getSubtitleComprehensionLevel === "function"
-        ? getSubtitleComprehensionLevel(text, highlighter)
-        : null;
-
-    updateSubtitleComprehensionBadge(comprehensionLevel);
-
-    if (
-        comprehensionLevel &&
-        typeof shouldShowSubtitleForComprehensionLevel === "function" &&
-        !shouldShowSubtitleForComprehensionLevel(comprehensionLevel)
-    ) {
-        return;
-    }
-
     if (!highlighter || highlighter.enabled !== true) {
         appendPlainSubtitleText(overlayEl, text);
         return;
