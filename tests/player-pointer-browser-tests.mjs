@@ -33,6 +33,21 @@ try {
         });
     });
 
+    await page.evaluate(() => {
+        document.getElementById("videoContainer").style.height = "90%";
+    });
+    await page.mouse.move(1, 1);
+    await page.waitForFunction(() => getComputedStyle(document.getElementById("episodeNavigation")).opacity === "0");
+    assert.equal(await page.locator("#nextEpisodeLink").evaluate((el) => getComputedStyle(el).pointerEvents), "none");
+    await page.locator("#allEpisodesLink").focus();
+    await page.waitForFunction(() => getComputedStyle(document.getElementById("episodeNavigation")).opacity === "1");
+    await page.evaluate(() => document.activeElement.blur());
+    await page.mouse.move(300, 300);
+    await page.waitForFunction(() => getComputedStyle(document.getElementById("episodeNavigation")).opacity === "1");
+    await page.mouse.move(1, 1);
+    await page.waitForFunction(() => getComputedStyle(document.getElementById("episodeNavigation")).opacity === "0");
+    console.log("Episode links appear on hover or keyboard focus and hide after pointer exit");
+
     for (const width of [1280, 768, 390]) {
         await page.setViewportSize({ width, height: 800 });
         const line = page.locator(".subtitle-overlay-line");

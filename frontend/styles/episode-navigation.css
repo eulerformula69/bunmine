@@ -9,6 +9,18 @@
   justify-content: flex-end;
   gap: 8px;
   flex-wrap: wrap;
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+
+#videoContainer:hover .episode-navigation,
+.episode-navigation:focus-within {
+  opacity: 1;
+}
+
+#videoContainer:hover .episode-navigation a,
+.episode-navigation:focus-within a {
+  pointer-events: auto;
 }
 
 .episode-navigation[hidden], .episode-navigation a[hidden] {
@@ -16,7 +28,7 @@
 }
 
 .episode-navigation a {
-  pointer-events: auto;
+  pointer-events: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -45,8 +57,14 @@
 .episode-navigation svg { width: 16px; height: 16px; fill: currentColor; }
 
 @media (prefers-reduced-motion: reduce) {
+  .episode-navigation { transition: none; }
   .episode-navigation a { transition: none; }
   .episode-navigation a:active { transform: none; }
+}
+
+@media (hover: none) {
+  .episode-navigation { opacity: 1; }
+  .episode-navigation a { pointer-events: auto; }
 }
 
 @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
