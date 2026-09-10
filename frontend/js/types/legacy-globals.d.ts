@@ -11,6 +11,7 @@ interface LibraryVideoFilePayload {
 type CurrentVideoPayload = VideoFilePayload | LibraryVideoFilePayload;
 
 interface LibraryPlaybackPayload extends ApiPayload {
+    seriesId?: string | number | null;
     episodeId?: string | number | null;
     videoFileId?: string | number | null;
     subtitleFileId?: string | number | null;

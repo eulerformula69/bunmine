@@ -26,6 +26,11 @@
     }
 
     if (videoFile) {
+        await saveLibraryWatchProgress({ force: true, skipAutoCompletePrompt: true });
+        currentLibraryEpisodeId = null;
+        currentLibraryVideoFileId = null;
+        currentLibrarySubtitleFileId = null;
+        resetEpisodeNavigation();
         if (!hasSubtitles) {
             subtitles = [];
             lastRuntimeSubtitleText = "";

@@ -22,6 +22,7 @@
         "/dist/js/video/media-payload.js",
         "/dist/js/video/upload.js",
         "/dist/js/video/playback-restore.js",
+        "/dist/js/player/episode-navigation.js",
         "/dist/js/video/progress.js",
         "/dist/js/video/video.js",
         "libs/kuromoji/kuromoji.js",

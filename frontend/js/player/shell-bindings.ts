@@ -72,9 +72,14 @@ function bindPlayerShell(options: PlayerShellBindingsOptions): void {
     };
     videoContainer.addEventListener("mousemove", (event) => {
         const rect = videoContainer.getBoundingClientRect();
-        const isBottom = event.clientY - rect.top >= rect.height - 120;
+        const isBottom = event.clientY - rect.top >= rect.height - Math.max(120, controls.offsetHeight + 12);
         controls.style.opacity = isBottom ? "1" : "0";
         controls.style.pointerEvents = isBottom ? "auto" : "none";
+    });
+
+    controls.addEventListener("focusin", () => {
+        controls.style.opacity = "1";
+        controls.style.pointerEvents = "auto";
     });
 
     document.addEventListener("visibilitychange", () => {

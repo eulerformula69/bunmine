@@ -5,6 +5,7 @@
 <meta charset="UTF-8" />
 <title>Bunmine</title>
 <link rel="stylesheet" href="styles/player.css" />
+<link rel="stylesheet" href="styles/episode-navigation.css" />
 </head>
 <body>
 <div id="main">
@@ -261,6 +262,13 @@
     <video id="video"></video>
 
 <div id="controls">
+  <nav id="episodeNavigation" class="episode-navigation" hidden>
+    <a id="allEpisodesLink" data-i18n="allEpisodes">All episodes</a>
+    <a id="nextEpisodeLink" class="next-episode-link" hidden>
+      <span data-i18n="nextEpisode">Next episode</span>
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 2.8c0-.6.6-.9 1.1-.6l7 5.2c.4.3.4.9 0 1.2l-7 5.2c-.5.3-1.1 0-1.1-.6zM12 2h2v12h-2z"/></svg>
+    </a>
+  </nav>
   <div class="controls-row" style="margin-bottom: 5px;">
     <input type="range" id="progress" class="slider" value="0" min="0" max="100">
   </div>

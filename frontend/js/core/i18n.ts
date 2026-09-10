@@ -7,6 +7,8 @@ const i18n = {
     ru: {
         name: "Русский",
         dict: {
+            nextEpisode: "Следующая серия",
+            allEpisodes: "Все серии",
             interfaceLang: "Язык интерфейса:",
             visuals: "Визуализация",
             hideSubs: "Скрыть субтитры",
@@ -131,6 +133,8 @@ const i18n = {
     en: {
         name: "English",
         dict: {
+            nextEpisode: "Next episode",
+            allEpisodes: "All episodes",
             interfaceLang: "Interface Language:",
             visuals: "Visuals",
             hideSubs: "Hide Subs",
@@ -256,6 +260,8 @@ const i18n = {
     ja: {
         name: "日本語",
         dict: {
+            nextEpisode: "次のエピソード",
+            allEpisodes: "エピソード一覧",
             interfaceLang: "インターフェース言語:",
             visuals: "表示設定",
             hideSubs: "字幕を隠す",

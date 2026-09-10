@@ -130,6 +130,7 @@ async function loadLibraryEpisodePlayback(playback: LibraryPlaybackPayload): Pro
     currentLibraryEpisodeId = playback.episodeId;
     currentLibraryVideoFileId = playback.videoFileId;
     currentLibrarySubtitleFileId = playback.subtitleFileId || null;
+    void updateEpisodeNavigation(playback);
 
 	resetLibraryProgressTracking();
 
