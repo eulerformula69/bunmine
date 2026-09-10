@@ -1,85 +1,9 @@
-import json
 import re
 import urllib.request
 from pathlib import Path
 
 from backend.library_db import get_db
 from backend.utils_validation import is_within
-
-
-ANILIST_GRAPHQL_URL = "https://graphql.anilist.co"
-
-ANILIST_SEARCH_QUERY = """
-query ($search: String!) {
-  Page(page: 1, perPage: 8) {
-    media(type: ANIME, search: $search, sort: SEARCH_MATCH) {
-      id
-      title {
-        romaji
-        english
-        native
-        userPreferred
-      }
-      coverImage {
-        large
-        extraLarge
-      }
-      format
-      seasonYear
-      episodes
-      siteUrl
-    }
-  }
-}
-"""
-
-
-def _http_json_post(url: str, payload: dict, timeout: int = 12) -> dict:
-    body = json.dumps(payload).encode("utf-8")
-    request = urllib.request.Request(
-        url,
-        data=body,
-        headers={
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-            "User-Agent": "Bunmine/1.0",
-        },
-        method="POST",
-    )
-    with urllib.request.urlopen(request, timeout=timeout) as response:
-        raw = response.read().decode("utf-8")
-    return json.loads(raw)
-
-
-def search_anilist_covers(query: str) -> list[dict]:
-    query = str(query or "").strip()
-    if not query:
-        return []
-    payload = {"query": ANILIST_SEARCH_QUERY, "variables": {"search": query}}
-    data = _http_json_post(ANILIST_GRAPHQL_URL, payload)
-    media_items = data.get("data", {}).get("Page", {}).get("media", [])
-
-    results = []
-    for item in media_items:
-        title = item.get("title") or {}
-        cover = item.get("coverImage") or {}
-        cover_url = cover.get("extraLarge") or cover.get("large")
-        if not cover_url:
-            continue
-        results.append({
-            "source": "anilist",
-            "externalId": item.get("id"),
-            "title": title.get("romaji") or title.get("userPreferred") or title.get("english") or "",
-            "englishTitle": title.get("english"),
-            "nativeTitle": title.get("native"),
-            "preferredTitle": title.get("userPreferred"),
-            "coverUrl": cover_url,
-            "siteUrl": item.get("siteUrl"),
-            "format": item.get("format"),
-            "seasonYear": item.get("seasonYear"),
-            "episodes": item.get("episodes"),
-        })
-    return results
 
 
 def _safe_cover_name(value: str) -> str:

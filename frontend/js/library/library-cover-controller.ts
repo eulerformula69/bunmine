@@ -39,7 +39,7 @@ function createLibraryCoverController(options: LibraryCoverControllerOptions) {
             const item = document.createElement("button");
             item.type = "button";
             item.className = "cover-result-item";
-            const meta = [result.format, result.seasonYear, result.episodes ? `${result.episodes} ${t("eps")}` : null]
+            const meta = [result.source === "kitsu" ? "Kitsu" : "AniList", result.format, result.seasonYear, result.episodes ? `${result.episodes} ${t("eps")}` : null]
                 .filter(Boolean).join(" · ");
             item.innerHTML = `
                 <img src="${options.escapeHtml(result.coverUrl)}" alt="">
@@ -59,7 +59,7 @@ function createLibraryCoverController(options: LibraryCoverControllerOptions) {
         const query = options.searchInput.value.trim() || series.title;
         options.searchButton.disabled = true;
         options.searchButton.textContent = t("searching");
-        options.results.innerHTML = `<div class="cover-message">${options.escapeHtml(t("searchingAniList"))}</div>`;
+        options.results.innerHTML = `<div class="cover-message">${options.escapeHtml(t("searching"))}</div>`;
         try {
             const { response, data } = await options.search(series.id, query);
             if (!response.ok || data.error) throw new Error(String(data.error || t("coverSearchFailed")));

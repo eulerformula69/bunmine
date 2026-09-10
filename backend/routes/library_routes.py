@@ -11,7 +11,8 @@ from backend.config import (
     LIBRARY_DB_PATH,
     MEDIA_LIBRARY_DIR,
 )
-from backend.library_covers import get_series_cover_file, resolve_cover_file_path, save_series_cover, search_anilist_covers
+from backend.library_covers import get_series_cover_file, resolve_cover_file_path, save_series_cover
+from backend.library_cover_search import search_covers
 from backend.library_subtitles import (
     build_episode_jimaku_subtitle_plan,
     build_missing_jimaku_subtitle_plan,
@@ -454,9 +455,7 @@ def library_series_cover_search(series_id):
 
     query = request.args.get("q") or detail["series"]["title"]
     try:
-        results = search_anilist_covers(query)
-    except urllib.error.HTTPError as err:
-        return jsonify({"error": f"AniList request failed: HTTP {err.code}"}), 502
+        results = search_covers(query)
     except Exception as err:
         return jsonify({"error": str(err)}), 502
 
@@ -470,7 +469,7 @@ def library_series_cover_select(series_id):
     external_id = data.get("externalId")
     cover_url = data.get("coverUrl")
 
-    if source != "anilist":
+    if source not in {"anilist", "kitsu"}:
         return jsonify({"error": "Unsupported cover source"}), 400
     if not external_id or not cover_url:
         return jsonify({"error": "externalId and coverUrl are required"}), 400

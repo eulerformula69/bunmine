@@ -20,6 +20,24 @@ def make_client(tmp_path, monkeypatch):
     return app.test_client(), db_path, media_root
 
 
+def test_kitsu_cover_can_be_selected(tmp_path, monkeypatch):
+    client, _, _ = make_client(tmp_path, monkeypatch)
+    saved = {}
+
+    def save(**kwargs):
+        saved.update(kwargs)
+        return {"found": True, "coverFileId": 42}
+
+    monkeypatch.setattr(library_routes, "save_series_cover", save)
+    response = client.post("/library/series/1/cover/select", json={
+        "source": "kitsu", "externalId": "1555",
+        "coverUrl": "https://media.kitsu.app/anime/poster_images/1555/large.jpg",
+    })
+    assert response.status_code == 200
+    assert response.get_json()["coverFileId"] == 42
+    assert saved["source"] == "kitsu"
+
+
 def seed_playable_episode(db_path, media_root):
     video_path = media_root / "Show" / "Show - 01.mkv"
     video_path.parent.mkdir(parents=True)
