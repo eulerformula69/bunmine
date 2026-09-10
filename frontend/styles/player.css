@@ -144,6 +144,8 @@ video {
   --control-height: 30px;
 
   position: absolute;
+  /* Keep controls above the subtitle overlay and its selection handles. */
+  z-index: 6;
   bottom: 0;
   left: 0;
   width: 100%;
