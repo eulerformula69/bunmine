@@ -44,7 +44,7 @@ function bindPlayerShell(options: PlayerShellBindingsOptions): void {
     };
     videoContainer.addEventListener("click", (event) => {
         const target = event.target;
-        if (target instanceof Element && target.closest("#controls, .subtitle-overlay-line")) return;
+        if (target instanceof Element && target.closest("#controls, #episodeNavigation, .subtitle-overlay-line")) return;
         if (video.paused) video.play(); else video.pause();
     });
 
