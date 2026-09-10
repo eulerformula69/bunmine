@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import vm from "node:vm";
+import kuromoji from "kuromoji";
 
 const highlighterPath = fileURLToPath(new URL("../dist/js/highlighter/anki-highlighter.js", import.meta.url));
 const matchModelPath = fileURLToPath(new URL("../dist/js/highlighter/anki-match-model.js", import.meta.url));
@@ -44,6 +45,11 @@ function matchedTexts(text) {
 
 {
     const text = "南極まで来て　足手まといは嫌でしょ";
+    tokenFixtures.set(text, [
+        { surface_form: "南極まで来て　", word_position: 1 },
+        { surface_form: "足手まとい", word_position: 8 },
+        { surface_form: "は嫌でしょ", word_position: 13 }
+    ]);
     resetKnownWords("足手まとい");
 
     assert.deepEqual(matchedTexts(text), ["足手まとい"]);
@@ -115,6 +121,32 @@ function matchedTexts(text) {
 {
     assert.equal(context.getSubtitleComprehensionLevelFromUnknownCount(5), "i+5+");
     assert.equal(context.getSubtitleComprehensionLevelFromUnknownCount(9), "i+5+");
+}
+
+const tokenizer = await new Promise((resolve, reject) => {
+    kuromoji.builder({ dicPath: fileURLToPath(new URL("../node_modules/kuromoji/dict/", import.meta.url)) })
+        .build((error, result) => error ? reject(error) : resolve(result));
+});
+
+for (const text of ["ありがとう", "本当にありがとうございます"]) {
+    tokenFixtures.set(text, tokenizer.tokenize(text));
+    resetKnownWords("とう");
+    assert.deepEqual(matchedTexts(text), []);
+    resetKnownWords("とう", "ありがとう");
+    assert.deepEqual(matchedTexts(text), ["ありがとう"]);
+}
+
+{
+    const text = "ありがとう！とう";
+    resetKnownWords("とう");
+    assert.deepEqual(matchedTexts(text), ["とう"]);
+}
+
+{
+    const text = "南極まで来て　足手まといは嫌でしょ";
+    tokenFixtures.set(text, tokenizer.tokenize(text));
+    resetKnownWords("足手まとい");
+    assert.deepEqual(matchedTexts(text), ["足手まとい"]);
 }
 
 console.log("Highlighter match tests passed");

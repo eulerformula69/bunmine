@@ -383,11 +383,13 @@ async function refreshKnownAnkiWordFromNote({
 }
 
 
-function findKnownRawMatchesInText(text: string): AnkiTextMatch[] {
+function findKnownRawMatchesInText(text: string, tokens: JapaneseToken[] | null = null): AnkiTextMatch[] {
     const source = String(text || "");
     const matches: AnkiTextMatch[] = [];
 
     if (!source) return matches;
+    const starts = tokens ? new Set(tokens.map(getTokenStart)) : null;
+    const ends = tokens ? new Set(tokens.map(getTokenEnd)) : null;
 
     for (const [word, info] of ankiRuntimeWordStatusMap.entries()) {
         const status = info.status;
@@ -399,11 +401,14 @@ function findKnownRawMatchesInText(text: string): AnkiTextMatch[] {
         let start = source.indexOf(needle);
 
         while (start !== -1) {
-            matches.push({
-                start,
-                end: start + needle.length,
-                status
-            });
+            const end = start + needle.length;
+            const atBoundaries = starts && ends
+                ? starts.has(start) && ends.has(end)
+                : !/[\p{L}\p{N}\p{M}]$/u.test(source.slice(0, start))
+                    && !/^[\p{L}\p{N}\p{M}]/u.test(source.slice(end));
+            if (atBoundaries) {
+                matches.push({ start, end, status });
+            }
 
             start = source.indexOf(needle, start + 1);
         }
@@ -474,7 +479,7 @@ function rerenderCurrentSubtitleWithAnkiHighlighter() {
 function findAnkiMatchesInText(text: string): AnkiTextMatch[] {
     const source = String(text || "");
     const tokens = tokenizeJapaneseTextSync?.(source);
-    const matches: AnkiTextMatch[] = findKnownRawMatchesInText(source);
+    const matches: AnkiTextMatch[] = findKnownRawMatchesInText(source, tokens);
 
     if (!tokens) {
         return resolveOverlappingAnkiMatches(matches);
