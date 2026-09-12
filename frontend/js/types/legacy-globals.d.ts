@@ -32,6 +32,7 @@ interface LibraryProgressPayload extends ApiPayload {
 }
 
 interface Window {
+    BunmineEarlyLibraryPlayback?: Promise<LibraryPlaybackPayload | null>;
     kuromoji?: {
         builder(options: { dicPath: string }): {
             build(callback: (err: Error | null, tokenizer: JapaneseTokenizer) => void): void;

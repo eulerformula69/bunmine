@@ -3,16 +3,43 @@ from pathlib import Path
 from backend.repositories.connection import get_db
 
 
-def _refresh_files(db_path: Path, file_types: set[str]) -> None:
-    # Lazy import preserves the existing library_db compatibility facade while
-    # file maintenance is extracted in a later step.
-    from backend.library_db import refresh_library_file_existence
+def _mark_missing_files(conn, rows) -> None:
+    missing_ids = [
+        int(row["id"])
+        for row in rows
+        if not (Path(row["path"]).expanduser().is_file())
+    ]
+    if not missing_ids:
+        return
 
-    refresh_library_file_existence(db_path, file_types)
+    placeholders = ", ".join("?" for _ in missing_ids)
+    conn.execute(
+        f"""
+        UPDATE library_files
+        SET file_exists = 0,
+            missing_since = COALESCE(missing_since, CURRENT_TIMESTAMP),
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id IN ({placeholders})
+        """,
+        tuple(missing_ids),
+    )
+
+
+def _refresh_episode_files(conn, episode_id: int) -> None:
+    rows = conn.execute(
+        """
+        SELECT id, path
+        FROM library_files
+        WHERE episode_id = ?
+          AND file_type IN ('video', 'subtitle')
+          AND file_exists = 1
+        """,
+        (episode_id,),
+    ).fetchall()
+    _mark_missing_files(conn, rows)
 
 
 def get_library_file_by_id(db_path: Path, file_id: int) -> dict:
-    _refresh_files(db_path, {"video", "subtitle", "cover"})
     with get_db(db_path) as conn:
         row = conn.execute(
             """
@@ -22,12 +49,23 @@ def get_library_file_by_id(db_path: Path, file_id: int) -> dict:
             """,
             (file_id,),
         ).fetchone()
+        if row and row["file_exists"]:
+            _mark_missing_files(conn, [row])
+            if not Path(row["path"]).expanduser().is_file():
+                row = conn.execute(
+                    """
+                    SELECT id, series_id, episode_id, file_type, path, relative_path, file_exists, is_primary
+                    FROM library_files
+                    WHERE id = ?
+                    """,
+                    (file_id,),
+                ).fetchone()
         return {"found": bool(row), "file": dict(row) if row else None}
 
 
 def get_episode_playback(db_path: Path, episode_id: int) -> dict:
-    _refresh_files(db_path, {"video", "subtitle"})
     with get_db(db_path) as conn:
+        _refresh_episode_files(conn, episode_id)
         row = conn.execute(
             """
             SELECT e.id AS episode_id, e.title AS episode_title, e.duration_seconds,

@@ -8,6 +8,7 @@ from backend.library_db import (
     save_episode_progress,
     set_episode_completed,
 )
+from backend.repositories.playback_repository import get_episode_playback
 
 
 def seed_series_with_episode(db_path, media_root, *, with_subtitle=True):
@@ -166,3 +167,36 @@ def test_set_episode_completed_can_toggle_completion(tmp_path):
 
     assert completed["progress"]["completed"] == 1
     assert not_completed["progress"]["completed"] == 0
+
+
+def test_episode_playback_checks_only_files_for_requested_episode(tmp_path):
+    db_path = tmp_path / "library.sqlite3"
+    media_root = tmp_path / "media"
+    init_library_db(db_path)
+    _, episode_id, *_ = seed_series_with_episode(db_path, media_root, with_subtitle=False)
+
+    with get_db(db_path) as conn:
+        other_episode_id = conn.execute(
+            "INSERT INTO episodes(series_id, normalized_key, title) SELECT series_id, ?, ? FROM episodes WHERE id = ?",
+            ("show|s1|e2", "Episode 02", episode_id),
+        ).lastrowid
+        other_file_id = conn.execute(
+            """
+            INSERT INTO library_files(series_id, episode_id, file_type, path, relative_path, file_exists, is_primary)
+            SELECT series_id, ?, 'video', ?, 'Show/Show - 02.mkv', 1, 1
+            FROM episodes
+            WHERE id = ?
+            """,
+            (other_episode_id, str(media_root / "Show" / "Show - 02.mkv"), other_episode_id),
+        ).lastrowid
+
+    result = get_episode_playback(db_path, episode_id)
+
+    assert result["found"] is True
+    assert result["playback"]["episodeId"] == episode_id
+    with get_db(db_path) as conn:
+        unrelated_file = conn.execute(
+            "SELECT file_exists FROM library_files WHERE id = ?",
+            (other_file_id,),
+        ).fetchone()
+    assert unrelated_file["file_exists"] == 1

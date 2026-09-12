@@ -109,9 +109,21 @@ async function loadLibraryEpisodeFromUrl(): Promise<boolean> {
     if (!episodeId) return false;
 
     try {
-        const { response, data } = await apiJson<LibraryPlaybackPayload>(`/library/episodes/${encodeURIComponent(episodeId)}/playback`);
+        const earlyPlayback = window.BunmineEarlyLibraryPlayback;
+        const earlyData = earlyPlayback ? await earlyPlayback : null;
+        let data: LibraryPlaybackPayload;
+        let responseOk: boolean;
 
-        if (!response.ok || data.error) {
+        if (earlyData) {
+            data = earlyData;
+            responseOk = !earlyData.error;
+        } else {
+            const result = await apiJson<LibraryPlaybackPayload>(`/library/episodes/${encodeURIComponent(episodeId)}/playback`);
+            data = result.data;
+            responseOk = result.response.ok;
+        }
+
+        if (!responseOk || data.error) {
             throw new Error(getApiErrorMessage(data, "Could not load library episode"));
         }
 
@@ -145,8 +157,28 @@ async function loadLibraryEpisodePlayback(playback: LibraryPlaybackPayload): Pro
 
     clearRuntimeWordStatuses?.();
 
-    video.src = buildApiUrl(playback.videoUrl);
-    video.load();
+    const videoUrl = buildApiUrl(playback.videoUrl);
+    const startTime = Number(playback.currentTimeSeconds || 0);
+    const restorePlaybackTime = () => {
+        if (startTime > 0 && startTime < video.duration) {
+            video.currentTime = startTime;
+        }
+
+        requestAnimationFrame(() => {
+            restoreSubtitleFromCurrentTime();
+        });
+    };
+
+    if (video.readyState >= HTMLMediaElement.HAVE_METADATA) {
+        restorePlaybackTime();
+    } else {
+        video.addEventListener("loadedmetadata", restorePlaybackTime, { once: true });
+    }
+
+    if (video.currentSrc !== videoUrl && video.src !== videoUrl) {
+        video.src = videoUrl;
+        video.load();
+    }
 
     dropzone.classList.add("hidden");
     videoPickerModal?.classList.add("hidden");
@@ -164,21 +196,16 @@ async function loadLibraryEpisodePlayback(playback: LibraryPlaybackPayload): Pro
         showToast("No subtitles found for this episode", "info", 4000);
     }
 
-    video.addEventListener("loadedmetadata", () => {
-        const startTime = Number(playback.currentTimeSeconds || 0);
-
-        if (startTime > 0 && startTime < video.duration) {
-            video.currentTime = startTime;
-        }
-
-		requestAnimationFrame(() => {
-			restoreSubtitleFromCurrentTime();
-		});
-
+    const logLoadedEpisode = () => {
         console.log(
             `Library episode loaded: ${playback.seriesTitle} / ${playback.episodeTitle}`
         );
-    }, { once: true });
+    };
+    if (video.readyState >= HTMLMediaElement.HAVE_METADATA) {
+        logLoadedEpisode();
+    } else {
+        video.addEventListener("loadedmetadata", logLoadedEpisode, { once: true });
+    }
 
     video.addEventListener("error", () => {
         console.error("Library video load failed:", video.error);
