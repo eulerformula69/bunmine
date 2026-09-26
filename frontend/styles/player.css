@@ -1200,6 +1200,26 @@ body[data-subtitle-depth-drag-kind="forward"]
   padding: 0 2px;
 }
 
+.image-subtitle-mode {
+  padding: 6px 10px;
+  border: 1px solid #777;
+  border-radius: 5px;
+  background: #333;
+  color: white;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.image-subtitle-mode[aria-pressed="true"] {
+  background: #2d0659;
+  border-color: #a97ce6;
+}
+
+.image-subtitle-mode:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 @media (prefers-reduced-motion: reduce) {
   #sidebar,
   .subtitle,

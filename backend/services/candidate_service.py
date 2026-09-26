@@ -32,6 +32,11 @@ def capture_candidate(settings, snapshot):
     for key in ('screenshotMode', 'imageSubtitleText', 'fontSize', 'trackIndex', 'ankiUrl', 'deckName', 'pictureField', 'audioField', 'sentenceField'):
         if not isinstance(snapshot.get(key), str):
             raise ValueError(f'Invalid {key}')
+    from backend.services.candidate_context_service import finite_number
+    from backend.services.image_subtitle_service import image_subtitle_cues
+    if not finite_number(snapshot.get('imageSubtitleDelay', 0)):
+        raise ValueError('Invalid image subtitle delay')
+    image_subtitle_cues(snapshot)
     if 'context' in snapshot:
         from backend.services.candidate_context_service import validate_context
         validate_context(snapshot['context'], snapshot)

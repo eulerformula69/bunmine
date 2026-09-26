@@ -17,6 +17,7 @@ interface PlayerSettings {
 	pictureField?: string;
 	audioField?: string;
 	includeImageSubtitle?: boolean;
+    imageSubtitleMode?: "all" | "timed";
 	subtitleHighlightEnabled?: boolean;
 	highlightColorNew?: string;
 	highlightColorLearning?: string;
@@ -96,6 +97,7 @@ function collectSettings(): PlayerSettings {
 		pictureField: getSettingsInput("pictureField").value,
 		audioField: getSettingsInput("audioField").value,
 		includeImageSubtitle: getSettingsInput("includeImageSubtitle").checked,
+        imageSubtitleMode: getSettingsInput("imageSubtitleMode")?.value === "timed" ? "timed" : "all",
 		subtitleHighlightEnabled: getSettingsInput("subtitleHighlightEnabled")?.checked ?? true,
 		highlightColorNew: getSettingsInput("highlightColorNew")?.value || "#ffcc66",
 		highlightColorLearning: getSettingsInput("highlightColorLearning")?.value || "#66ccff",
@@ -281,6 +283,9 @@ function loadSettings(): void {
 	if (includeImageSubtitleEl) {
 		includeImageSubtitleEl.checked = settings.includeImageSubtitle !== false;
 	}
+    const imageSubtitleMode = document.getElementById("imageSubtitleMode") as HTMLButtonElement | null;
+    if (imageSubtitleMode) imageSubtitleMode.value = settings.imageSubtitleMode === "timed" ? "timed" : "all";
+    updateImageSubtitleModeButton();
 
     const autoAttachNextCardEnabled = getSettingsInput("autoAttachNextCardEnabled");
     if (autoAttachNextCardEnabled) {
@@ -303,6 +308,7 @@ function applyLanguage(lang: string): void {
     });
 
     if (typeof updateSubtitleSidebarLabels === "function") updateSubtitleSidebarLabels();
+    updateImageSubtitleModeButton();
 
     if (typeof candidatePanel !== "undefined") candidatePanel.render();
 
@@ -351,6 +357,13 @@ function queueSettingsAutosave(): void {
 }
 
 function initSettingsAutosave(): void {
+    const imageSubtitleMode = document.getElementById("imageSubtitleMode") as HTMLButtonElement | null;
+    imageSubtitleMode?.addEventListener("click", () => {
+        imageSubtitleMode.value = imageSubtitleMode.value === "timed" ? "all" : "timed";
+        updateImageSubtitleModeButton();
+        queueSettingsAutosave();
+    });
+    getSettingsInput("includeImageSubtitle")?.addEventListener("change", updateImageSubtitleModeButton);
     [
         "fontSizeRange",
         "subOffsetStart",
@@ -391,6 +404,17 @@ function initSettingsAutosave(): void {
         el.addEventListener("input", queueSettingsAutosave);
         el.addEventListener("change", queueSettingsAutosave);
     });
+}
+
+function updateImageSubtitleModeButton(): void {
+    const button = document.getElementById("imageSubtitleMode") as HTMLButtonElement | null;
+    if (!button) return;
+    const timed = button.value === "timed";
+    button.dataset.i18n = timed ? "imageSubtitleTimed" : "imageSubtitleAll";
+    button.textContent = i18n[currentLang].dict[button.dataset.i18n];
+    button.title = i18n[currentLang].dict.imageSubtitleModeHelp;
+    button.setAttribute("aria-pressed", String(timed));
+    button.disabled = getSettingsInput("includeImageSubtitle")?.checked === false;
 }
 
 getSettingsInput("saveSettingsBtn").onclick = saveSettings;

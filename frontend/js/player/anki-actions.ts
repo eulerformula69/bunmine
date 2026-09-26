@@ -320,6 +320,9 @@ interface AnkiMediaSnapshot {
     audioEnd: number;
     combinedText: string;
     imageSubtitleText: string;
+    imageSubtitleMode?: "all" | "timed";
+    imageSubtitleCues?: CandidateCue[];
+    imageSubtitleDelay?: number;
     fontSize: string;
     trackIndex: string;
     selectedWord?: string;
@@ -332,7 +335,7 @@ interface AnkiMediaControllerOptions {
     getValidatedVolume(): number;
     getActiveSubtitleIndex(): number;
     getSubtitleStart(index: number): number;
-    getSubtitleContext(index: number): { startTime: number; endTime: number; text: string };
+    getSubtitleContext(index: number): { startTime: number; endTime: number; text: string; items?: CandidateCue[] };
     getGlobalSubtitleDelay(): number;
     getTargetNoteId(): number;
     clearTargetNote(): void;
@@ -382,11 +385,11 @@ function createAnkiMediaController(options: AnkiMediaControllerOptions): AnkiMed
             : options.getActiveSubtitleIndex();
         if (currentIdx === -1) throw new Error(options.translate("toastNoActiveSubtitle"));
 
+        const globalDelay = options.getGlobalSubtitleDelay();
         const targetTime = screenshotMode === "current"
             ? options.getVideoCurrentTime()
-            : Math.max(0, options.getSubtitleStart(currentIdx) + offsetStart);
+            : Math.max(0, options.getSubtitleStart(currentIdx) + globalDelay + offsetStart);
         const context = options.getSubtitleContext(currentIdx);
-        const globalDelay = options.getGlobalSubtitleDelay();
         const audioStart = Math.max(0, context.startTime + globalDelay + offsetStart);
         let audioEnd = context.endTime + globalDelay + offsetEnd;
         if (audioEnd <= audioStart) audioEnd = audioStart + 0.5;
@@ -409,6 +412,11 @@ function createAnkiMediaController(options: AnkiMediaControllerOptions): AnkiMed
             audioEnd,
             combinedText: context.text,
             imageSubtitleText: includeImageSubtitle ? context.text : "",
+            imageSubtitleMode: inputValue("imageSubtitleMode") === "timed" ? "timed" : "all",
+            imageSubtitleDelay: globalDelay,
+            imageSubtitleCues: includeImageSubtitle ? (context.items || []).map((cue) => ({
+                start: cue.start + globalDelay, end: cue.end + globalDelay, text: cue.text
+            })) : [],
             fontSize: inputValue("fontSizeRange"),
             trackIndex: "default"
         };
@@ -427,12 +435,16 @@ function createAnkiMediaController(options: AnkiMediaControllerOptions): AnkiMed
                 start: snapshot.audioStart,
                 end: snapshot.audioEnd,
                 text: snapshot.imageSubtitleText,
+                imageSubtitleMode: snapshot.imageSubtitleMode || "all",
+                imageSubtitleCues: snapshot.imageSubtitleCues || [],
                 fontSize: snapshot.fontSize
             }
             : {
                 ...snapshot.videoPayload,
                 time: snapshot.targetTime,
                 text: snapshot.imageSubtitleText,
+                imageSubtitleMode: snapshot.imageSubtitleMode || "all",
+                imageSubtitleCues: snapshot.imageSubtitleCues || [],
                 fontSize: snapshot.fontSize
             };
 

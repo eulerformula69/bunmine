@@ -47,5 +47,9 @@ function candidateContextSnapshot(snapshot: AnkiMediaSnapshot, context: Candidat
     const audioEnd = endTime > audioStart ? endTime : audioStart + 0.5;
     return { ...snapshot, combinedText, audioStart, audioEnd,
         imageSubtitleText: snapshot.imageSubtitleText ? combinedText : "",
+        imageSubtitleCues: snapshot.imageSubtitleText ? context.cues.slice(start, end + 1).map((cue) => ({
+            start: cue.start + (snapshot.imageSubtitleDelay || 0),
+            end: cue.end + (snapshot.imageSubtitleDelay || 0), text: cue.text
+        })) : [],
         context: { ...context, start, end } };
 }

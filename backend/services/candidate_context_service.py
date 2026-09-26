@@ -44,7 +44,12 @@ def apply_context(snapshot, context, start, end):
         audio_end = audio_start + 0.5
     return {**snapshot, 'context': {**context, 'start': start, 'end': end},
             'combinedText': text, 'audioStart': audio_start, 'audioEnd': audio_end,
-            'imageSubtitleText': text if snapshot['imageSubtitleText'] else ''}
+            'imageSubtitleText': text if snapshot['imageSubtitleText'] else '',
+            'imageSubtitleCues': [
+                {'start': cue['start'] + snapshot.get('imageSubtitleDelay', 0),
+                 'end': cue['end'] + snapshot.get('imageSubtitleDelay', 0), 'text': cue['text']}
+                for cue in cues[start:end + 1]
+            ] if snapshot['imageSubtitleText'] else []}
 
 
 def update_candidate_context(db_path, candidate_id, data):

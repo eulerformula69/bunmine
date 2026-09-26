@@ -1,10 +1,10 @@
-import os
 import textwrap
 
 from PIL import Image, ImageDraw, ImageFont
 
 from backend.ffmpeg_service import run_subprocess
 from backend.services.dedupe_service import get_cached_media, make_dedupe_key, save_cached_media
+from backend.services.image_subtitle_service import clip_subtitle_cues, screenshot_subtitle_text, subtitle_ass
 from backend.services.video_service import resolve_video_path_from_payload
 from backend.settings import Settings
 from backend.utils_validation import normalize_text, to_float
@@ -12,10 +12,10 @@ from backend.utils_validation import normalize_text, to_float
 
 def create_screenshot(settings: Settings, data: dict) -> dict:
     t_val = data.get("time")
-    text = data.get("text", "").strip()
     font_size = int(2.0 * int(data.get("fontSize", 40)))
     if t_val is None:
         raise ValueError("time is required")
+    text = screenshot_subtitle_text(data, to_float(t_val))
 
     video_path_obj, video_identity, error_response = resolve_video_path_from_payload(data, settings)
     if error_response:
@@ -66,7 +66,6 @@ def create_screenshot(settings: Settings, data: dict) -> dict:
 def create_animated_webp(settings: Settings, data: dict) -> dict:
     start = data.get("start")
     end = data.get("end")
-    text = data.get("text", "").strip()
     font_size = int(3.0 * int(data.get("fontSize", 40)))
     if start is None or end is None:
         raise ValueError("start and end are required")
@@ -81,12 +80,14 @@ def create_animated_webp(settings: Settings, data: dict) -> dict:
     if end_f <= start_f:
         end_f = start_f + 0.5
     duration = min(end_f - start_f, 8.0)
+    cues = clip_subtitle_cues(data, start_f, duration)
 
     webp_payload = {
         "video": video_identity,
         "start": start_f,
         "duration": round(duration, 3),
-        "text": normalize_text(text),
+        "imageSubtitleMode": data.get("imageSubtitleMode", "all"),
+        "cues": cues,
         "fontSize": font_size,
     }
     webp_key = make_dedupe_key("screenshot", webp_payload)
@@ -98,36 +99,14 @@ def create_animated_webp(settings: Settings, data: dict) -> dict:
     final_path = settings.screenshot_dir / webp_filename
     ass_path = settings.video_dir / f"temp_{webp_key[:12]}.ass"
 
-    wrapped_text = "\n".join(textwrap.wrap(text, width=15))
-    ass_text = (
-        wrapped_text
-        .replace("\\", "\\\\")
-        .replace("{", "\\{")
-        .replace("}", "\\}")
-        .replace("\n", "\\N")
-    )
-    duration_ass = f"0:00:{duration:05.2f}"
-    ass_content = f"""[Script Info]
-ScriptType: v4.00+
-PlayResX: 1920
-PlayResY: 1080
-ScaledBorderAndShadow: yes
-
-[V4+ Styles]
-Format: Name, Fontname, Fontsize, PrimaryColour, OutlineColour, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Default,Noto Sans JP,{font_size},&H00FFFFFF,&H00000000,1,12,0,2,40,40,90,1
-
-[Events]
-Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
-Dialogue: 0,0:00:00.00,{duration_ass},Default,,0,0,0,,{ass_text}
-"""
+    ass_content = subtitle_ass(cues, font_size)
     ass_path.write_text(ass_content, encoding="utf-8")
 
     ass_filter_path = str(ass_path).replace("\\", "/").replace(":", "\\:")
     fonts_dir_filter = str(settings.fonts_dir).replace("\\", "/").replace(":", "\\:")
     cmd = [
         "ffmpeg", "-y", "-ss", str(start_f), "-t", str(duration), "-i", str(video_path_obj),
-        "-vf", f"subtitles='{ass_filter_path}':fontsdir='{fonts_dir_filter}',scale=480:-2:flags=lanczos,fps=10",
+        "-vf", f"setpts=PTS-STARTPTS,subtitles='{ass_filter_path}':fontsdir='{fonts_dir_filter}',scale=480:-2:flags=lanczos,fps=10",
         "-c:v", "libwebp", "-lossless", "0", "-quality", "70", "-compression_level", "6", "-preset", "picture",
         "-loop", "0", "-an", str(final_path),
     ]

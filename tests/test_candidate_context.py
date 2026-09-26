@@ -102,3 +102,16 @@ def test_new_capture_retains_cues_and_rejects_bad_context(setup):
     snapshot['context']['startOffset'] = float('nan')
     with pytest.raises(ValueError, match='offset'):
         capture_candidate(settings, snapshot)
+
+
+def test_timed_subtitles_follow_edited_candidate_context(setup):
+    settings, snapshot = setup
+    context = context_for(snapshot)
+    snapshot.update(imageSubtitleMode='timed', imageSubtitleDelay=2)
+    candidate = repository.create_candidate(settings.library_db_path, snapshot, 'source', None)
+    updated = update_candidate_context(settings.library_db_path, candidate['id'],
+                                       dict(revision=0, context=context, start=0, end=2))
+    assert updated['snapshot']['imageSubtitleMode'] == 'timed'
+    assert updated['snapshot']['imageSubtitleCues'] == [
+        dict(start=3, end=6, text='前'), dict(start=12, end=17, text='猫です。'),
+        dict(start=19, end=22, text='次')]

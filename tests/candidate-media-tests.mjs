@@ -6,11 +6,12 @@ const fields = {
     screenshotMode: "current", pictureField: "Picture", audioField: "Audio", sentenceField: "Sentence",
     ankiUrl: "http://anki.test", deckName: "Japanese", fontSizeRange: "24", subOffsetStart: "0", subOffsetEnd: "0",
 };
+let includeImageSubtitle = true;
 let currentContext = { startTime: 10, endTime: 15, text: "猫です。" };
 const requests = [];
 const context = vm.createContext({
     console, AbortController, setTimeout, clearTimeout,
-    document: { getElementById: (id) => ({ value: fields[id] || "", checked: true }) },
+    document: { getElementById: (id) => ({ value: fields[id] || "", checked: includeImageSubtitle }) },
     buildApiUrl: (url) => url,
     fetch: async (url, options) => {
         const body = JSON.parse(options.body);
@@ -48,6 +49,28 @@ assert.equal(requests[1][1].end, 16);
 assert.equal(requests[1][1].filename, "original.mp4");
 assert.equal(requests[2][1].params.note.id, 123);
 assert.ok(requests[2][1].params.note.fields.Sentence.includes("猫"));
+fields.imageSubtitleMode = "timed";
+fields.screenshotMode = "webp";
+fields.subOffsetStart = "-0.5";
+currentContext = { startTime: 10, endTime: 15, text: "First Second", items: [
+    { start: 10, end: 11, text: "First" }, { start: 12, end: 15, text: "Second" }
+] };
+const timed = media.buildSnapshot();
+assert.equal(timed.audioStart, 10.5);
+assert.equal(timed.targetTime, 10.5);
+assert.equal(timed.imageSubtitleMode, "timed");
+assert.equal(timed.imageSubtitleCues[0].start, 11);
+currentContext.items[0].text = "Changed after capture";
+requests.length = 0;
+await media.updateNote(123, timed);
+assert.equal(requests[0][0], "/animated-webp");
+assert.deepEqual(requests[0][1].imageSubtitleCues, [
+    { start: 11, end: 12, text: "First" }, { start: 13, end: 16, text: "Second" }
+]);
+includeImageSubtitle = false;
+const hidden = media.buildSnapshot();
+assert.equal(hidden.imageSubtitleText, "");
+assert.equal(hidden.imageSubtitleCues.length, 0);
 fields.pictureField = "";
 fields.ankiUrl = "";
 assert.throws(() => media.buildSnapshot());
