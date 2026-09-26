@@ -35,7 +35,7 @@ function createCandidateReviewController(options: CandidateReviewOptions) {
                 if (!noteId) {
                     const previous = await options.noteIds(candidate.snapshot);
                     await options.copy(candidate.snapshot.selectedWord || "");
-                    options.status("Слово скопировано. Создайте одну карточку через Yomitan. Ожидание: 60 секунд.");
+                    options.status(t("candidateWaiting"));
                     const deadline = options.now() + 60000;
                     while (options.now() < deadline) {
                         await renew();
@@ -43,19 +43,19 @@ function createCandidateReviewController(options: CandidateReviewOptions) {
                         if (noteId) break;
                         await options.sleep(1000);
                     }
-                    if (!noteId) throw new Error("Новая карточка не найдена. Кандидат остался в очереди.");
+                    if (!noteId) throw new Error(t("candidateTimeout"));
                     await options.verify(noteId, candidate.snapshot);
                     await options.action(candidate.id, "bind", token, noteId);
                     candidate.anki_note_id = noteId;
                 }
                 await renew();
                 await options.verify(noteId, candidate.snapshot);
-                options.status("Прикрепляю сохранённые текст, аудио и изображение…");
+                options.status(t("candidateAttaching"));
                 await options.update(noteId, candidate.snapshot);
                 await renew();
                 await options.action(candidate.id, "accept", token);
                 token = undefined;
-                options.status("Карточка готова.");
+                options.status(t("candidateDone"));
             } finally {
                 clearInterval(renewTimer);
                 if (token) await options.action(candidate.id, "release", token).catch(() => {});
@@ -68,7 +68,7 @@ function createCandidateReviewController(options: CandidateReviewOptions) {
             busy = true;
             try {
                 await options.action(candidate.id, "reject");
-                options.status("Кандидат пропущен.");
+                options.status(t("candidateSkipped"));
             } finally {
                 busy = false;
                 await options.changed();

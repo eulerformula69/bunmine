@@ -72,7 +72,10 @@
 		  <input type="checkbox" id="includeImageSubtitle" checked>
 		</div>
 
-        <input type="checkbox" id="autoAttachNextCardEnabled" hidden>
+        <div class="settings-checkbox-row">
+          <label for="autoAttachNextCardEnabled" data-i18n="autoAttachNextCard">Automatically attach media to the next Anki card after selecting a word</label>
+          <input type="checkbox" id="autoAttachNextCardEnabled">
+        </div>
 
       </div>
 	  
@@ -322,7 +325,7 @@
 <div id="resizer" aria-hidden="true"></div>
 <aside id="sidebar" aria-label="Subtitles">
   <header class="subtitle-sidebar-header">
-    <h2 data-i18n="subtitlesPanelTitle">Subtitles</h2>
+    <h2 data-i18n="sidebarTitle">Sidebar</h2>
     <button id="closeSubtitleSidebarBtn" type="button" class="subtitle-sidebar-close" aria-label="Close subtitles">×</button>
   </header>
 </aside>

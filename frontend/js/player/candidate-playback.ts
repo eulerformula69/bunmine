@@ -18,10 +18,10 @@ async function playCandidateSource(candidate: MiningCandidate): Promise<void> {
             resetEpisodeNavigation();
             const { data } = await apiJson<VideoListResponse>("/videos");
             const info = data.videos?.find((item) => item.filename === payload.filename);
-            if (!info) throw new Error("Исходное видео недоступно.");
+            if (!info) throw new Error(t("candidateSourceMissing"));
             await restoreSelectedVideoFromServer(info);
         } else {
-            throw new Error("Серия больше недоступна в библиотеке.");
+            throw new Error(t("candidateEpisodeMissing"));
         }
     }
     if (video.readyState < 1) {
@@ -32,7 +32,7 @@ async function playCandidateSource(candidate: MiningCandidate): Promise<void> {
                 video.removeEventListener("error", failed);
             };
             const ready = () => { cleanup(); resolve(); };
-            const failed = () => { cleanup(); reject(new Error("Не удалось открыть исходное видео.")); };
+            const failed = () => { cleanup(); reject(new Error(t("candidateVideoFailed"))); };
             const timer = setTimeout(failed, 15000);
             video.addEventListener("loadedmetadata", ready, { once: true });
             video.addEventListener("error", failed, { once: true });

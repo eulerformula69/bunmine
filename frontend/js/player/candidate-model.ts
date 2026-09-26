@@ -10,7 +10,7 @@ interface MiningCandidate {
 function findCandidateNote(previous: number[], current: number[]): number | null {
     const baseline = new Set(previous);
     const added = [...new Set(current)].filter((id) => !baseline.has(id));
-    if (added.length > 1) throw new Error("Создано несколько карточек. Разбор остановлен: нельзя выбрать карточку однозначно.");
+    if (added.length > 1) throw new Error(t("candidateMultiple"));
     return added[0] || null;
 }
 

@@ -51,16 +51,16 @@ function updateSubtitleSidebarLabels() {
 
     const dict = i18n[currentLang]?.dict || i18n.en.dict;
     const isOpen = !sidebar.classList.contains("hidden");
-    const toggleLabel = dict[isOpen ? "hideSubs" : "showSubs"];
+    const toggleLabel = dict[isOpen ? "hideSidebar" : "showSidebar"];
     const closeButton = document.getElementById("closeSubtitleSidebarBtn");
     const sidebarTitle = sidebar.querySelector(".subtitle-sidebar-header h2");
 
     toggleBtn.title = toggleLabel;
     toggleBtn.setAttribute("aria-label", toggleLabel);
-    sidebar.setAttribute("aria-label", dict.subtitlesPanelTitle || "Subtitles");
-    if (sidebarTitle) sidebarTitle.textContent = dict.subtitlesPanelTitle || "Subtitles";
+    sidebar.setAttribute("aria-label", dict.sidebarTitle || "Sidebar");
+    if (sidebarTitle) sidebarTitle.textContent = dict.sidebarTitle || "Sidebar";
     if (closeButton) {
-        closeButton.title = dict.closeSubtitlesPanel || "Close subtitles";
+        closeButton.title = dict.closeSidebar || "Close sidebar";
         closeButton.setAttribute("aria-label", closeButton.title);
     }
 }

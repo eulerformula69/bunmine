@@ -112,7 +112,7 @@ declare function showActionToast(
     actions: Array<{ label: string; onClick: () => void | Promise<void> }>,
     type?: ToastType,
     duration?: number
-): void;
+): HTMLDivElement;
 declare function renderSubtitles(): void;
 declare function renderSubtitleOverlay(options: {
     overlay: HTMLElement | null;

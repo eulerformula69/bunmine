@@ -10,21 +10,21 @@ function createCandidatePanel(options: {
     tabs.className = "candidate-tabs";
     tabs.setAttribute("role", "tablist");
     const subtitleTab = document.createElement("button");
-    subtitleTab.textContent = "Субтитры";
+    subtitleTab.textContent = t("subtitlesPanelTitle");
     const candidateTab = document.createElement("button");
     const panel = document.createElement("section");
     panel.id = "candidatePanel";
     panel.hidden = true;
-    panel.setAttribute("aria-label", "Кандидаты");
+    panel.setAttribute("aria-label", t("candidateTitle"));
     const list = document.createElement("div");
     const context = document.createElement("p");
     context.className = "candidate-context";
     const status = document.createElement("p");
     status.setAttribute("role", "status");
     const add = document.createElement("button");
-    add.textContent = "Добавить через Yomitan";
+    add.textContent = t("candidateAdd");
     const skip = document.createElement("button");
-    skip.textContent = "Пропустить";
+    skip.textContent = t("candidateSkip");
     const actions = document.createElement("div");
     actions.className = "candidate-actions";
     actions.append(add, skip);
@@ -35,7 +35,7 @@ function createCandidatePanel(options: {
     const counter = document.createElement("button");
     counter.type = "button";
     counter.id = "candidateCount";
-    counter.title = "Открыть кандидатов";
+    counter.title = t("candidateOpen");
     document.getElementById("toggleSubs")?.after(counter);
     counter.onclick = () => {
         if (options.sidebar.classList.contains("hidden")) document.getElementById("toggleSubs")?.click();
@@ -60,15 +60,19 @@ function createCandidatePanel(options: {
     showCandidates(false);
 
     function render(): void {
-        candidateTab.textContent = `Кандидаты · ${candidates.length}`;
-        counter.textContent = `Кандидаты: ${candidates.length}`;
+        subtitleTab.textContent = t("subtitlesPanelTitle");
+        panel.setAttribute("aria-label", t("candidateTitle"));
+        counter.title = t("candidateOpen");
+        skip.textContent = t("candidateSkip");
+        candidateTab.textContent = `${t("candidateTitle")} · ${candidates.length}`;
+        counter.textContent = `${t("candidateTitle")}: ${candidates.length}`;
         list.replaceChildren();
-        if (!candidates.length) list.textContent = "Выделите слово и нажмите «Сохранить кандидата» или Alt+Q.";
+        if (!candidates.length) list.textContent = t("candidateEmpty");
         for (const candidate of candidates) {
             const button = document.createElement("button");
             button.className = "candidate-item";
             button.type = "button";
-            const source = candidate.episode_id ? `Серия ${candidate.episode_id}`
+            const source = candidate.episode_id ? t("candidateEpisode", { id: candidate.episode_id })
                 : (candidate.snapshot.videoPayload as VideoFilePayload).filename;
             button.textContent = `${candidate.snapshot.selectedWord} · ${source} · ${formatTime(candidate.snapshot.targetTime)}`;
             button.setAttribute("aria-pressed", String(active?.id === candidate.id));
@@ -77,7 +81,7 @@ function createCandidatePanel(options: {
             list.append(button);
         }
         context.textContent = active?.snapshot.combinedText || "";
-        add.textContent = active?.anki_note_id ? "Повторить прикрепление медиа" : "Добавить через Yomitan";
+        add.textContent = active?.anki_note_id ? t("candidateRetry") : t("candidateAdd");
         add.disabled = skip.disabled = !active || options.busy() || selecting;
     }
     async function select(candidate: MiningCandidate): Promise<void> {
@@ -100,6 +104,7 @@ function createCandidatePanel(options: {
     add.onclick = () => { void perform(options.acquire); };
     skip.onclick = () => { void perform(options.reject); };
     return {
+        render,
         status: (message: string) => { status.textContent = message; },
         async refresh(): Promise<void> {
             candidates = await candidateApi.list();

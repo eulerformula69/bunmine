@@ -32,6 +32,7 @@
     const scripts: string[] = [
         "/dist/js/core/dom.js",
         "/dist/js/core/i18n.js",
+        "/dist/js/player/sidebar-i18n.js",
         "/dist/js/core/api.js",
         "/dist/js/subtitles/model.js",
         "/dist/js/subtitles/parser-types.js",
@@ -80,6 +81,8 @@
         "/dist/js/player/shell-bindings.js",
         "/dist/js/player/anki-actions.js",
         "/dist/js/player/target-note-dropdown.js",
+        "/dist/js/player/anki-acquire-lock.js",
+        "/dist/js/player/auto-attach-controller.js",
         "/dist/js/player/candidate-model.js",
         "/dist/js/player/candidate-api.js",
         "/dist/js/player/capture-controller.js",
@@ -89,6 +92,7 @@
         "/dist/js/video/audio-preview.js",
         "/dist/js/player/app.js",
         "/dist/js/player/candidate-bindings.js",
+        "/dist/js/player/auto-attach-bindings.js",
         "/dist/js/player/selection-actions.js",
         "/dist/js/player/settings.js",
     ];

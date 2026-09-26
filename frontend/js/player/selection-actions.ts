@@ -41,6 +41,7 @@ document.addEventListener("selectionchange", () => {
     const selection = window.getSelection();
 
     if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
+        autoAttachController.selectionCleared();
         hideAddKnownBasicButton();
         return;
     }
@@ -61,6 +62,7 @@ document.addEventListener("selectionchange", () => {
         overlay?.contains(focusElement) || getSubtitleIndexFromSelection(selection) >= 0;
 
     if (!isSubtitleSelection) {
+        autoAttachController.selectionCleared();
         hideAddKnownBasicButton();
         return;
     }
@@ -68,5 +70,6 @@ document.addEventListener("selectionchange", () => {
 
     requestAnimationFrame(() => {
         showAddKnownBasicButtonForSelection();
+        autoAttachController.arm(getCleanSelectedText(), getSubtitleIndexFromSelection());
     });
 });

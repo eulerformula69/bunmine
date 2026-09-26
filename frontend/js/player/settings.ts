@@ -304,6 +304,8 @@ function applyLanguage(lang: string): void {
 
     if (typeof updateSubtitleSidebarLabels === "function") updateSubtitleSidebarLabels();
 
+    if (typeof candidatePanel !== "undefined") candidatePanel.render();
+
     const autoOption = document.querySelector<HTMLOptionElement>("#targetNoteSelect option[value='']");
     if (autoOption && dictionary.lastAdded) {
         autoOption.textContent = dictionary.lastAdded;

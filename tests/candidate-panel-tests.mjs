@@ -35,6 +35,16 @@ const context = vm.createContext({
     candidateApi: { list: async () => candidates },
     formatTime: String,
 });
+for (const path of ["core/i18n", "player/sidebar-i18n"]) {
+    vm.runInContext(fs.readFileSync(`dist/js/${path}.js`, "utf8"), context);
+}
+vm.runInContext(`let currentLang = "ru";
+function setLanguage(language) { currentLang = language; }
+function t(key, params = {}) {
+    let text = i18n[currentLang].dict[key] || key;
+    for (const [name, value] of Object.entries(params)) text = text.replaceAll("{" + name + "}", String(value));
+    return text;
+}`, context);
 vm.runInContext(fs.readFileSync("dist/js/player/candidate-panel.js", "utf8"), context);
 let busy = false;
 let finish;
@@ -94,4 +104,17 @@ skip.click();
 await settle();
 assert.equal(add.disabled, true);
 assert.equal(toggle.next.textContent, "Кандидаты: 0");
-console.log("Candidate panel tests passed");
+context.setLanguage("ja");
+panel.render();
+assert.equal(tabs[0].textContent, "字幕");
+assert.equal(tabs[1].textContent, "候補 · 0");
+assert.equal(skip.textContent, "スキップ");
+assert.equal(add.textContent, "Yomitanで追加");
+assert.equal(section.attrs["aria-label"], "候補");
+context.setLanguage("en");
+panel.render();
+assert.equal(tabs[0].textContent, "Subtitles");
+assert.equal(tabs[1].textContent, "Candidates · 0");
+assert.equal(skip.textContent, "Skip");
+assert.equal(context.t("sidebarTitle"), "Sidebar");
+console.log("Candidate panel and language switching tests passed");

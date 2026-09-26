@@ -29,8 +29,12 @@ Bunmine saves the note ID before media export. After an export error, a retry us
 If the app closes before it saves the note ID, the new note can remain unlinked. Check Anki before creating another note.
 Skipping a candidate does not delete its Anki note.
 
-Manual Update Card retains its existing behavior. Explicit capture replaces the old automatic wait after selection.
-The old setting remains in saved settings for compatibility, but no longer starts a wait.
+Manual Update Card retains its existing behavior.
+Enable automatic media attachment in Settings to wait for a new Anki note after subtitle selection.
+This mode captures the current context without adding a candidate. The new note receives that saved image, audio, and text.
+Click Cancel to stop the wait. Saving a candidate also cancels the automatic wait.
+Direct attachment and candidate review share an exclusive lock in browsers with Web Locks support, including Chrome.
+The sidebar title, tabs, actions, and messages follow the selected interface language: English, Russian, or Japanese.
 
 ## Checks
 

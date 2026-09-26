@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import vm from "node:vm";
 
-const context = vm.createContext({ console, setInterval, clearInterval });
+const context = vm.createContext({ console, setInterval, clearInterval, t: (key) => key });
 for (const name of ["candidate-model", "capture-controller", "review-controller"]) {
     vm.runInContext(fs.readFileSync(`dist/js/player/${name}.js`, "utf8"), context);
 }

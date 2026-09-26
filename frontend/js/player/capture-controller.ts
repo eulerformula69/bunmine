@@ -6,7 +6,7 @@ function createCandidateCaptureController(options: {
     let saving = false;
     return async function captureCandidate(word: string, subtitleIndex: number): Promise<void> {
         if (saving) return;
-        if (!word.trim() || subtitleIndex < 0) throw new Error("Выделите слово в субтитрах.");
+        if (!word.trim() || subtitleIndex < 0) throw new Error(t("candidateSelectWord"));
         saving = true;
         try {
             const snapshot = options.buildSnapshot(subtitleIndex);
