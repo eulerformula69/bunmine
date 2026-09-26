@@ -1,5 +1,15 @@
 const sidebarTranslations: Record<string, Record<string, string>> = {
     ru: {
+        candidateContextTitle: "Контекст кандидата",
+        candidateSeconds: "с",
+        candidateSavedShort: "Сохранено",
+        candidateSaving: "Сохраняю…",
+        candidateEditing: "Выбор границ",
+        candidateStartBoundary: "Начало контекста",
+        candidateEndBoundary: "Конец контекста",
+        candidateBoundaryHelp: "Перетащите границу или используйте стрелки вверх и вниз",
+        candidateContextUnavailable: "Исходные субтитры не совпали с сохранённым текстом. Сохранённый контекст доступен без редактирования.",
+
         sidebarTitle: "Боковая панель", showSidebar: "Показать боковую панель", hideSidebar: "Скрыть боковую панель", closeSidebar: "Закрыть боковую панель",
         candidateTitle: "Кандидаты", candidateOpen: "Открыть кандидатов", candidateAdd: "Добавить через Yomitan", candidateSkip: "Пропустить",
         candidateEmpty: "Выделите слово и нажмите «Сохранить кандидата» или Alt+Q.", candidateEpisode: "Серия {id}", candidateRetry: "Повторить прикрепление медиа",
@@ -11,6 +21,16 @@ const sidebarTranslations: Record<string, Record<string, string>> = {
         candidateVideoFailed: "Не удалось открыть исходное видео.", ankiAcquireBusy: "Уже идёт ожидание или добавление записи Anki. Завершите его сначала."
     },
     en: {
+        candidateContextTitle: "Candidate context",
+        candidateSeconds: "s",
+        candidateSavedShort: "Saved",
+        candidateSaving: "Saving…",
+        candidateEditing: "Selecting range",
+        candidateStartBoundary: "Context start",
+        candidateEndBoundary: "Context end",
+        candidateBoundaryHelp: "Drag the boundary or use the up and down arrow keys",
+        candidateContextUnavailable: "The source subtitles do not match the saved text. The saved context remains available without editing.",
+
         sidebarTitle: "Sidebar", showSidebar: "Show sidebar", hideSidebar: "Hide sidebar", closeSidebar: "Close sidebar",
         candidateTitle: "Candidates", candidateOpen: "Open candidates", candidateAdd: "Add through Yomitan", candidateSkip: "Skip",
         candidateEmpty: "Select a word and click Save candidate or press Alt+Q.", candidateEpisode: "Episode {id}", candidateRetry: "Retry media attachment",
@@ -22,6 +42,16 @@ const sidebarTranslations: Record<string, Record<string, string>> = {
         candidateVideoFailed: "Could not open the source video.", ankiAcquireBusy: "An Anki note is already being awaited or updated. Finish that action first."
     },
     ja: {
+        candidateContextTitle: "候補の文脈",
+        candidateSeconds: "秒",
+        candidateSavedShort: "保存済み",
+        candidateSaving: "保存中…",
+        candidateEditing: "範囲を選択中",
+        candidateStartBoundary: "文脈の開始",
+        candidateEndBoundary: "文脈の終了",
+        candidateBoundaryHelp: "境界をドラッグするか、上下キーを使ってください",
+        candidateContextUnavailable: "元の字幕が保存したテキストと一致しません。保存した文脈は編集せずに利用できます。",
+
         sidebarTitle: "サイドバー", showSidebar: "サイドバーを表示", hideSidebar: "サイドバーを非表示", closeSidebar: "サイドバーを閉じる",
         candidateTitle: "候補", candidateOpen: "候補を開く", candidateAdd: "Yomitanで追加", candidateSkip: "スキップ",
         candidateEmpty: "単語を選択し、「候補を保存」を押すか Alt+Q を押してください。", candidateEpisode: "エピソード {id}", candidateRetry: "メディアの追加を再試行",

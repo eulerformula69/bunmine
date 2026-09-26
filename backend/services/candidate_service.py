@@ -32,6 +32,9 @@ def capture_candidate(settings, snapshot):
     for key in ('screenshotMode', 'imageSubtitleText', 'fontSize', 'trackIndex', 'ankiUrl', 'deckName', 'pictureField', 'audioField', 'sentenceField'):
         if not isinstance(snapshot.get(key), str):
             raise ValueError(f'Invalid {key}')
+    if 'context' in snapshot:
+        from backend.services.candidate_context_service import validate_context
+        validate_context(snapshot['context'], snapshot)
     identity, episode_id = source_details(settings, snapshot)
     return repository.create_candidate(settings.library_db_path, snapshot, identity, episode_id)
 

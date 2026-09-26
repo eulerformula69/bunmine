@@ -13,6 +13,8 @@ const candidateApi = {
     capture: async (snapshot: AnkiMediaSnapshot): Promise<MiningCandidate> =>
         (await candidateRequest("", { snapshot })).candidate,
     source: async (id: number): Promise<MiningCandidate> => (await candidateRequest(`/${id}/source`)).candidate,
-    action: (id: number, action: string, token?: string, noteId?: number): Promise<any> =>
-        candidateRequest(`/${id}/${action}`, { token, noteId }),
+    action: (id: number, action: string, token?: string, noteId?: number, revision?: number): Promise<any> =>
+        candidateRequest(`/${id}/${action}`, { token, noteId, revision }),
+    context: async (candidate: MiningCandidate, context: CandidateContext, start: number, end: number): Promise<MiningCandidate> =>
+        (await candidateRequest(`/${candidate.id}/context`, { context, start, end, revision: candidate.revision })).candidate,
 };

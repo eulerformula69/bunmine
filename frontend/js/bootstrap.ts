@@ -83,6 +83,8 @@
         "/dist/js/player/target-note-dropdown.js",
         "/dist/js/player/anki-acquire-lock.js",
         "/dist/js/player/auto-attach-controller.js",
+        "/dist/js/player/candidate-context-model.js",
+        "/dist/js/player/candidate-context-editor.js",
         "/dist/js/player/candidate-model.js",
         "/dist/js/player/candidate-api.js",
         "/dist/js/player/capture-controller.js",

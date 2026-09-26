@@ -304,6 +304,7 @@ function pickNotePreviewText(noteInfo: { fields?: Record<string, { value?: unkno
 }
 
 interface AnkiMediaSnapshot {
+    context?: CandidateContext;
     videoPayload: CurrentVideoPayload;
     volumeLevel: number;
     ankiUrl: string;

@@ -43,7 +43,7 @@ def test_capture_survives_restart_and_schema_upgrade(setup):
     assert restored == [candidate]
     assert restored[0]['snapshot'] == snapshot
     with get_db(settings.library_db_path) as conn:
-        assert conn.execute("SELECT value FROM schema_meta WHERE key = 'schema_version'").fetchone()[0] == '3'
+        assert conn.execute("SELECT value FROM schema_meta WHERE key = 'schema_version'").fetchone()[0] == '4'
         assert conn.execute('SELECT COUNT(*) FROM cards').fetchone()[0] == 0
 
 

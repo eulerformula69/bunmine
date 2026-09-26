@@ -19,6 +19,9 @@ def migrate_candidates(conn):
             updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
         )
     """)
+    columns = {row['name'] for row in conn.execute('PRAGMA table_info(mining_candidates)')}
+    if 'revision' not in columns:
+        conn.execute('ALTER TABLE mining_candidates ADD COLUMN revision INTEGER NOT NULL DEFAULT 0')
     conn.execute("CREATE INDEX IF NOT EXISTS idx_candidates_status ON mining_candidates(status, id)")
     conn.execute("""
         CREATE TABLE IF NOT EXISTS mining_acquire (
@@ -61,7 +64,7 @@ def create_candidate(db_path, snapshot, identity, episode_id):
     return get_candidate(db_path, candidate_id)
 
 
-def change_candidate(db_path, candidate_id, action, token=None, note_id=None):
+def change_candidate(db_path, candidate_id, action, token=None, note_id=None, revision=None):
     with get_db(db_path) as conn:
         conn.execute('BEGIN IMMEDIATE')
         now = time.time()
@@ -71,6 +74,8 @@ def change_candidate(db_path, candidate_id, action, token=None, note_id=None):
             raise ValueError('Candidate is no longer pending')
         lock = conn.execute('SELECT * FROM mining_acquire').fetchone()
         if action == 'claim':
+            if revision is not None and revision != row['revision']:
+                raise ValueError('The candidate changed in another tab. Select it again.')
             if lock:
                 raise ValueError('Another candidate is active. Finish it or wait two minutes.')
             token = uuid.uuid4().hex
@@ -101,3 +106,21 @@ def change_candidate(db_path, candidate_id, action, token=None, note_id=None):
         else:
             raise ValueError('Unknown candidate action')
         return {}
+
+
+def update_context(db_path, candidate_id, revision, transform):
+    with get_db(db_path) as conn:
+        conn.execute('BEGIN IMMEDIATE')
+        row = conn.execute('SELECT * FROM mining_candidates WHERE id = ?', (candidate_id,)).fetchone()
+        if not row or row['status'] != 'pending':
+            raise ValueError('Candidate is no longer pending')
+        if isinstance(revision, bool) or not isinstance(revision, int) or revision != row['revision']:
+            raise ValueError('The candidate changed in another tab. Select it again.')
+        if conn.execute('SELECT 1 FROM mining_acquire WHERE expires >= ?', (time.time(),)).fetchone():
+            raise ValueError('Finish the active Anki action before editing context')
+        snapshot = json.loads(row['snapshot'])
+        updated = transform(snapshot)
+        conn.execute("""UPDATE mining_candidates SET snapshot = ?, revision = revision + 1,
+                     updated_at = CURRENT_TIMESTAMP WHERE id = ?""",
+                     (json.dumps(updated, ensure_ascii=False), candidate_id))
+        return decode(conn.execute('SELECT * FROM mining_candidates WHERE id = ?', (candidate_id,)).fetchone())

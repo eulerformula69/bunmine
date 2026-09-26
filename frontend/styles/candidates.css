@@ -19,8 +19,29 @@
 }
 #sidebar.review-candidates #subtitleList,
 #sidebar.review-candidates #subtitleSearchPanel { display: none; }
-#candidatePanel { padding: 10px; overflow-y: auto; }
+#candidatePanel { padding: 10px; display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; gap: 12px; }
 #candidatePanel[hidden] { display: none; }
 .candidate-item { display: block; width: 100%; margin-bottom: 8px; text-align: left; }
 .candidate-context { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 20px; }
 .candidate-actions { flex-wrap: wrap; padding: 0; }
+
+#sidebar.review-candidates { overflow: hidden; }
+.candidate-list { flex: 0 0 auto; max-height: 25%; overflow-y: auto; scrollbar-width: thin; }
+.candidate-context-editor { display: flex; flex-direction: column; flex: 1; min-height: 0; border-top: 1px solid #39323e; }
+.candidate-context-editor[hidden], .candidate-cues[hidden], .candidate-context[hidden] { display: none; }
+.candidate-context-editor h3 { font-size: 14px; margin: 12px 0; }
+.candidate-cues { position: relative; overflow-y: auto; flex: 1; min-height: 100px; scrollbar-width: thin; padding: 12px 0; overscroll-behavior: contain; }
+.candidate-cue { padding: 16px 12px; border-bottom: 1px solid #2a242e; font-size: 18px; line-height: 1.5; overflow-wrap: anywhere; }
+.candidate-cue-times { display: flex; justify-content: space-between; font-size: 12px; color: #a79dae; margin-bottom: 8px; }
+.candidate-cue.selected { background: #a544c030; }
+.candidate-cue.anchor { box-shadow: inset 3px 0 #a544c0; }
+#candidatePanel .candidate-boundary { position: absolute; left: calc(50% - 22px); width: 44px; height: 22px; padding: 0; border: 0; background: transparent; cursor: row-resize; touch-action: none; z-index: 1; }
+#candidatePanel .candidate-boundary::after { content: ""; position: absolute; width: 28px; height: 8px; border-radius: 8px; background: #a544c0; top: 7px; left: 8px; box-shadow: 0 0 6px #a544c040; }
+#candidatePanel .candidate-boundary:focus-visible { outline: 2px solid #dfa5f2; outline-offset: 1px; }
+.candidate-cues.dragging { user-select: none; cursor: row-resize; }
+.candidate-context-summary { display: flex; justify-content: space-between; gap: 8px; padding-top: 12px; font-size: 12px; color: #b9b0bf; }
+.candidate-context-summary [role="status"] { white-space: nowrap; }
+#candidatePanel > [role="status"] { margin: 0; font-size: 12px; }
+.candidate-context { overflow-y: auto; min-height: 0; }
+
+.candidate-list, .candidate-cues { scrollbar-color: #65566e #19131d; }

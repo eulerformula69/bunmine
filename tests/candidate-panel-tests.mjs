@@ -34,6 +34,10 @@ const context = vm.createContext({
     document: { createElement: () => new Element(), getElementById: (id) => id === "controls" ? controls : toggle },
     candidateApi: { list: async () => candidates },
     formatTime: String,
+    createCandidateContextEditor: () => {
+        const element = new Element();
+        return { element, set: (candidate) => { element.textContent = candidate?.snapshot.combinedText || ""; } };
+    },
 });
 for (const path of ["core/i18n", "player/sidebar-i18n"]) {
     vm.runInContext(fs.readFileSync(`dist/js/${path}.js`, "utf8"), context);

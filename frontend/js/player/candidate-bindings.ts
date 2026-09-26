@@ -25,7 +25,11 @@ const candidateReview = createCandidateReviewController({
 const candidatePanel = createCandidatePanel({
     sidebar,
     busy: () => candidateReview.isBusy() || ankiAcquireRunning,
-    select: playCandidateSource,
+    select: async (candidate) => {
+        Object.assign(candidate, await playCandidateSource(candidate));
+        return restoreCandidateContext(candidate.snapshot, subtitles);
+    },
+    saveContext: (candidate, context, start, end) => runExclusiveAnkiAcquire(() => candidateApi.context(candidate, context, start, end)),
     acquire: async (candidate) => {
         // Keep capture settings. Supply missing Anki configuration at review time.
         for (const key of ["ankiUrl", "deckName", "pictureField", "audioField"] as const) {
@@ -45,7 +49,12 @@ const candidatePanel = createCandidatePanel({
 });
 
 const captureCandidate = createCandidateCaptureController({
-    buildSnapshot: (index) => ankiMediaController.buildSnapshot({ subtitleIndex: index, validateAnki: false }),
+    buildSnapshot: (index) => {
+        const snapshot = ankiMediaController.buildSnapshot({ subtitleIndex: index, validateAnki: false });
+        const range = getSubtitleContextRange(index);
+        snapshot.context = captureCandidateContext(snapshot, subtitles, range.startIdx, range.endIdx);
+        return snapshot;
+    },
     save: candidateApi.capture,
     saved: async () => {
         showToast(t("candidateSaved"), "success");

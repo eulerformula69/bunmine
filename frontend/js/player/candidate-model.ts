@@ -1,4 +1,5 @@
 interface MiningCandidate {
+    revision?: number;
     id: number;
     snapshot: AnkiMediaSnapshot;
     episode_id: number | null;

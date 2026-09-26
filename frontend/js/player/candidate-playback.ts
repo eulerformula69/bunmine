@@ -1,5 +1,5 @@
-async function playCandidateSource(candidate: MiningCandidate): Promise<void> {
-    await candidateApi.source(candidate.id);
+async function playCandidateSource(candidate: MiningCandidate): Promise<MiningCandidate> {
+    candidate = await candidateApi.source(candidate.id);
     const payload = candidate.snapshot.videoPayload;
     video.pause();
     await saveLibraryWatchProgress({ force: true, skipAutoCompletePrompt: true });
@@ -40,4 +40,5 @@ async function playCandidateSource(candidate: MiningCandidate): Promise<void> {
     }
     video.currentTime = candidate.snapshot.targetTime;
     resetLibraryProgressTracking();
+    return candidate;
 }

@@ -10,7 +10,7 @@ from backend.repositories.playback_repository import (
 )
 
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 
 def refresh_library_file_existence(db_path: Path, file_types: list[str] | tuple[str, ...] | set[str] | None = None) -> dict:

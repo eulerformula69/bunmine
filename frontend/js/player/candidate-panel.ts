@@ -1,7 +1,8 @@
 function createCandidatePanel(options: {
     sidebar: HTMLElement;
     busy(): boolean;
-    select(candidate: MiningCandidate): Promise<void>;
+    select(candidate: MiningCandidate): Promise<CandidateContext | null | void>;
+    saveContext(candidate: MiningCandidate, context: CandidateContext, start: number, end: number): Promise<MiningCandidate>;
     acquire(candidate: MiningCandidate): Promise<void>;
     reject(candidate: MiningCandidate): Promise<void>;
     error(error: unknown): void;
@@ -17,8 +18,19 @@ function createCandidatePanel(options: {
     panel.hidden = true;
     panel.setAttribute("aria-label", t("candidateTitle"));
     const list = document.createElement("div");
-    const context = document.createElement("p");
-    context.className = "candidate-context";
+    list.className = "candidate-list";
+    const editor = createCandidateContextEditor({
+        editing: (value) => { editing = value; render(); },
+        error: options.error,
+        change: async (start, end) => {
+            if (!active || !editorContext) return;
+            const updated = await options.saveContext(active, editorContext, start, end);
+            candidates = candidates.map((item) => item.id === updated.id ? updated : item);
+            active = updated;
+            editorContext = updated.snapshot.context || null;
+            render();
+        },
+    });
     const status = document.createElement("p");
     status.setAttribute("role", "status");
     const add = document.createElement("button");
@@ -28,7 +40,7 @@ function createCandidatePanel(options: {
     const actions = document.createElement("div");
     actions.className = "candidate-actions";
     actions.append(add, skip);
-    panel.append(list, context, actions, status);
+    panel.append(list, editor.element, actions, status);
     tabs.append(subtitleTab, candidateTab);
     options.sidebar.querySelector(".subtitle-sidebar-header")!.after(tabs);
     options.sidebar.append(panel);
@@ -44,6 +56,8 @@ function createCandidatePanel(options: {
     let candidates: MiningCandidate[] = [];
     let active: MiningCandidate | undefined;
     let selecting = false;
+    let editing = false;
+    let editorContext: CandidateContext | null = null;
 
     function showCandidates(show: boolean): void {
         options.sidebar.classList.toggle("review-candidates", show);
@@ -66,6 +80,7 @@ function createCandidatePanel(options: {
         skip.textContent = t("candidateSkip");
         candidateTab.textContent = `${t("candidateTitle")} · ${candidates.length}`;
         counter.textContent = `${t("candidateTitle")}: ${candidates.length}`;
+        const listScroll = list.scrollTop;
         list.replaceChildren();
         if (!candidates.length) list.textContent = t("candidateEmpty");
         for (const candidate of candidates) {
@@ -76,25 +91,27 @@ function createCandidatePanel(options: {
                 : (candidate.snapshot.videoPayload as VideoFilePayload).filename;
             button.textContent = `${candidate.snapshot.selectedWord} · ${source} · ${formatTime(candidate.snapshot.targetTime)}`;
             button.setAttribute("aria-pressed", String(active?.id === candidate.id));
-            button.disabled = options.busy() || selecting;
+            button.disabled = options.busy() || selecting || editing;
             button.onclick = () => { void select(candidate); };
             list.append(button);
         }
-        context.textContent = active?.snapshot.combinedText || "";
+        list.scrollTop = listScroll;
+        editor.set(active, editorContext, options.busy() || selecting || editing);
         add.textContent = active?.anki_note_id ? t("candidateRetry") : t("candidateAdd");
-        add.disabled = skip.disabled = !active || options.busy() || selecting;
+        add.disabled = skip.disabled = !active || options.busy() || selecting || editing;
     }
     async function select(candidate: MiningCandidate): Promise<void> {
-        if (options.busy() || selecting) return;
+        if (options.busy() || selecting || editing) return;
         active = candidate;
+        editorContext = candidate.snapshot.context || null;
         selecting = true;
         render();
-        try { await options.select(candidate); }
+        try { editorContext = await options.select(candidate) || editorContext; }
         catch (error) { options.error(error); }
         finally { selecting = false; render(); }
     }
     async function perform(action: (candidate: MiningCandidate) => Promise<void>): Promise<void> {
-        if (!active || selecting || options.busy()) return;
+        if (!active || selecting || editing || options.busy()) return;
         const work = action(active);
         render();
         try { await work; }
@@ -107,9 +124,13 @@ function createCandidatePanel(options: {
         render,
         status: (message: string) => { status.textContent = message; },
         async refresh(): Promise<void> {
-            candidates = await candidateApi.list();
+            if (editing) return;
+            const loaded = await candidateApi.list();
+            if (editing) return;
+            candidates = loaded;
             const previous = active?.id;
             active = candidates.find((item) => item.id === previous);
+            editorContext = active?.snapshot.context || (active ? editorContext : null);
             render();
             if (previous && !active && candidates[0]) await select(candidates[0]);
         },

@@ -25,7 +25,7 @@ function createCandidateReviewController(options: CandidateReviewOptions) {
                 await options.action(candidate.id, "renew", token);
             };
             try {
-                const claim = await options.action(candidate.id, "claim");
+                const claim = await options.action(candidate.id, "claim", undefined, undefined, candidate.revision);
                 token = claim.token;
                 if (claim.ankiNoteId) candidate.anki_note_id = claim.ankiNoteId;
                 renewTimer = setInterval(() => {

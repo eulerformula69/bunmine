@@ -11,13 +11,28 @@ Review needs AnkiConnect and Yomitan. Use clipboard search in Yomitan, or paste 
 
 ## Storage
 
-Schema version 3 adds `mining_candidates` separately from `cards`.
+Schema version 4 retains `mining_candidates` separately from `cards` and adds a revision counter for concurrent edits.
 The snapshot stores the word, text, subtitle index, audio interval, frame time, video source, and media settings.
 Candidate states are `pending`, `accepted`, and `rejected`. An accepted candidate retains its `anki_note_id`.
 Uploaded videos and subtitles now survive server restarts. The existing delete action remains available.
 Library sources retain `videoFileId` and `episode_id`. Uploaded sources retain their server filename.
 File size and modification time detect source replacement. This metadata check does not compare file contents.
 Missing or replaced sources block review and leave the candidate pending.
+
+## Context boundaries
+
+The candidate list uses a compact scroll area above the context editor.
+Select a candidate to see its saved subtitle range and nearby lines.
+Drag either purple handle to extend or shorten the range. The range always includes the subtitle with the selected word.
+You can also focus a handle and use the up and down arrow keys.
+The editor previews the text and audio interval during a drag. Release the handle to save both changes.
+Press Escape or cancel the pointer gesture to discard the drag.
+The screenshot time stays fixed. Image subtitle text follows the new range when image subtitles are enabled.
+New candidates retain a copy of the subtitle cues. Later subtitle changes do not replace that copy.
+For older candidates, the editor matches the saved text against the source subtitles before it enables the handles.
+If no match exists, the saved context remains available without editing.
+Edits survive a restart. A failed save restores the previous range and shows an error.
+Concurrent edits cannot overwrite each other. Select the candidate again to load its latest revision after a conflict.
 
 ## Review and recovery
 

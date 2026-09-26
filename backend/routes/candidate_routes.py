@@ -4,6 +4,7 @@ from flask import Blueprint, current_app, jsonify, request
 
 from backend.repositories import candidate_repository as repository
 from backend.services.candidate_service import capture_candidate, check_source
+from backend.services.candidate_context_service import update_candidate_context
 
 candidate_bp = Blueprint('candidates', __name__)
 
@@ -39,9 +40,11 @@ def candidate_source(candidate_id):
 def candidate_action(candidate_id, action):
     settings = current_app.config['SETTINGS']
     data = json_object()
+    if action == 'context':
+        return jsonify(candidate=update_candidate_context(settings.library_db_path, candidate_id, data))
     if action == 'claim':
         check_source(settings, candidate_id)
     result = repository.change_candidate(
-        settings.library_db_path, candidate_id, action, data.get('token'), data.get('noteId'),
+        settings.library_db_path, candidate_id, action, data.get('token'), data.get('noteId'), data.get('revision'),
     )
     return jsonify(result)
