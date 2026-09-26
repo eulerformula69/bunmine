@@ -105,6 +105,7 @@ function createCandidatePanel(options: {
     }
     async function select(candidate: MiningCandidate): Promise<void> {
         if (options.busy() || selecting || editing) return;
+        status.textContent = "";
         active = candidate;
         editorContext = candidate.snapshot.context || null;
         selecting = true;
