@@ -1,7 +1,7 @@
 async function playCandidateSource(candidate: MiningCandidate): Promise<MiningCandidate> {
+    video.pause();
     candidate = await candidateApi.source(candidate.id);
     const payload = candidate.snapshot.videoPayload;
-    video.pause();
     if (JSON.stringify(payload) !== JSON.stringify(getCurrentVideoPayload())) {
         await saveLibraryWatchProgress({ force: true, skipAutoCompletePrompt: true });
         if ("videoFileId" in payload && candidate.episode_id) {
