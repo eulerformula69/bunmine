@@ -2,15 +2,15 @@ async function playCandidateSource(candidate: MiningCandidate): Promise<MiningCa
     candidate = await candidateApi.source(candidate.id);
     const payload = candidate.snapshot.videoPayload;
     video.pause();
-    await saveLibraryWatchProgress({ force: true, skipAutoCompletePrompt: true });
     if (JSON.stringify(payload) !== JSON.stringify(getCurrentVideoPayload())) {
+        await saveLibraryWatchProgress({ force: true, skipAutoCompletePrompt: true });
         if ("videoFileId" in payload && candidate.episode_id) {
             const { response, data } = await apiJson<LibraryPlaybackPayload>(
                 `/library/episodes/${candidate.episode_id}/playback`
             );
             if (!response.ok || data.error) throw new Error(getApiErrorMessage(data));
             await loadLibraryEpisodePlayback({ ...data, videoFileId: payload.videoFileId,
-                videoUrl: `/library/file/${payload.videoFileId}`, currentTimeSeconds: candidate.snapshot.targetTime });
+                videoUrl: `/library/file/${payload.videoFileId}`, currentTimeSeconds: candidate.snapshot.audioStart });
         } else if ("filename" in payload) {
             currentLibraryEpisodeId = null;
             currentLibraryVideoFileId = null;
@@ -38,7 +38,6 @@ async function playCandidateSource(candidate: MiningCandidate): Promise<MiningCa
             video.addEventListener("error", failed, { once: true });
         });
     }
-    video.currentTime = candidate.snapshot.targetTime;
-    resetLibraryProgressTracking();
+    // The review loop seeks directly to audioStart after the source is ready.
     return candidate;
 }

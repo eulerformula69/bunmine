@@ -29,6 +29,7 @@ const candidatePanel = createCandidatePanel({
     playback: (candidate, restart) => {
         if (candidate && JSON.stringify(candidate.snapshot.videoPayload) !== JSON.stringify(getCurrentVideoPayload())) candidate = undefined;
         candidateLoop.set(candidate?.snapshot || null, restart);
+        if (candidate && restart) resetLibraryProgressTracking();
         if (candidate && restart) void video.play().catch((error) => candidatePanel.status(String(error)));
     },
     select: async (candidate) => {
