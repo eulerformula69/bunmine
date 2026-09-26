@@ -18,7 +18,8 @@ function createCandidateLoop(media: HTMLVideoElement) {
     function constrain(): void {
         if (!range || media.readyState < 1) return;
         const end = Math.min(range.end, Number.isFinite(media.duration) ? media.duration : range.end);
-        if (media.currentTime < range.start || media.currentTime >= end) media.currentTime = range.start;
+        // Media clocks round seek targets. Do not repeatedly seek over that rounding gap.
+        if (media.currentTime < range.start - 0.001 || media.currentTime >= end) media.currentTime = range.start;
     }
     function schedule(): void {
         cancel();

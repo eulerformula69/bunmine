@@ -74,3 +74,28 @@ rejectPlay({ name: "NotAllowedError" });
 await pending;
 assert.equal(errors.length, 1, "Actual playback failures must remain visible");
 console.log("Candidate play cancellation and current playback errors passed");
+
+// Browsers store media time at finite precision, unlike the saved JS calculation.
+let roundedTime = 0;
+let seeks = 0;
+Object.defineProperty(media, "currentTime", {
+    get: () => roundedTime,
+    set: (value) => { roundedTime = Math.round(value * 1000000) / 1000000; seeks++; },
+});
+media.paused = true;
+media.duration = 1460;
+loop.set({ audioStart: 595.1400000000001, audioEnd: 600.78 }, true);
+for (let index = 0; index < 10; index++) {
+    listeners.seeking();
+    listeners.seeked();
+    listeners.timeupdate();
+}
+assert.equal(seeks, 1, "Rounded candidate start must not cause a seek loop");
+roundedTime = 600.78;
+listeners.timeupdate();
+assert.equal(seeks, 2, "End of candidate must still loop");
+assert.equal(roundedTime, 595.14);
+roundedTime = 594;
+listeners.seeking();
+assert.equal(seeks, 3, "Seeking outside the range must still return to its start");
+console.log("Rounded media clock regression for 仕上げ passed");
