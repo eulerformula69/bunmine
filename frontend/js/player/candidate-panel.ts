@@ -6,6 +6,7 @@ function createCandidatePanel(options: {
     acquire(candidate: MiningCandidate): Promise<void>;
     reject(candidate: MiningCandidate): Promise<void>;
     error(error: unknown): void;
+    playback?(candidate: MiningCandidate | undefined, restart: boolean): void;
 }) {
     const tabs = document.createElement("div");
     tabs.className = "candidate-tabs";
@@ -28,6 +29,7 @@ function createCandidatePanel(options: {
             candidates = candidates.map((item) => item.id === updated.id ? updated : item);
             active = updated;
             editorContext = updated.snapshot.context || null;
+            options.playback?.(active, false);
             render();
         },
     });
@@ -64,6 +66,7 @@ function createCandidatePanel(options: {
         panel.hidden = !show;
         subtitleTab.setAttribute("aria-selected", String(!show));
         candidateTab.setAttribute("aria-selected", String(show));
+        options.playback?.(show ? active : undefined, false);
     }
     for (const tab of [subtitleTab, candidateTab]) {
         tab.type = "button";
@@ -106,7 +109,12 @@ function createCandidatePanel(options: {
         editorContext = candidate.snapshot.context || null;
         selecting = true;
         render();
-        try { editorContext = await options.select(candidate) || editorContext; }
+        options.playback?.(undefined, false);
+        try {
+            editorContext = await options.select(candidate) || editorContext;
+            editor.focus?.();
+            if (!panel.hidden) options.playback?.(active, true);
+        }
         catch (error) { options.error(error); }
         finally { selecting = false; render(); }
     }
@@ -131,6 +139,7 @@ function createCandidatePanel(options: {
             const previous = active?.id;
             active = candidates.find((item) => item.id === previous);
             editorContext = active?.snapshot.context || (active ? editorContext : null);
+            if (!panel.hidden && !selecting) options.playback?.(active, false);
             render();
             if (previous && !active && candidates[0]) await select(candidates[0]);
         },

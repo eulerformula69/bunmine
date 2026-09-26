@@ -16,6 +16,7 @@ class Element {
         add: (key) => this.classes.add(key), remove: (key) => this.classes.delete(key),
     };
     append(...items) { for (const item of items) { item.parent = this; this.children.push(item); } }
+    appendChild(item) { this.append(item); }
     replaceChildren(...items) { this.children = []; this.append(...items); }
     setAttribute(key, value) { this.attrs[key] = value; }
     addEventListener(key, handler) { this.handlers[key] = handler; }
@@ -29,8 +30,12 @@ class Element {
 }
 const document = new Element();
 document.createElement = () => new Element();
+let nextFrame;
 const context = vm.createContext({ document, t: (key) => key, formatTime: String,
-    requestAnimationFrame: () => 1, cancelAnimationFrame() {}, ResizeObserver: class { observe() {} } });
+    requestAnimationFrame: (callback) => { nextFrame = callback; return 1; }, cancelAnimationFrame() {}, ResizeObserver: class { observe() {} } });
+for (const name of ["context-selection", "sidebar-render"]) {
+    vm.runInContext(fs.readFileSync(`dist/js/subtitles/${name}.js`, "utf8"), context);
+}
 for (const name of ["candidate-context-model", "candidate-context-editor"]) {
     vm.runInContext(fs.readFileSync(`dist/js/player/${name}.js`, "utf8"), context);
 }
@@ -75,6 +80,15 @@ editor = context.createCandidateContextEditor({
 });
 editor.set(value, captured, false);
 const viewport = editor.element.children[1];
+// Legacy context arrives after selection; focus waits until the hidden editor has layout.
+editor.set({ ...value, id: 2 }, null, false);
+editor.set({ ...value, id: 2 }, captured, false);
+viewport.clientHeight = 0;
+nextFrame();
+viewport.clientHeight = 200;
+nextFrame();
+assert.equal(viewport.scrollTop, 50);
+viewport.scrollTop = 0;
 let top = viewport.children.at(-2);
 let bottom = viewport.children.at(-1);
 const settle = () => new Promise((resolve) => setImmediate(resolve));

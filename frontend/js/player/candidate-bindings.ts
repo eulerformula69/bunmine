@@ -22,9 +22,15 @@ const candidateReview = createCandidateReviewController({
     now: () => Date.now(),
 });
 
+const candidateLoop = createCandidateLoop(video);
 const candidatePanel = createCandidatePanel({
     sidebar,
     busy: () => candidateReview.isBusy() || ankiAcquireRunning,
+    playback: (candidate, restart) => {
+        if (candidate && JSON.stringify(candidate.snapshot.videoPayload) !== JSON.stringify(getCurrentVideoPayload())) candidate = undefined;
+        candidateLoop.set(candidate?.snapshot || null, restart);
+        if (candidate && restart) void video.play().catch((error) => candidatePanel.status(String(error)));
+    },
     select: async (candidate) => {
         Object.assign(candidate, await playCandidateSource(candidate));
         return restoreCandidateContext(candidate.snapshot, subtitles);

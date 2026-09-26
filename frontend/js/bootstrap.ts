@@ -89,6 +89,7 @@
         "/dist/js/player/candidate-api.js",
         "/dist/js/player/capture-controller.js",
         "/dist/js/player/review-controller.js",
+        "/dist/js/player/candidate-loop.js",
         "/dist/js/player/candidate-playback.js",
         "/dist/js/player/candidate-panel.js",
         "/dist/js/video/audio-preview.js",

@@ -7,7 +7,7 @@ interface SubtitleContextSelection {
 }
 
 function buildSubtitleContextSelection(
-    cues: RuntimeSubtitleCue[],
+    cues: { start: number; end: number; text: string }[],
     currentIndex: number,
     backDepth: number,
     forwardDepth: number

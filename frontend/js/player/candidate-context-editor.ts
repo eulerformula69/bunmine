@@ -33,6 +33,7 @@ function createCandidateContextEditor(options: {
     let saving = false;
     let paintedStart = -1;
     let paintedEnd = -1;
+    let pendingFocus = false;
     let drag: { kind: number; pointerId: number; y: number; frame: number } | null = null;
 
     function paint(): void {
@@ -151,16 +152,25 @@ function createCandidateContextEditor(options: {
     document.addEventListener("keydown", (event) => {
         if (event.key === "Escape" && drag) { event.preventDefault(); finish(true); }
     });
-    const resize = new ResizeObserver(() => paint());
+    function focusAnchor(): void {
+        if (!pendingFocus || !context || !viewport.clientHeight) return;
+        const row = rows[context.anchor];
+        if (!row?.offsetHeight) return;
+        viewport.scrollTop = Math.max(0, row.offsetTop - (viewport.clientHeight - row.offsetHeight) / 2);
+        pendingFocus = false;
+    }
+    const resize = new ResizeObserver(() => { paint(); focusAnchor(); });
     resize.observe(viewport);
     return {
         element,
+        focus(): void { pendingFocus = true; requestAnimationFrame(focusAnchor); },
         set(value: MiningCandidate | undefined, nextContext: CandidateContext | null, blocked: boolean): void {
             heading.textContent = t("candidateContextTitle");
             element.hidden = !value;
             disabled = blocked;
             const rebuild = candidate?.id !== value?.id || context !== nextContext;
             const changedCandidate = candidate?.id !== value?.id;
+            if (changedCandidate || (!context && nextContext)) pendingFocus = true;
             candidate = value;
             context = nextContext;
             if (!value) { viewport.replaceChildren(); rows = []; return; }
@@ -176,22 +186,18 @@ function createCandidateContextEditor(options: {
                     const row = document.createElement("div");
                     row.className = "candidate-cue";
                     row.classList.toggle("anchor", index === context.anchor);
-                    const times = document.createElement("div");
+                    const times = createSubtitleTimeContainer(cue.start, cue.end);
                     times.className = "candidate-cue-times";
-                    const from = document.createElement("span");
-                    const to = document.createElement("span");
-                    from.textContent = formatTime(cue.start);
-                    to.textContent = formatTime(cue.end);
-                    times.append(from, to);
                     const text = document.createElement("div");
                     text.textContent = cue.text;
                     row.append(times, text);
                     return row;
                 });
                 viewport.replaceChildren(...rows, ...handles);
-                viewport.scrollTop = changedCandidate ? Math.max(0, rows[start].offsetTop - 80) : scroll;
+                viewport.scrollTop = scroll;
             }
             paint();
+            requestAnimationFrame(focusAnchor);
         },
     };
 }

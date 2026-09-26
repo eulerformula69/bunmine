@@ -40,9 +40,10 @@ function candidateContextSnapshot(snapshot: AnkiMediaSnapshot, context: Candidat
     if (!Number.isInteger(start) || !Number.isInteger(end) || start < 0 || start > context.anchor || end < context.anchor || end >= context.cues.length) {
         throw new Error("Invalid candidate context range");
     }
-    const combinedText = context.cues.slice(start, end + 1).map((cue) => cue.text).join(" ");
-    const audioStart = Math.max(0, context.cues[start].start + context.startOffset);
-    const endTime = context.cues[end].end + context.endOffset;
+    const selection = buildSubtitleContextSelection(context.cues, context.anchor, context.anchor - start, end - context.anchor)!;
+    const combinedText = selection.text;
+    const audioStart = Math.max(0, selection.startTime + context.startOffset);
+    const endTime = selection.endTime + context.endOffset;
     const audioEnd = endTime > audioStart ? endTime : audioStart + 0.5;
     return { ...snapshot, combinedText, audioStart, audioEnd,
         imageSubtitleText: snapshot.imageSubtitleText ? combinedText : "",
