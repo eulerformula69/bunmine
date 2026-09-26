@@ -7,6 +7,16 @@ async function verifyCandidateAnkiNote(noteId: number, snapshot: AnkiMediaSnapsh
     }
 }
 
+const candidateExports = createCandidateExportService({
+    source: candidateApi.source,
+    configure: (snapshot) => {
+        for (const key of ["ankiUrl", "deckName", "pictureField", "audioField"] as const) {
+            if (!snapshot[key]) snapshot[key] = (document.getElementById(key) as HTMLInputElement).value.trim();
+            if (!snapshot[key]) throw new Error(t("candidateSettings"));
+        }
+    },
+});
+
 const candidateReview = createCandidateReviewController({
     action: candidateApi.action,
     noteIds: (snapshot) => fetchNoteIdsByQuery(snapshot.ankiUrl, "", "AnkiConnect candidate baseline"),
@@ -35,16 +45,11 @@ const candidatePanel = createCandidatePanel({
         Object.assign(candidate, await playCandidateSource(candidate));
         return restoreCandidateContext(candidate.snapshot, subtitles);
     },
-    saveContext: (candidate, context, start, end) => runExclusiveAnkiAcquire(() => candidateApi.context(candidate, context, start, end)),
+    saveContext: (candidate, context, start, end) => candidateExports.trackSave(candidate.id,
+        runExclusiveAnkiAcquire(() => candidateApi.context(candidate, context, start, end))),
     acquire: async (candidate) => {
-        // Keep capture settings. Supply missing Anki configuration at review time.
-        for (const key of ["ankiUrl", "deckName", "pictureField", "audioField"] as const) {
-            if (!candidate.snapshot[key]) {
-                candidate.snapshot[key] = (document.getElementById(key) as HTMLInputElement).value.trim();
-            }
-            if (!candidate.snapshot[key]) throw new Error(t("candidateSettings"));
-        }
-        await runExclusiveAnkiAcquire(() => candidateReview.acquireCandidate(candidate));
+        const saved = await candidateExports.load(candidate.id);
+        await runExclusiveAnkiAcquire(() => candidateReview.acquireCandidate(saved));
     },
     reject: candidateReview.reject,
     error: (error) => {

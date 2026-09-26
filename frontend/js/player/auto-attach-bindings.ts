@@ -1,7 +1,7 @@
 let autoAttachToast: HTMLElement | null = null;
 const autoAttachController = createAutoAttachController({
     enabled: () => (document.getElementById("autoAttachNextCardEnabled") as HTMLInputElement)?.checked === true,
-    snapshot: (index) => ankiMediaController.buildSnapshot({ subtitleIndex: index }),
+    snapshot: resolveAnkiExportSnapshot,
     noteIds: (snapshot) => fetchNoteIdsByQuery(snapshot.ankiUrl, "", "AnkiConnect automatic attachment"),
     verify: verifyCandidateAnkiNote,
     update: async (noteId, snapshot) => {

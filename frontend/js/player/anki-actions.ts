@@ -304,6 +304,8 @@ function pickNotePreviewText(noteInfo: { fields?: Record<string, { value?: unkno
 }
 
 interface AnkiMediaSnapshot {
+    candidateId?: number;
+    candidateRevision?: number;
     context?: CandidateContext;
     videoPayload: CurrentVideoPayload;
     volumeLevel: number;
@@ -329,6 +331,8 @@ interface AnkiMediaSnapshot {
 }
 
 interface AnkiMediaControllerOptions {
+    resolveExportSnapshot?(): Promise<AnkiMediaSnapshot>;
+    validateExportSnapshot?(snapshot: AnkiMediaSnapshot): Promise<void>;
     translate(key: string, params?: Record<string, unknown>): string;
     getVideoPayload(): CurrentVideoPayload | null;
     getVideoCurrentTime(): number;
@@ -426,6 +430,7 @@ function createAnkiMediaController(options: AnkiMediaControllerOptions): AnkiMed
         targetNoteId: number,
         snapshot: AnkiMediaSnapshot
     ): Promise<{ targetWord: string }> {
+        await options.validateExportSnapshot?.(snapshot);
         const pictureEndpoint = snapshot.screenshotMode === "webp"
             ? "/animated-webp"
             : "/screenshot";
@@ -549,7 +554,7 @@ function createAnkiMediaController(options: AnkiMediaControllerOptions): AnkiMed
     }
 
     async function updateCurrentOrSelected(): Promise<void> {
-        const snapshot = buildSnapshot();
+        const snapshot = options.resolveExportSnapshot ? await options.resolveExportSnapshot() : buildSnapshot();
         const noteIds = await fetchDeckNoteIds(snapshot.ankiUrl, snapshot.deckName);
         if (!noteIds.length) {
             throw new Error(`Error: There are no cards in "${snapshot.deckName}"!`);

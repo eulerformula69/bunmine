@@ -1,5 +1,6 @@
 const sidebarTranslations: Record<string, Record<string, string>> = {
     ru: {
+        candidateContextChanged: "Границы кандидата изменились. Повторите добавление карточки.",
         candidateContextTitle: "Контекст кандидата",
         candidateSeconds: "с",
         candidateSavedShort: "Сохранено",
@@ -21,6 +22,7 @@ const sidebarTranslations: Record<string, Record<string, string>> = {
         candidateVideoFailed: "Не удалось открыть исходное видео.", ankiAcquireBusy: "Уже идёт ожидание или добавление записи Anki. Завершите его сначала."
     },
     en: {
+        candidateContextChanged: "Candidate bounds changed. Try adding the card again.",
         candidateContextTitle: "Candidate context",
         candidateSeconds: "s",
         candidateSavedShort: "Saved",
@@ -42,6 +44,7 @@ const sidebarTranslations: Record<string, Record<string, string>> = {
         candidateVideoFailed: "Could not open the source video.", ankiAcquireBusy: "An Anki note is already being awaited or updated. Finish that action first."
     },
     ja: {
+        candidateContextChanged: "候補の範囲が変更されました。カードの追加をやり直してください。",
         candidateContextTitle: "候補の文脈",
         candidateSeconds: "秒",
         candidateSavedShort: "保存済み",

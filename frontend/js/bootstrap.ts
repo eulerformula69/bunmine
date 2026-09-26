@@ -88,6 +88,7 @@
         "/dist/js/player/candidate-context-editor.js",
         "/dist/js/player/candidate-model.js",
         "/dist/js/player/candidate-api.js",
+        "/dist/js/player/candidate-export.js",
         "/dist/js/player/capture-controller.js",
         "/dist/js/player/review-controller.js",
         "/dist/js/player/candidate-loop.js",

@@ -25,7 +25,10 @@ function createCandidatePanel(options: {
         error: options.error,
         change: async (start, end) => {
             if (!active || !editorContext) return;
-            const updated = await options.saveContext(active, editorContext, start, end);
+            savingContext = true;
+            let updated: MiningCandidate;
+            try { updated = await options.saveContext(active, editorContext, start, end); }
+            finally { savingContext = false; }
             candidates = candidates.map((item) => item.id === updated.id ? updated : item);
             active = updated;
             editorContext = updated.snapshot.context || null;
@@ -59,6 +62,7 @@ function createCandidatePanel(options: {
     let active: MiningCandidate | undefined;
     let selecting = false;
     let editing = false;
+    let savingContext = false;
     let editorContext: CandidateContext | null = null;
 
     function showCandidates(show: boolean): void {
@@ -131,6 +135,11 @@ function createCandidatePanel(options: {
     skip.onclick = () => { void perform(options.reject); };
     return {
         render,
+        exportCandidateId(): number | undefined {
+            if (panel.hidden || !active) return undefined;
+            if (selecting || (editing && !savingContext)) throw new Error(t("candidateSaving"));
+            return active.id;
+        },
         status: (message: string) => { status.textContent = message; },
         async refresh(): Promise<void> {
             if (editing) return;

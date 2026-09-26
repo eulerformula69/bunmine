@@ -255,6 +255,8 @@ function getSubtitleIndexFromSelection(selection = window.getSelection()) {
 }
 
 const ankiMediaController = createAnkiMediaController({
+    resolveExportSnapshot: () => resolveAnkiExportSnapshot(),
+    validateExportSnapshot: (snapshot) => candidateExports.validate(snapshot),
     translate: t,
     getVideoPayload: getCurrentVideoPayload,
     getVideoCurrentTime: () => video.currentTime,

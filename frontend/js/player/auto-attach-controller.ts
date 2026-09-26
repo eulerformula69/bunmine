@@ -1,6 +1,6 @@
 interface AutoAttachOptions {
     enabled(): boolean;
-    snapshot(index: number): AnkiMediaSnapshot;
+    snapshot(index: number): AnkiMediaSnapshot | Promise<AnkiMediaSnapshot>;
     noteIds(snapshot: AnkiMediaSnapshot): Promise<number[]>;
     verify(noteId: number, snapshot: AnkiMediaSnapshot): Promise<void>;
     update(noteId: number, snapshot: AnkiMediaSnapshot): Promise<unknown>;
@@ -22,9 +22,10 @@ function createAutoAttachController(options: AutoAttachOptions) {
         busy = true;
         cancelled = false;
         try {
+            const snapshot = await options.snapshot(index);
+            snapshot.selectedWord = word;
+            if (cancelled) return;
             await options.exclusive(async () => {
-                const snapshot = options.snapshot(index);
-                snapshot.selectedWord = word;
                 options.status("toastAutoAttachPreparing", word);
                 const previous = await options.noteIds(snapshot);
                 if (cancelled) return;
