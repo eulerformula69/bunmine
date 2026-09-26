@@ -27,8 +27,11 @@ const stored = new Map([1, 2].map((id) => [id, {
         sentenceField: "Sentence", screenshotMode: "webp", trackIndex: "default", volumeLevel: 1,
     },
 }]));
+let subtitleMode = "all";
+let subtitlesEnabled = true;
 const exports = ctx.createCandidateExportService({
-    source: async (id) => structuredClone(stored.get(id)), configure() {},
+    source: async (id) => structuredClone(stored.get(id)),
+    configure: (snapshot) => ctx.configureCandidateImageSubtitles(snapshot, subtitleMode, subtitlesEnabled),
 });
 let activeId = 1;
 ctx.candidateExports = exports;
@@ -59,6 +62,41 @@ assert.equal(requests[0][1].text, "before word1 after");
 assert.equal(requests[1][1].end, 17);
 assert.equal(requests[2][1].params.note.fields.Sentence, "before word1 after");
 
+// A mode change must apply to an existing candidate, including one saved without image text.
+const original = stored.get(1).snapshot;
+original.imageSubtitleMode = "all";
+original.imageSubtitleText = "";
+original.imageSubtitleCues = [];
+original.imageSubtitleDelay = 1;
+original.context = { start: 0, end: 2, anchor: 1, cues: [
+    { start: 9, end: 11, text: "before" },
+    { start: 12, end: 14, text: "word1" },
+    { start: 14, end: 16, text: "after" },
+] };
+subtitleMode = "timed";
+requests.length = 0;
+await media.updateCurrentOrSelected();
+assert.equal(requests[0][1].imageSubtitleMode, "timed");
+assert.deepEqual(requests[0][1].imageSubtitleCues, [
+    { start: 10, end: 12, text: "before" },
+    { start: 13, end: 15, text: "word1" },
+    { start: 15, end: 17, text: "after" },
+]);
+assert.equal(requests[2][1].params.note.fields.Sentence, "before word1 after");
+assert.equal(original.imageSubtitleMode, "all");
+assert.equal(original.imageSubtitleCues.length, 0);
+subtitlesEnabled = false;
+const disabled = (await exports.load(1)).snapshot;
+assert.equal(disabled.imageSubtitleText, "");
+assert.equal(disabled.imageSubtitleCues.length, 0);
+subtitlesEnabled = true;
+subtitleMode = "all";
+assert.equal((await exports.load(1)).snapshot.imageSubtitleMode, "all");
+subtitleMode = "timed";
+const old = { combinedText: "legacy", imageSubtitleText: "legacy" };
+assert.throws(() => ctx.configureCandidateImageSubtitles(old, "timed", true), /candidateSubtitleTimingMissing/);
+assert.doesNotThrow(() => ctx.configureCandidateImageSubtitles(old, "all", true));
+
 // Listener resolves the same candidate source and freezes its identity during the wait.
 requests.length = 0;
 let polls = 0;
@@ -71,6 +109,7 @@ const listener = ctx.createAutoAttachController({
 });
 await listener.start("word1", 999);
 assert.equal(requests[0][1].videoFileId, 1);
+assert.equal(requests[0][1].imageSubtitleMode, "timed");
 assert.equal(requests[2][1].params.note.fields.Sentence, "before word1 after");
 
 // Explicit IDs support export without an active panel (including a future batch caller).
@@ -78,7 +117,7 @@ activeId = undefined;
 const snapshots = await Promise.all([1, 2].map(async (id) => (await exports.load(id)).snapshot));
 assert.deepEqual(snapshots.map((s) => s.audioEnd), [17, 27]);
 snapshots[0].imageSubtitleCues[0].text = "mutation";
-assert.equal(stored.get(1).snapshot.imageSubtitleCues[0].text, "word1");
+assert.equal(stored.get(1).snapshot.context.cues[0].text, "before");
 
 // Export waits for persistence of this ID; it does not block another candidate.
 let finish;
