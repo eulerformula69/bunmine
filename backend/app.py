@@ -8,6 +8,7 @@ from backend.routes.vocabulary_report_routes import vocabulary_report_bp
 from backend.routes.media_routes import media_bp
 from backend.routes.misc_routes import misc_bp
 from backend.routes.static_routes import static_bp
+from backend.routes.candidate_routes import candidate_bp
 from backend.services.startup_service import initialize_backend
 from backend.settings import Settings, load_settings
 
@@ -24,6 +25,7 @@ def create_app(settings: Settings | None = None) -> Flask:
         CORS(app)
 
     app.register_blueprint(library_bp)
+    app.register_blueprint(candidate_bp)
     app.register_blueprint(vocabulary_report_bp)
     app.register_blueprint(media_bp)
     app.register_blueprint(misc_bp)

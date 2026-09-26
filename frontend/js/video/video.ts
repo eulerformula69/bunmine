@@ -26,6 +26,7 @@
     }
 
     if (videoFile) {
+        currentVideoFile = null;
         await saveLibraryWatchProgress({ force: true, skipAutoCompletePrompt: true });
         currentLibraryEpisodeId = null;
         currentLibraryVideoFileId = null;

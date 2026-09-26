@@ -65,16 +65,6 @@ def cleanup_on_startup(settings: Settings) -> None:
         except Exception as err:
             print(f"Could not delete dedupe index: {err}")
 
-    for item in os.listdir(settings.video_dir):
-        item_path = settings.video_dir / item
-        if item.startswith("temp_") or item.endswith((".mp4", ".mkv", ".avi", ".mov", ".webm", ".srt", ".ass", ".vtt")):
-            try:
-                item_path.unlink()
-                print(f"Deleted file: {item}")
-            except Exception as err:
-                print(f"Could not delete {item}: {err}")
-
-
 def initialize_backend(settings: Settings) -> None:
     ensure_directories(settings)
     migrate_legacy_data_paths(settings)

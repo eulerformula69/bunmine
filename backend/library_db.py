@@ -10,7 +10,7 @@ from backend.repositories.playback_repository import (
 )
 
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 
 def refresh_library_file_existence(db_path: Path, file_types: list[str] | tuple[str, ...] | set[str] | None = None) -> dict:
@@ -274,6 +274,8 @@ def init_library_db(db_path: Path) -> None:
             """
         )
 
+        from backend.repositories.candidate_repository import migrate_candidates
+        migrate_candidates(conn)
         conn.execute(
             """
             INSERT INTO schema_meta(key, value)

@@ -288,45 +288,6 @@ const buildCurrentAnkiMediaSnapshot = ankiMediaController.buildSnapshot;
 const updateAnkiNoteWithSnapshot = ankiMediaController.updateNote;
 const updateCurrentOrSelectedAnkiCard = ankiMediaController.updateCurrentOrSelected;
 
-function isAutoAttachNextCardEnabled() {
-    return (document.getElementById("autoAttachNextCardEnabled") as HTMLInputElement | null)?.checked === true;
-}
-
-const autoAttachQueueController = createAutoAttachQueueController({
-    translate: t,
-    getSelectedText: getCleanSelectedText,
-    buildSnapshot: buildCurrentAnkiMediaSnapshot,
-    fetchDeckNoteIds,
-    fetchNoteIdsByQuery,
-    fetchNotesInfo,
-    stripHtml,
-    sleep,
-    copyWord: copyWordForYomitan,
-    updateNote: updateAnkiNoteWithSnapshot,
-    refreshTargetNotes: () => refreshTargetNoteList({ preserveSelection: false }),
-    maybePromptSubtitleDepthReset,
-    showToast,
-    showActionToast,
-    isEnabled: isAutoAttachNextCardEnabled
-});
-
-async function copyWordAndAttachNextCard(word) {
-    await autoAttachQueueController.start(word, {
-        copyWord: true,
-        subtitleIndex: getSubtitleIndexFromSelection()
-    });
-}
-
-function armAutoAttachForSelection(word, subtitleIndex) {
-    if (!word || !Number.isInteger(subtitleIndex) || subtitleIndex < 0) return;
-    autoAttachQueueController.armForSelection(word, subtitleIndex);
-}
-
-const scheduleAutoAttachCancelIfSelectionCleared =
-    autoAttachQueueController.scheduleCancelIfSelectionCleared;
-const clearAutoAttachSelectionCancelTimer =
-    autoAttachQueueController.clearSelectionCancelTimer;
-
 ankiAllBtn.onclick = async () => {
     try {
         await updateCurrentOrSelectedAnkiCard();
@@ -463,16 +424,6 @@ document.addEventListener("fullscreenchange", () => {
     updateFullscreenButtonText();
 });
 
-document.getElementById("autoAttachNextCardEnabled")?.addEventListener("change", (event) => {
-    showToast(
-        (event.target as HTMLInputElement).checked
-            ? t("toastAutoAttachEnabled")
-            : t("toastAutoAttachDisabled"),
-        "info",
-        3000
-    );
-});
-
 window.addEventListener("load", () => {
     initTargetNoteDropdown();
     refreshTargetNoteList({ preserveSelection: true });
@@ -574,106 +525,4 @@ document.getElementById("refreshAnkiHighlighterBtn")?.addEventListener("click", 
     }
 
     prefetchRuntimeStatusesForAllSubtitles({ silent: true });
-});
-
-addKnownBasicBtn?.addEventListener("mousedown", (e) => {
-    e.preventDefault();
-});
-
-addKnownBasicBtn?.addEventListener("click", async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    await addWordToKnownBasic(selectedKnownBasicWord);
-});
-
-let addCardToDeckPointerHandled = false;
-
-async function handleAddCardToDeckAction(e) {
-    e.preventDefault();
-    e.stopPropagation();
-
-    const selectedWord = String(selectedKnownBasicWord || getCleanSelectedText() || "").trim();
-    const autoAttachEnabled = isAutoAttachNextCardEnabled();
-
-    if (autoAttachEnabled) {
-        await copyWordAndAttachNextCard(selectedWord);
-        return;
-    }
-
-    await copyWordForYomitan(selectedWord);
-}
-
-addCardToDeck?.addEventListener("pointerdown", async (e) => {
-    addCardToDeckPointerHandled = true;
-    await handleAddCardToDeckAction(e);
-});
-
-addCardToDeck?.addEventListener("mousedown", (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-});
-
-addCardToDeck?.addEventListener("click", async (e) => {
-    if (addCardToDeckPointerHandled) {
-        addCardToDeckPointerHandled = false;
-        e.preventDefault();
-        e.stopPropagation();
-        return;
-    }
-
-    await handleAddCardToDeckAction(e);
-});
-
-document.addEventListener("mousedown", (e) => {
-    if (
-        addKnownBasicBtn?.contains(e.target as Node) ||
-        addCardToDeck?.contains(e.target as Node)
-    ) {
-        return;
-    }
-
-    const selection = window.getSelection();
-
-    if (!selection || selection.isCollapsed) {
-        scheduleAutoAttachCancelIfSelectionCleared();
-        hideAddKnownBasicButton();
-    }
-});
-
-document.addEventListener("selectionchange", () => {
-    const selection = window.getSelection();
-
-    if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
-        scheduleAutoAttachCancelIfSelectionCleared();
-        hideAddKnownBasicButton();
-        return;
-    }
-
-    const anchorNode = selection.anchorNode;
-    const focusNode = selection.focusNode;
-
-    const anchorElement = anchorNode?.nodeType === Node.TEXT_NODE
-        ? anchorNode.parentElement
-        : anchorNode;
-
-    const focusElement = focusNode?.nodeType === Node.TEXT_NODE
-        ? focusNode.parentElement
-        : focusNode;
-
-    const isSubtitleSelection =
-        overlay?.contains(anchorElement) ||
-        overlay?.contains(focusElement);
-
-    if (!isSubtitleSelection) {
-        scheduleAutoAttachCancelIfSelectionCleared();
-        hideAddKnownBasicButton();
-        return;
-    }
-
-    clearAutoAttachSelectionCancelTimer();
-
-    requestAnimationFrame(() => {
-        showAddKnownBasicButtonForSelection();
-    });
 });

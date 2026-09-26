@@ -4,7 +4,6 @@ interface ToastActionButton {
 }
 
 declare let selectedKnownBasicWord: string;
-declare function armAutoAttachForSelection(word: string, subtitleIndex: number): void;
 declare function getSubtitleIndexFromSelection(selection?: Selection | null): number;
 
 function showToast(message: string, type: ToastType = "info", timeout = 3000): void {
@@ -219,10 +218,6 @@ function showAddKnownBasicButtonForSelection(): void {
     }
 
     selectedKnownBasicWord = word;
-
-    if (typeof armAutoAttachForSelection === "function") {
-        armAutoAttachForSelection(word, getSubtitleIndexFromSelection?.() ?? -1);
-    }
 
     const main = document.getElementById("main")!;
     const mainRect = main.getBoundingClientRect();

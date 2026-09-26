@@ -6,6 +6,7 @@
 <title>Bunmine</title>
 <link rel="stylesheet" href="styles/player.css" />
 <link rel="stylesheet" href="styles/episode-navigation.css" />
+<link rel="stylesheet" href="styles/candidates.css" />
 </head>
 <body>
 <div id="main">
@@ -16,11 +17,9 @@
   Add to known-basic
 </button>
 
-<!-- WIP add custom button for adding card like in yomitan
-<button id="addCardToDeck" class="copy-for-yomitan-btn hidden" type="button" data-i18n="addCardToDeck">
-  Add card to deck
+<button id="addCardToDeck" class="copy-for-yomitan-btn hidden" type="button" data-i18n="saveCandidate" title="Alt+Q">
+  Сохранить кандидата
 </button>
--->
 
 <div id="settingsModal" class="hidden">
   <div class="settings-window">
@@ -73,12 +72,7 @@
 		  <input type="checkbox" id="includeImageSubtitle" checked>
 		</div>
 
-		<div class="settings-checkbox-row">
-		  <label for="autoAttachNextCardEnabled" data-i18n="autoAttachNextCard">
-			Automatically attach media to the next Anki card after selecting a word
-		  </label>
-		  <input type="checkbox" id="autoAttachNextCardEnabled">
-		</div>
+        <input type="checkbox" id="autoAttachNextCardEnabled" hidden>
 
       </div>
 	  

@@ -346,7 +346,7 @@ interface AnkiMediaControllerOptions {
 }
 
 interface AnkiMediaController {
-    buildSnapshot(options?: { subtitleIndex?: number | null }): AnkiMediaSnapshot;
+    buildSnapshot(options?: { subtitleIndex?: number | null; validateAnki?: boolean }): AnkiMediaSnapshot;
     updateNote(targetNoteId: number, snapshot: AnkiMediaSnapshot): Promise<{ targetWord: string }>;
     updateCurrentOrSelected(): Promise<void>;
 }
@@ -355,7 +355,7 @@ function createAnkiMediaController(options: AnkiMediaControllerOptions): AnkiMed
     const inputValue = (id: string): string =>
         (document.getElementById(id) as HTMLInputElement | null)?.value || "";
 
-    function buildSnapshot({ subtitleIndex = null } = {}): AnkiMediaSnapshot {
+    function buildSnapshot({ subtitleIndex = null, validateAnki = true } = {}): AnkiMediaSnapshot {
         const videoPayload = options.getVideoPayload();
         if (!videoPayload) throw new Error(options.translate("toastVideoNotUploaded"));
 
@@ -369,10 +369,10 @@ function createAnkiMediaController(options: AnkiMediaControllerOptions): AnkiMed
         const audioField = inputValue("audioField").trim();
         const sentenceFuriganaField = inputValue("sentenceFuriganaField").trim();
 
-        if (!pictureField || !audioField) {
+        if (validateAnki && (!pictureField || !audioField)) {
             throw new Error(options.translate("toastRequiredFields"));
         }
-        if (!ankiUrl || !deckName) {
+        if (validateAnki && (!ankiUrl || !deckName)) {
             throw new Error(options.translate("toastAnkiSettingsRequired"));
         }
 
