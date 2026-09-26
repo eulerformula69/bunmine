@@ -14,7 +14,7 @@
 #candidatePanel button:disabled { opacity: 0.5; cursor: default; }
 #candidateCount { font-size: 12px; padding: 4px 8px; }
 .candidate-tabs [aria-selected="true"], .candidate-item[aria-pressed="true"] {
-    outline: 2px solid #a8cf87;
+    outline: 2px solid #a544c0;
     outline-offset: -2px;
 }
 #sidebar.review-candidates #subtitleList,
