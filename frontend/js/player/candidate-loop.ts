@@ -6,12 +6,9 @@ function createCandidateLoop(media: HTMLVideoElement) {
 
     async function play(reportError: (error: unknown) => void): Promise<void> {
         const version = ++playbackVersion;
-        try { await media.play(); }
-        catch (error) {
-            // Pause and source changes cancel pending play requests normally.
-            if (version !== playbackVersion || (error as { name?: string })?.name === "AbortError") return;
-            reportError(error);
-        }
+        await playMedia(media, (error) => {
+            if (version === playbackVersion) reportError(error);
+        });
     }
 
     function cancel(): void {
@@ -40,7 +37,7 @@ function createCandidateLoop(media: HTMLVideoElement) {
     media.addEventListener("ended", () => {
         if (!range) return;
         media.currentTime = range.start;
-        void media.play().catch(() => {});
+        void play((error) => console.error("Candidate playback failed:", error));
     });
     media.addEventListener("emptied", () => { playbackVersion++; range = null; cancel(); });
     return {

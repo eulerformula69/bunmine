@@ -11,6 +11,7 @@ const context = vm.createContext({
     setTimeout: (fn) => { timers.set(++serial, fn); return serial; },
     clearTimeout: (id) => timers.delete(id),
 });
+vm.runInContext(fs.readFileSync("dist/js/video/media-playback.js", "utf8"), context);
 vm.runInContext(fs.readFileSync("dist/js/player/candidate-loop.js", "utf8"), context);
 const listeners = {};
 const media = {

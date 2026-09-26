@@ -45,7 +45,7 @@ document.getElementById("previewAudioBtn")?.addEventListener("click", async () =
 
         const audio = new Audio(`${buildApiUrl(data.url)}&t=${Date.now()}`);
         audio.volume = Math.min(1, Math.max(0, volumeLevel));
-        audio.play();
+        await playMedia(audio, (error) => { throw error; });
     } catch (err) {
         console.error("Preview failed:", err);
         showToast(`Audio preview failed: ${err.message}`, "error", 6000);

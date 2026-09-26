@@ -52,7 +52,7 @@ function replayCurrentSubtitle(): void {
     });
 
     syncSubtitleStyle(currentIndex);
-    video.play();
+    void playMedia(video);
 }
 
 function focusSubtitleWordSearch(): void {

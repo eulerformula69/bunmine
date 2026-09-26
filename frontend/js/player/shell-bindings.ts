@@ -40,12 +40,12 @@ function bindPlayerShell(options: PlayerShellBindingsOptions): void {
 
     playPause.onclick = (event) => {
         event.stopPropagation();
-        if (video.paused) video.play(); else video.pause();
+        if (video.paused) void playMedia(video); else video.pause();
     };
     videoContainer.addEventListener("click", (event) => {
         const target = event.target;
         if (target instanceof Element && target.closest("#controls, #episodeNavigation, .subtitle-overlay-line")) return;
-        if (video.paused) video.play(); else video.pause();
+        if (video.paused) void playMedia(video); else video.pause();
     });
 
     const closeSettings = () => settingsModal.classList.add("hidden");
@@ -83,7 +83,7 @@ function bindPlayerShell(options: PlayerShellBindingsOptions): void {
     });
 
     document.addEventListener("visibilitychange", () => {
-        if (document.hidden && !video.paused) video.play().catch(() => {});
+        if (document.hidden && !video.paused) void playMedia(video);
     });
     options.videoPickerCancelButton?.addEventListener("click", () => {
         options.videoPickerModal?.classList.add("hidden");

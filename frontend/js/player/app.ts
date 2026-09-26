@@ -191,7 +191,7 @@ bindPlayerHotkeys({
     seekBySubtitle,
     toggleFullscreen: toggleFullscreenMode,
     stepFrame,
-    togglePlayback: () => video.paused ? video.play() : video.pause(),
+    togglePlayback: () => video.paused ? void playMedia(video) : video.pause(),
     replaySubtitle: replayCurrentSubtitle,
     focusSearch: focusSubtitleWordSearch,
     toggleSubtitles: () => toggleBtn.click(),

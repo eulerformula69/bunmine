@@ -50,6 +50,7 @@
         "/dist/js/player/context.js",
         "/dist/js/player/ui.js",
         "/dist/js/video/types.js",
+        "/dist/js/video/media-playback.js",
         "/dist/js/video/media-payload.js",
         "/dist/js/video/upload.js",
         "/dist/js/video/playback-restore.js",
