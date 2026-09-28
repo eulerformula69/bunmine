@@ -1,26 +1,3 @@
-function configureCandidateImageSubtitles(
-    snapshot: AnkiMediaSnapshot,
-    mode: "all" | "timed",
-    enabled: boolean
-): void {
-    snapshot.imageSubtitleMode = mode;
-    snapshot.imageSubtitleText = enabled ? snapshot.combinedText : "";
-    if (!enabled) {
-        snapshot.imageSubtitleCues = [];
-        return;
-    }
-    if (snapshot.context) {
-        const { cues, start, end } = snapshot.context;
-        const delay = snapshot.imageSubtitleDelay || 0;
-        snapshot.imageSubtitleCues = cues.slice(start, end + 1).map((cue) => ({
-            start: cue.start + delay, end: cue.end + delay, text: cue.text
-        }));
-    }
-    if (mode === "timed" && !snapshot.imageSubtitleCues?.length) {
-        throw new Error(t("candidateSubtitleTimingMissing"));
-    }
-}
-
 // Export data belongs to a candidate ID, never to the current video position.
 function createCandidateExportService(options: {
     source(id: number): Promise<MiningCandidate>;

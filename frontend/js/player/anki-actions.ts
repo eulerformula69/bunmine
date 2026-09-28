@@ -322,12 +322,33 @@ interface AnkiMediaSnapshot {
     audioEnd: number;
     combinedText: string;
     imageSubtitleText: string;
-    imageSubtitleMode?: "all" | "timed";
     imageSubtitleCues?: CandidateCue[];
     imageSubtitleDelay?: number;
     fontSize: string;
     trackIndex: string;
     selectedWord?: string;
+}
+
+function buildImageSubtitleExport(snapshot: AnkiMediaSnapshot) {
+    const mode = (document.getElementById("imageSubtitleMode") as HTMLButtonElement | null)?.value === "timed"
+        ? "timed" : "all";
+    const enabled = (document.getElementById("includeImageSubtitle") as HTMLInputElement | null)?.checked !== false;
+    let cues = snapshot.imageSubtitleCues || [];
+    if (snapshot.context) {
+        const { cues: source, start, end } = snapshot.context;
+        const delay = snapshot.imageSubtitleDelay || 0;
+        cues = source.slice(start, end + 1).map((cue) => ({
+            start: cue.start + delay, end: cue.end + delay, text: cue.text
+        }));
+    }
+    if (enabled && mode === "timed" && !cues.length) {
+        throw new Error(t("candidateSubtitleTimingMissing"));
+    }
+    return {
+        imageSubtitleMode: mode,
+        text: enabled ? snapshot.combinedText : "",
+        imageSubtitleCues: enabled ? cues : []
+    };
 }
 
 interface AnkiMediaControllerOptions {
@@ -398,8 +419,6 @@ function createAnkiMediaController(options: AnkiMediaControllerOptions): AnkiMed
         let audioEnd = context.endTime + globalDelay + offsetEnd;
         if (audioEnd <= audioStart) audioEnd = audioStart + 0.5;
 
-        const includeImageSubtitle =
-            (document.getElementById("includeImageSubtitle") as HTMLInputElement | null)?.checked !== false;
         return {
             videoPayload,
             volumeLevel: options.getValidatedVolume(),
@@ -415,12 +434,11 @@ function createAnkiMediaController(options: AnkiMediaControllerOptions): AnkiMed
             audioStart,
             audioEnd,
             combinedText: context.text,
-            imageSubtitleText: includeImageSubtitle ? context.text : "",
-            imageSubtitleMode: inputValue("imageSubtitleMode") === "timed" ? "timed" : "all",
+            imageSubtitleText: context.text,
             imageSubtitleDelay: globalDelay,
-            imageSubtitleCues: includeImageSubtitle ? (context.items || []).map((cue) => ({
+            imageSubtitleCues: (context.items || []).map((cue) => ({
                 start: cue.start + globalDelay, end: cue.end + globalDelay, text: cue.text
-            })) : [],
+            })),
             fontSize: inputValue("fontSizeRange"),
             trackIndex: "default"
         };
@@ -431,6 +449,7 @@ function createAnkiMediaController(options: AnkiMediaControllerOptions): AnkiMed
         snapshot: AnkiMediaSnapshot
     ): Promise<{ targetWord: string }> {
         await options.validateExportSnapshot?.(snapshot);
+        const imageSubtitles = buildImageSubtitleExport(snapshot);
         const pictureEndpoint = snapshot.screenshotMode === "webp"
             ? "/animated-webp"
             : "/screenshot";
@@ -439,17 +458,13 @@ function createAnkiMediaController(options: AnkiMediaControllerOptions): AnkiMed
                 ...snapshot.videoPayload,
                 start: snapshot.audioStart,
                 end: snapshot.audioEnd,
-                text: snapshot.imageSubtitleText,
-                imageSubtitleMode: snapshot.imageSubtitleMode || "all",
-                imageSubtitleCues: snapshot.imageSubtitleCues || [],
+                ...imageSubtitles,
                 fontSize: snapshot.fontSize
             }
             : {
                 ...snapshot.videoPayload,
                 time: snapshot.targetTime,
-                text: snapshot.imageSubtitleText,
-                imageSubtitleMode: snapshot.imageSubtitleMode || "all",
-                imageSubtitleCues: snapshot.imageSubtitleCues || [],
+                ...imageSubtitles,
                 fontSize: snapshot.fontSize
             };
 

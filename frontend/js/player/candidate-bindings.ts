@@ -10,11 +10,6 @@ async function verifyCandidateAnkiNote(noteId: number, snapshot: AnkiMediaSnapsh
 const candidateExports = createCandidateExportService({
     source: candidateApi.source,
     configure: (snapshot) => {
-        configureCandidateImageSubtitles(
-            snapshot,
-            (document.getElementById("imageSubtitleMode") as HTMLButtonElement).value === "timed" ? "timed" : "all",
-            (document.getElementById("includeImageSubtitle") as HTMLInputElement).checked
-        );
         for (const key of ["ankiUrl", "deckName", "pictureField", "audioField"] as const) {
             if (!snapshot[key]) snapshot[key] = (document.getElementById(key) as HTMLInputElement).value.trim();
             if (!snapshot[key]) throw new Error(t("candidateSettings"));

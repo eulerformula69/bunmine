@@ -356,12 +356,16 @@ function queueSettingsAutosave(): void {
     }, 250);
 }
 
+let settingsAutosaveInitialized = false;
+
 function initSettingsAutosave(): void {
+    if (settingsAutosaveInitialized) return;
+    settingsAutosaveInitialized = true;
     const imageSubtitleMode = document.getElementById("imageSubtitleMode") as HTMLButtonElement | null;
     imageSubtitleMode?.addEventListener("click", () => {
         imageSubtitleMode.value = imageSubtitleMode.value === "timed" ? "all" : "timed";
         updateImageSubtitleModeButton();
-        queueSettingsAutosave();
+        saveSettingsLocal({ silent: true });
     });
     getSettingsInput("includeImageSubtitle")?.addEventListener("change", updateImageSubtitleModeButton);
     [

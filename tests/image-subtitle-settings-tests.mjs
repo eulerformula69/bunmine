@@ -32,11 +32,11 @@ for (const file of ["core/i18n", "player/settings"]) {
 }
 const button = element("imageSubtitleMode");
 context.initSettingsAutosave();
+context.initSettingsAutosave();
 assert.equal(button.textContent, "All text");
 button.handlers.click();
 assert.equal(button.value, "timed");
 assert.equal(button.attributes["aria-pressed"], "true");
-autosave();
 assert.equal(JSON.parse(storage.get("subtitlePlayerSettings")).imageSubtitleMode, "timed");
 context.applyLanguage("ru");
 assert.equal(button.textContent, "По времени");

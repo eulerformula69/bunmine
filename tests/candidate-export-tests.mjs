@@ -6,7 +6,7 @@ const requests = [];
 const ctx = vm.createContext({
     console, setTimeout, clearTimeout, AbortController,
     t: (key) => key,
-    document: { getElementById: () => ({ value: "" }) },
+    document: { getElementById: (id) => ({ value: id === "imageSubtitleMode" ? subtitleMode : "", checked: subtitlesEnabled }) },
     buildApiUrl: (path) => path,
     fetch: async (url, options) => {
         requests.push([url, JSON.parse(options.body)]);
@@ -31,7 +31,7 @@ let subtitleMode = "all";
 let subtitlesEnabled = true;
 const exports = ctx.createCandidateExportService({
     source: async (id) => structuredClone(stored.get(id)),
-    configure: (snapshot) => ctx.configureCandidateImageSubtitles(snapshot, subtitleMode, subtitlesEnabled),
+    configure() {},
 });
 let activeId = 1;
 ctx.candidateExports = exports;
@@ -86,16 +86,18 @@ assert.equal(requests[2][1].params.note.fields.Sentence, "before word1 after");
 assert.equal(original.imageSubtitleMode, "all");
 assert.equal(original.imageSubtitleCues.length, 0);
 subtitlesEnabled = false;
-const disabled = (await exports.load(1)).snapshot;
-assert.equal(disabled.imageSubtitleText, "");
+const disabled = ctx.buildImageSubtitleExport((await exports.load(1)).snapshot);
+assert.equal(disabled.text, "");
 assert.equal(disabled.imageSubtitleCues.length, 0);
 subtitlesEnabled = true;
 subtitleMode = "all";
-assert.equal((await exports.load(1)).snapshot.imageSubtitleMode, "all");
+assert.equal(ctx.buildImageSubtitleExport((await exports.load(1)).snapshot).imageSubtitleMode, "all");
 subtitleMode = "timed";
 const old = { combinedText: "legacy", imageSubtitleText: "legacy" };
-assert.throws(() => ctx.configureCandidateImageSubtitles(old, "timed", true), /candidateSubtitleTimingMissing/);
-assert.doesNotThrow(() => ctx.configureCandidateImageSubtitles(old, "all", true));
+assert.throws(() => ctx.buildImageSubtitleExport(old), /candidateSubtitleTimingMissing/);
+subtitleMode = "all";
+assert.doesNotThrow(() => ctx.buildImageSubtitleExport(old));
+subtitleMode = "timed";
 
 // Listener resolves the same candidate source and freezes its identity during the wait.
 requests.length = 0;
@@ -116,7 +118,7 @@ assert.equal(requests[2][1].params.note.fields.Sentence, "before word1 after");
 activeId = undefined;
 const snapshots = await Promise.all([1, 2].map(async (id) => (await exports.load(id)).snapshot));
 assert.deepEqual(snapshots.map((s) => s.audioEnd), [17, 27]);
-snapshots[0].imageSubtitleCues[0].text = "mutation";
+snapshots[0].context.cues[0].text = "mutation";
 assert.equal(stored.get(1).snapshot.context.cues[0].text, "before");
 
 // Export waits for persistence of this ID; it does not block another candidate.
