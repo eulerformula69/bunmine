@@ -4,7 +4,6 @@ import urllib.error
 
 from flask import Blueprint, jsonify, request
 
-from backend.config import LIBRARY_DB_PATH
 from backend.library_subtitles import (
     build_episode_jimaku_subtitle_plan,
     build_missing_jimaku_subtitle_plan,
@@ -15,13 +14,14 @@ from backend.library_subtitles import (
     get_episode_subtitle_context,
     search_jimaku_subtitles,
 )
+from backend.settings import current_settings
 
 library_subtitle_bp = Blueprint("library_subtitle", __name__)
 
 
 @library_subtitle_bp.route("/library/episodes/<int:episode_id>/subtitles/search", methods=["GET"])
 def library_episode_subtitle_search(episode_id):
-    context_result = get_episode_subtitle_context(LIBRARY_DB_PATH, episode_id)
+    context_result = get_episode_subtitle_context(current_settings().library_db_path, episode_id)
     if not context_result.get("found"):
         return jsonify({"error": "Episode not found"}), 404
 
@@ -50,7 +50,7 @@ def library_episode_subtitle_select(episode_id):
 
     try:
         result = download_and_save_jimaku_subtitle(
-            db_path=LIBRARY_DB_PATH,
+            db_path=current_settings().library_db_path,
             episode_id=episode_id,
             payload=data,
         )
@@ -75,7 +75,7 @@ def library_series_missing_subtitles(series_id):
 
     try:
         result = get_missing_jimaku_subtitle_candidates(
-            db_path=LIBRARY_DB_PATH,
+            db_path=current_settings().library_db_path,
             series_id=series_id,
             limit=limit,
         )
@@ -95,7 +95,7 @@ def library_series_subtitles_analyze(series_id):
 
     try:
         result = build_series_jimaku_subtitle_analysis(
-            db_path=LIBRARY_DB_PATH,
+            db_path=current_settings().library_db_path,
             series_id=series_id,
             query=query,
             limit=limit,
@@ -121,7 +121,7 @@ def library_episode_subtitle_plan(episode_id):
 
     try:
         result = build_episode_jimaku_subtitle_plan(
-            db_path=LIBRARY_DB_PATH,
+            db_path=current_settings().library_db_path,
             episode_id=episode_id,
             query=query,
         )
@@ -147,7 +147,7 @@ def library_series_subtitles_download_plan(series_id):
 
     try:
         result = build_missing_jimaku_subtitle_plan(
-            db_path=LIBRARY_DB_PATH,
+            db_path=current_settings().library_db_path,
             series_id=series_id,
             query=query,
             limit=limit,
@@ -170,7 +170,7 @@ def library_series_subtitles_download_missing(series_id):
 
     try:
         result = bulk_download_missing_jimaku_subtitles(
-            db_path=LIBRARY_DB_PATH,
+            db_path=current_settings().library_db_path,
             series_id=series_id,
             query=query,
             limit=limit,

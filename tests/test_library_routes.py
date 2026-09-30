@@ -1,3 +1,5 @@
+from dataclasses import replace
+
 from flask import Flask
 
 from backend.repositories.connection import get_db
@@ -11,20 +13,20 @@ from backend.routes.library import (
 )
 
 
-def make_client(tmp_path, monkeypatch):
+def make_client(tmp_path, temporary_settings):
     db_path = tmp_path / "library.sqlite3"
     media_root = tmp_path / "media"
     media_root.mkdir()
     init_library_db(db_path)
 
-    for routes in (cover_routes, episode_routes, file_routes, series_routes, subtitle_routes):
-        monkeypatch.setattr(routes, "LIBRARY_DB_PATH", db_path)
-    monkeypatch.setattr(file_routes, "MEDIA_LIBRARY_DIR", media_root)
-    monkeypatch.setattr(series_routes, "MEDIA_LIBRARY_DIR", media_root)
-    monkeypatch.setattr(file_routes, "ALLOWED_VIDEO_EXTENSIONS", {".mkv"})
-    monkeypatch.setattr(file_routes, "ALLOWED_SUBTITLE_EXTENSIONS", {".srt"})
-
     app = Flask(__name__)
+    app.config["SETTINGS"] = replace(
+        temporary_settings,
+        library_db_path=db_path,
+        media_library_dir=media_root,
+        allowed_video_extensions={".mkv"},
+        allowed_subtitle_extensions={".srt"},
+    )
     app.register_blueprint(series_routes.library_series_bp)
     app.register_blueprint(episode_routes.library_episode_bp)
     app.register_blueprint(subtitle_routes.library_subtitle_bp)
@@ -33,8 +35,8 @@ def make_client(tmp_path, monkeypatch):
     return app.test_client(), db_path, media_root
 
 
-def test_kitsu_cover_can_be_selected(tmp_path, monkeypatch):
-    client, _, _ = make_client(tmp_path, monkeypatch)
+def test_kitsu_cover_can_be_selected(tmp_path, monkeypatch, temporary_settings):
+    client, _, _ = make_client(tmp_path, temporary_settings)
     saved = {}
 
     def save(**kwargs):
@@ -74,8 +76,8 @@ def seed_playable_episode(db_path, media_root):
     return series_id, episode_id, file_id, video_path
 
 
-def test_library_series_endpoint_returns_normalized_ok_payload(tmp_path, monkeypatch):
-    client, db_path, media_root = make_client(tmp_path, monkeypatch)
+def test_library_series_endpoint_returns_normalized_ok_payload(tmp_path, temporary_settings):
+    client, db_path, media_root = make_client(tmp_path, temporary_settings)
     seed_playable_episode(db_path, media_root)
 
     response = client.get("/library/series")
@@ -86,8 +88,8 @@ def test_library_series_endpoint_returns_normalized_ok_payload(tmp_path, monkeyp
     assert data["series"][0]["linkStatus"] == "partial"
 
 
-def test_library_episode_playback_returns_urls_for_existing_video(tmp_path, monkeypatch):
-    client, db_path, media_root = make_client(tmp_path, monkeypatch)
+def test_library_episode_playback_returns_urls_for_existing_video(tmp_path, temporary_settings):
+    client, db_path, media_root = make_client(tmp_path, temporary_settings)
     _, episode_id, file_id, _ = seed_playable_episode(db_path, media_root)
 
     response = client.get(f"/library/episodes/{episode_id}/playback")
@@ -100,8 +102,8 @@ def test_library_episode_playback_returns_urls_for_existing_video(tmp_path, monk
     assert data["subtitleUrl"] is None
 
 
-def test_library_episode_playback_404_for_unknown_episode(tmp_path, monkeypatch):
-    client, *_ = make_client(tmp_path, monkeypatch)
+def test_library_episode_playback_404_for_unknown_episode(tmp_path, temporary_settings):
+    client, *_ = make_client(tmp_path, temporary_settings)
 
     response = client.get("/library/episodes/999/playback")
 
@@ -109,8 +111,8 @@ def test_library_episode_playback_404_for_unknown_episode(tmp_path, monkeypatch)
     assert response.get_json()["error"] == "Episode not found"
 
 
-def test_delete_missing_library_episode_removes_db_entry_and_preserves_card(tmp_path, monkeypatch):
-    client, db_path, _ = make_client(tmp_path, monkeypatch)
+def test_delete_missing_library_episode_removes_db_entry_and_preserves_card(tmp_path, temporary_settings):
+    client, db_path, _ = make_client(tmp_path, temporary_settings)
     with get_db(db_path) as conn:
         series_id = conn.execute(
             "INSERT INTO series(title, normalized_title) VALUES(?, ?)",
@@ -141,8 +143,8 @@ def test_delete_missing_library_episode_removes_db_entry_and_preserves_card(tmp_
         assert card["episode_id"] is None
 
 
-def test_delete_library_episode_rejects_episode_with_existing_media(tmp_path, monkeypatch):
-    client, db_path, media_root = make_client(tmp_path, monkeypatch)
+def test_delete_library_episode_rejects_episode_with_existing_media(tmp_path, temporary_settings):
+    client, db_path, media_root = make_client(tmp_path, temporary_settings)
     _, episode_id, _, _ = seed_playable_episode(db_path, media_root)
 
     response = client.delete(f"/library/episodes/{episode_id}")
@@ -153,8 +155,8 @@ def test_delete_library_episode_rejects_episode_with_existing_media(tmp_path, mo
         assert conn.execute("SELECT 1 FROM episodes WHERE id = ?", (episode_id,)).fetchone() is not None
 
 
-def test_serve_library_file_rejects_paths_outside_media_root(tmp_path, monkeypatch):
-    client, db_path, media_root = make_client(tmp_path, monkeypatch)
+def test_serve_library_file_rejects_paths_outside_media_root(tmp_path, temporary_settings):
+    client, db_path, media_root = make_client(tmp_path, temporary_settings)
     outside_file = tmp_path / "outside.mkv"
     outside_file.write_bytes(b"video")
 
@@ -181,8 +183,8 @@ def test_serve_library_file_rejects_paths_outside_media_root(tmp_path, monkeypat
     assert response.get_json()["error"] == "File is outside MEDIA_LIBRARY_DIR"
 
 
-def test_serve_library_ass_file_preserves_original_source(tmp_path, monkeypatch):
-    client, db_path, media_root = make_client(tmp_path, monkeypatch)
+def test_serve_library_ass_file_preserves_original_source(tmp_path, temporary_settings):
+    client, db_path, media_root = make_client(tmp_path, temporary_settings)
     series_id, episode_id, _, _ = seed_playable_episode(db_path, media_root)
     source = "[Events]\nDialogue: 0,0:00:01.00,0:00:02.00,Default,,0,0,0,,{3\\pos(960,12)}字幕\n"
     subtitle_path = media_root / "Show" / "Show - 01.ass"
@@ -203,8 +205,8 @@ def test_serve_library_ass_file_preserves_original_source(tmp_path, monkeypatch)
     assert response.data == subtitle_path.read_bytes()
 
 
-def test_library_scan_path_rejects_directory_outside_media_root(tmp_path, monkeypatch):
-    client, *_ = make_client(tmp_path, monkeypatch)
+def test_library_scan_path_rejects_directory_outside_media_root(tmp_path, temporary_settings):
+    client, *_ = make_client(tmp_path, temporary_settings)
     outside_dir = tmp_path / "outside-dir"
     outside_dir.mkdir()
 

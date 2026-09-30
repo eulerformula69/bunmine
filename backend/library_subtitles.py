@@ -5,7 +5,6 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-from backend.config import ALLOWED_SUBTITLE_EXTENSIONS, JIMAKU_API_TOKEN, MEDIA_LIBRARY_DIR
 from backend.repositories.connection import get_db
 from backend.repositories.library_repository import get_library_series_detail
 from backend.library_scanner import normalize_title
@@ -18,17 +17,13 @@ from backend.subtitles.jimaku_release import (
     score_candidate as _score_subtitle_candidate,
 )
 from backend.utils_validation import is_within
+from backend.settings import current_settings
 
 
 JIMAKU_BASE_URL = "https://jimaku.cc"
 JIMAKU_API_BASE_URL = f"{JIMAKU_BASE_URL}/api"
 JIMAKU_CACHE_TTL_SECONDS = 7 * 24 * 60 * 60
 JIMAKU_SERIES_ENTRY_LIMIT = 6
-
-SUPPORTED_JIMAKU_SUBTITLE_EXTENSIONS = {
-    ext for ext in ALLOWED_SUBTITLE_EXTENSIONS if ext in {".srt", ".ass", ".vtt"}
-}
-
 
 def _http_json_get(url: str, token: str | None = None, timeout: int = 12) -> object:
     headers = {"Accept": "application/json", "User-Agent": "Bunmine/1.0"}
@@ -118,7 +113,8 @@ def _episode_label(value: float | int | None) -> str:
 
 def _extension_from_filename(filename: str) -> str:
     lowered = filename.lower()
-    for ext in sorted(SUPPORTED_JIMAKU_SUBTITLE_EXTENSIONS, key=len, reverse=True):
+    supported_extensions = current_settings().allowed_subtitle_extensions & {".srt", ".ass", ".vtt"}
+    for ext in sorted(supported_extensions, key=len, reverse=True):
         if lowered.endswith(ext):
             return ext
     return ""
@@ -135,7 +131,7 @@ def _is_jimaku_download_url(url: str, entry_id: int | str) -> bool:
 
 
 def _auth_token() -> str | None:
-    return str(JIMAKU_API_TOKEN or "").strip() or None
+    return str(current_settings().jimaku_api_token or "").strip() or None
 
 
 def get_episode_subtitle_context(db_path: Path, episode_id: int) -> dict:
@@ -313,7 +309,8 @@ def _target_subtitle_path(video_path: Path, source: str, entry_id: int | str, or
     # Episode.mkv -> Episode.srt / Episode.ass / Episode.vtt
     # The source/id are still stored in DB metadata through the library_files row.
     target = video_path.with_name(f"{video_path.stem}{ext}").resolve()
-    if not is_within(MEDIA_LIBRARY_DIR, target):
+    media_library_dir = current_settings().media_library_dir
+    if not is_within(media_library_dir, target):
         raise ValueError("Subtitle target path is outside MEDIA_LIBRARY_DIR")
     return target
 
@@ -340,7 +337,8 @@ def download_and_save_jimaku_subtitle(db_path: Path, episode_id: int, payload: d
         raise ValueError("Video file is missing for this episode")
 
     video_path = Path(context["video_path"]).resolve()
-    if not video_path.exists() or not is_within(MEDIA_LIBRARY_DIR, video_path):
+    media_library_dir = current_settings().media_library_dir
+    if not video_path.exists() or not is_within(media_library_dir, video_path):
         raise ValueError("Video file is missing or outside MEDIA_LIBRARY_DIR")
 
     target_path = _target_subtitle_path(video_path, source, entry_id, str(filename))
@@ -351,7 +349,7 @@ def download_and_save_jimaku_subtitle(db_path: Path, episode_id: int, payload: d
         raise ValueError("Downloaded subtitle is too large")
 
     target_path.write_bytes(data)
-    relative_path = str(target_path.relative_to(MEDIA_LIBRARY_DIR))
+    relative_path = str(target_path.relative_to(media_library_dir))
 
     with get_db(db_path) as conn:
         row = conn.execute("SELECT id FROM library_files WHERE path = ?", (str(target_path),)).fetchone()

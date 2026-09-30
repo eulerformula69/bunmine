@@ -5,7 +5,6 @@ from datetime import datetime, timedelta, timezone
 from flask import Blueprint, jsonify, request
 
 from backend import app_state
-from backend.config import ANKI_HIGHLIGHT_DIR, FRONTEND_DIR
 from backend.services.anki_client import (
     build_deck_query as _build_deck_query,
     chunked as _chunked,
@@ -28,6 +27,7 @@ from backend.services.anki_highlight_store import (
     write_words_file as _write_words_file,
 )
 from backend.utils_validation import safe_cache_key
+from backend.settings import Settings, current_settings
 
 misc_bp = Blueprint("misc", __name__)
 
@@ -125,7 +125,7 @@ def _card_status(card: dict) -> str:
     return "mature" if interval >= 21 else "young"
 
 
-def _refresh_known_anki_words_from_anki(payload: dict) -> dict:
+def _refresh_known_anki_words_from_anki(payload: dict, settings: Settings | None = None) -> dict:
     anki_url = str(payload.get("ankiUrl") or "").strip()
     deck_names = [str(item).strip() for item in payload.get("decks") or [] if str(item).strip()]
     word_fields = [str(item).strip() for item in payload.get("wordFields") or [] if str(item).strip()]
@@ -144,7 +144,7 @@ def _refresh_known_anki_words_from_anki(payload: dict) -> dict:
         auto_refresh = "daily"
 
     checked_at = _utc_now_iso()
-    saved_settings = _read_anki_highlight_settings()
+    saved_settings = _read_anki_highlight_settings(settings)
     _write_anki_highlight_settings({
         **saved_settings,
         "ankiUrl": anki_url,
@@ -155,9 +155,9 @@ def _refresh_known_anki_words_from_anki(payload: dict) -> dict:
         "lastManualRefreshAt": checked_at if not payload.get("autoRun") else saved_settings.get("lastManualRefreshAt"),
         "lastAutoRefreshAt": checked_at if payload.get("autoRun") else saved_settings.get("lastAutoRefreshAt"),
         "lastAutoRefreshError": None,
-    })
+    }, settings)
 
-    previous = _read_known_anki_data()
+    previous = _read_known_anki_data(settings)
     previous_words = previous.get("words", {}) if isinstance(previous.get("words"), dict) else {}
     next_words = {} if full_rebuild else dict(previous_words)
 
@@ -282,12 +282,12 @@ def _refresh_known_anki_words_from_anki(payload: dict) -> dict:
         "wordFields": word_fields,
         "sentenceFields": sentence_fields,
         "words": next_words,
-    })
+    }, settings)
 
     return {
         "ok": True,
         "updatedAt": checked_at,
-        "source": str(_known_anki_words_path()),
+        "source": str(_known_anki_words_path(settings)),
         "count": len(result_data["words"]),
         "notesFound": len(note_ids),
         "notesChecked": status_checked_notes,
@@ -309,7 +309,7 @@ def get_anki_highlight_cache(cache_key):
     except ValueError as err:
         return jsonify({"error": str(err)}), 400
 
-    cache_path = ANKI_HIGHLIGHT_DIR / f"{safe_key}.json"
+    cache_path = current_settings().anki_highlight_dir / f"{safe_key}.json"
     if not cache_path.exists():
         return jsonify({"found": False})
 
@@ -331,7 +331,7 @@ def save_anki_highlight_cache(cache_key):
     if not isinstance(data, dict):
         return jsonify({"error": "Invalid cache payload"}), 400
 
-    cache_path = ANKI_HIGHLIGHT_DIR / f"{safe_key}.json"
+    cache_path = current_settings().anki_highlight_dir / f"{safe_key}.json"
     cache_path.parent.mkdir(parents=True, exist_ok=True)
     cache_path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
     return jsonify({"success": True})
@@ -456,73 +456,73 @@ def _compact_refresh_result(result: dict) -> dict:
     return {key: result.get(key) for key in keep if key in result}
 
 
-def refresh_known_anki_words_auto() -> dict:
+def refresh_known_anki_words_auto(settings: Settings | None = None) -> dict:
     payload = _merge_refresh_payload_with_saved_settings({
         "fullRebuild": False,
         "autoRun": True,
-    })
+    }, settings)
     if not payload.get("ankiUrl") or not payload.get("decks") or not payload.get("wordFields"):
         result = {
             "ok": False,
             "skipped": True,
             "reason": "Run Refresh Highlight Words once manually to save Anki URL, decks and word fields.",
         }
-        settings = _read_anki_highlight_settings()
+        saved_settings = _read_anki_highlight_settings(settings)
         _write_anki_highlight_settings({
-            **settings,
+            **saved_settings,
             "lastAutoRefreshResult": _compact_refresh_result(result),
-        })
+        }, settings)
         return result
     try:
-        result = _refresh_known_anki_words_from_anki(payload)
-        settings = _read_anki_highlight_settings()
+        result = _refresh_known_anki_words_from_anki(payload, settings)
+        saved_settings = _read_anki_highlight_settings(settings)
         _write_anki_highlight_settings({
-            **settings,
+            **saved_settings,
             "lastAutoRefreshError": None,
             "lastAutoRefreshResult": _compact_refresh_result(result),
-        })
+        }, settings)
         return result
     except Exception as err:
-        settings = _read_anki_highlight_settings()
+        saved_settings = _read_anki_highlight_settings(settings)
         _write_anki_highlight_settings({
-            **settings,
+            **saved_settings,
             "lastAutoRefreshError": str(err),
             "lastAutoRefreshResult": {"ok": False, "error": str(err)},
-        })
+        }, settings)
         raise
 
 
-def refresh_known_anki_words_if_stale(context: str = "startup") -> dict:
-    settings = _read_anki_highlight_settings()
+def refresh_known_anki_words_if_stale(context: str = "startup", settings: Settings | None = None) -> dict:
+    saved_settings = _read_anki_highlight_settings(settings)
     checked_at = _utc_now_iso()
 
     check_at_key = "lastStartupStaleCheckAt" if context == "startup" else "lastPlayerStaleCheckAt"
     check_result_key = "lastStartupStaleCheckResult" if context == "startup" else "lastPlayerStaleCheckResult"
 
-    _write_anki_highlight_settings({**settings, check_at_key: checked_at})
+    _write_anki_highlight_settings({**saved_settings, check_at_key: checked_at}, settings)
 
-    if not _is_auto_refresh_stale(settings):
+    if not _is_auto_refresh_stale(saved_settings):
         result = {"ok": True, "skipped": True, "reason": "Auto-refresh is not stale."}
-        latest_settings = _read_anki_highlight_settings()
+        latest_settings = _read_anki_highlight_settings(settings)
         _write_anki_highlight_settings({
             **latest_settings,
             check_result_key: _compact_refresh_result(result),
-        })
+        }, settings)
         return result
 
-    result = refresh_known_anki_words_auto()
+    result = refresh_known_anki_words_auto(settings)
     result[f"{context}StaleCheck"] = True
 
-    latest_settings = _read_anki_highlight_settings()
+    latest_settings = _read_anki_highlight_settings(settings)
     _write_anki_highlight_settings({
         **latest_settings,
         check_result_key: _compact_refresh_result(result),
-    })
+    }, settings)
     return result
 
 
-def refresh_known_anki_words_if_stale_on_startup() -> dict:
-    return refresh_known_anki_words_if_stale("startup")
+def refresh_known_anki_words_if_stale_on_startup(settings: Settings) -> dict:
+    return refresh_known_anki_words_if_stale("startup", settings)
 
 
 @misc_bp.route("/known-anki-words/stale-check", methods=["POST"])

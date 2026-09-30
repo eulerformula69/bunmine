@@ -2,7 +2,6 @@
 
 from flask import Blueprint, jsonify, request
 
-from backend.config import LIBRARY_DB_PATH
 from backend.repositories.playback_repository import (
     get_episode_playback,
     save_episode_progress,
@@ -10,13 +9,14 @@ from backend.repositories.playback_repository import (
 )
 from backend.library_deletion import delete_missing_library_episode
 from backend.utils_validation import to_float
+from backend.settings import current_settings
 
 library_episode_bp = Blueprint("library_episode", __name__)
 
 
 @library_episode_bp.route("/library/episodes/<int:episode_id>/playback", methods=["GET"])
 def library_episode_playback(episode_id):
-    result = get_episode_playback(LIBRARY_DB_PATH, episode_id)
+    result = get_episode_playback(current_settings().library_db_path, episode_id)
     if not result.get("found"):
         return jsonify({"error": "Episode not found"}), 404
     if result.get("error"):
@@ -27,7 +27,7 @@ def library_episode_playback(episode_id):
 @library_episode_bp.route("/library/episodes/<int:episode_id>", methods=["DELETE"])
 def library_episode_delete(episode_id):
     try:
-        result = delete_missing_library_episode(LIBRARY_DB_PATH, episode_id)
+        result = delete_missing_library_episode(current_settings().library_db_path, episode_id)
     except Exception as err:
         return jsonify({"error": str(err)}), 500
 
@@ -48,7 +48,7 @@ def library_episode_progress(episode_id):
     completed = bool(data.get("completed", False))
 
     result = save_episode_progress(
-        db_path=LIBRARY_DB_PATH,
+        db_path=current_settings().library_db_path,
         episode_id=episode_id,
         current_time_seconds=current_time_seconds,
         duration_seconds=duration_seconds,
@@ -65,7 +65,7 @@ def library_episode_completed(episode_id):
     data = request.get_json(silent=True) or {}
     completed = bool(data.get("completed", False))
     result = set_episode_completed(
-        db_path=LIBRARY_DB_PATH,
+        db_path=current_settings().library_db_path,
         episode_id=episode_id,
         completed=completed,
     )

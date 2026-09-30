@@ -48,7 +48,7 @@ def test_webp_cache_depends_on_subtitle_timing(monkeypatch, tmp_path):
     settings = make_settings(tmp_path)
     (settings.video_dir / "clip.mkv").write_bytes(b"video")
     keys = []
-    monkeypatch.setattr(media_export_service, "get_cached_media", lambda kind, key: keys.append(key) or "cached.webp")
+    monkeypatch.setattr(media_export_service, "get_cached_media", lambda settings, kind, key: keys.append(key) or "cached.webp")
     data = {**payload(), "filename": "clip.mkv", "start": 10, "end": 14}
     media_export_service.create_animated_webp(settings, data)
     data["imageSubtitleCues"][0]["end"] = 11.5

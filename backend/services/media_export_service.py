@@ -30,7 +30,7 @@ def create_screenshot(settings: Settings, data: dict) -> dict:
         "fontSize": font_size,
     }
     screenshot_key = make_dedupe_key("screenshot", screenshot_payload)
-    cached_filename = get_cached_media("screenshot", screenshot_key)
+    cached_filename = get_cached_media(settings, "screenshot", screenshot_key)
     if cached_filename:
         return {"filename": cached_filename, "reused": True}
 
@@ -57,7 +57,7 @@ def create_screenshot(settings: Settings, data: dict) -> dict:
     screenshot_filename = f"screenshot_{screenshot_key[:24]}.jpg"
     final_path = settings.screenshot_dir / screenshot_filename
     img.save(final_path)
-    save_cached_media("screenshot", screenshot_key, screenshot_filename)
+    save_cached_media(settings, "screenshot", screenshot_key, screenshot_filename)
     if raw_screenshot.exists():
         raw_screenshot.unlink()
     return {"filename": screenshot_filename, "reused": False}
@@ -91,7 +91,7 @@ def create_animated_webp(settings: Settings, data: dict) -> dict:
         "fontSize": font_size,
     }
     webp_key = make_dedupe_key("screenshot", webp_payload)
-    cached_filename = get_cached_media("screenshot", webp_key)
+    cached_filename = get_cached_media(settings, "screenshot", webp_key)
     if cached_filename:
         return {"filename": cached_filename, "reused": True}
 
@@ -112,7 +112,7 @@ def create_animated_webp(settings: Settings, data: dict) -> dict:
     ]
     try:
         run_subprocess(cmd)
-        save_cached_media("screenshot", webp_key, webp_filename)
+        save_cached_media(settings, "screenshot", webp_key, webp_filename)
     finally:
         if ass_path.exists():
             ass_path.unlink()
@@ -165,7 +165,7 @@ def create_audio_clip(settings: Settings, data: dict) -> dict:
 
     audio_key = make_dedupe_key("audio", audio_payload)
 
-    cached_filename = get_cached_media("audio", audio_key)
+    cached_filename = get_cached_media(settings, "audio", audio_key)
     if cached_filename:
         return {
             "filename": cached_filename,
@@ -211,7 +211,7 @@ def create_audio_clip(settings: Settings, data: dict) -> dict:
 
     run_subprocess(cmd)
 
-    save_cached_media("audio", audio_key, audio_filename)
+    save_cached_media(settings, "audio", audio_key, audio_filename)
 
     return {
         "filename": audio_filename,

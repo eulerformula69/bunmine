@@ -2,17 +2,17 @@
 
 from flask import Blueprint, jsonify, request, send_from_directory
 
-from backend.config import LIBRARY_COVERS_DIR, LIBRARY_DB_PATH
 from backend.library_covers import get_series_cover_file, resolve_cover_file_path, save_series_cover
 from backend.library_cover_search import search_covers
 from backend.repositories.library_repository import get_library_series_detail
+from backend.settings import current_settings
 
 library_cover_bp = Blueprint("library_cover", __name__)
 
 
 @library_cover_bp.route("/library/series/<int:series_id>/cover/search", methods=["GET"])
 def library_series_cover_search(series_id):
-    detail = get_library_series_detail(LIBRARY_DB_PATH, series_id)
+    detail = get_library_series_detail(current_settings().library_db_path, series_id)
     if not detail.get("found"):
         return jsonify({"error": "Series not found"}), 404
 
@@ -39,8 +39,8 @@ def library_series_cover_select(series_id):
 
     try:
         result = save_series_cover(
-            db_path=LIBRARY_DB_PATH,
-            covers_dir=LIBRARY_COVERS_DIR,
+            db_path=current_settings().library_db_path,
+            covers_dir=current_settings().library_covers_dir,
             series_id=series_id,
             source=source,
             external_id=external_id,
@@ -56,11 +56,11 @@ def library_series_cover_select(series_id):
 
 @library_cover_bp.route("/library/cover/<int:series_id>", methods=["GET"])
 def library_series_cover(series_id):
-    result = get_series_cover_file(LIBRARY_DB_PATH, series_id)
+    result = get_series_cover_file(current_settings().library_db_path, series_id)
     if not result.get("found"):
         return jsonify({"error": "Cover not found"}), 404
 
-    cover_path = resolve_cover_file_path(LIBRARY_COVERS_DIR, result["file"])
+    cover_path = resolve_cover_file_path(current_settings().library_covers_dir, result["file"])
     if not cover_path:
         return jsonify({"error": "Cover file is missing"}), 404
 

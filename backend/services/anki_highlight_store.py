@@ -1,14 +1,20 @@
 import json
 
-from backend.config import ANKI_HIGHLIGHT_DIR, FRONTEND_DIR
-
-def _anki_highlight_file(filename: str):
-    ANKI_HIGHLIGHT_DIR.mkdir(parents=True, exist_ok=True)
-    return ANKI_HIGHLIGHT_DIR / filename
+from backend.settings import Settings, current_settings
 
 
-def _legacy_known_basic_path():
-    return FRONTEND_DIR / "known-basic-words.json"
+def _settings(settings: Settings | None) -> Settings:
+    return settings or current_settings()
+
+
+def _anki_highlight_file(filename: str, settings: Settings | None = None):
+    directory = _settings(settings).anki_highlight_dir
+    directory.mkdir(parents=True, exist_ok=True)
+    return directory / filename
+
+
+def _legacy_known_basic_path(settings: Settings | None = None):
+    return _settings(settings).frontend_dir / "known-basic-words.json"
 
 
 def read_words_file(path):
@@ -38,9 +44,9 @@ def write_words_file(path, words):
     return normalized_words
 
 
-def known_basic_words_path():
-    target = _anki_highlight_file("known-basic-words.json")
-    legacy = _legacy_known_basic_path()
+def known_basic_words_path(settings: Settings | None = None):
+    target = _anki_highlight_file("known-basic-words.json", settings)
+    legacy = _legacy_known_basic_path(settings)
 
     if not target.exists() and legacy.exists():
         try:
@@ -53,24 +59,24 @@ def known_basic_words_path():
     return target
 
 
-def known_anki_words_path():
-    return _anki_highlight_file("known-anki-words.json")
+def known_anki_words_path(settings: Settings | None = None):
+    return _anki_highlight_file("known-anki-words.json", settings)
 
 
-def anki_highlight_settings_path():
-    return _anki_highlight_file("anki-highlight-settings.json")
+def anki_highlight_settings_path(settings: Settings | None = None):
+    return _anki_highlight_file("anki-highlight-settings.json", settings)
 
 
-def read_anki_highlight_settings() -> dict:
-    path = anki_highlight_settings_path()
+def read_anki_highlight_settings(settings: Settings | None = None) -> dict:
+    path = anki_highlight_settings_path(settings)
     if not path.exists():
         return {}
     data = json.loads(path.read_text(encoding="utf-8"))
     return data if isinstance(data, dict) else {}
 
 
-def write_anki_highlight_settings(payload: dict) -> dict:
-    settings = {
+def write_anki_highlight_settings(payload: dict, settings: Settings | None = None) -> dict:
+    normalized = {
         "ankiUrl": str(payload.get("ankiUrl") or "").strip(),
         "decks": [str(item).strip() for item in payload.get("decks") or [] if str(item).strip()],
         "wordFields": [str(item).strip() for item in payload.get("wordFields") or [] if str(item).strip()],
@@ -85,16 +91,16 @@ def write_anki_highlight_settings(payload: dict) -> dict:
         "lastPlayerStaleCheckAt": payload.get("lastPlayerStaleCheckAt"),
         "lastPlayerStaleCheckResult": payload.get("lastPlayerStaleCheckResult"),
     }
-    if settings["autoRefresh"] not in {"off", "daily", "weekly"}:
-        settings["autoRefresh"] = "daily"
-    path = anki_highlight_settings_path()
+    if normalized["autoRefresh"] not in {"off", "daily", "weekly"}:
+        normalized["autoRefresh"] = "daily"
+    path = anki_highlight_settings_path(settings)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(settings, ensure_ascii=False, indent=2), encoding="utf-8")
-    return settings
+    path.write_text(json.dumps(normalized, ensure_ascii=False, indent=2), encoding="utf-8")
+    return normalized
 
 
-def merge_refresh_payload_with_saved_settings(payload: dict) -> dict:
-    saved = read_anki_highlight_settings()
+def merge_refresh_payload_with_saved_settings(payload: dict, settings: Settings | None = None) -> dict:
+    saved = read_anki_highlight_settings(settings)
     merged = dict(saved)
     merged.update({key: value for key, value in payload.items() if value is not None})
     return merged
@@ -120,8 +126,8 @@ def _default_known_anki_data():
     }
 
 
-def read_known_anki_data() -> dict:
-    path = known_anki_words_path()
+def read_known_anki_data(settings: Settings | None = None) -> dict:
+    path = known_anki_words_path(settings)
     if not path.exists():
         return _default_known_anki_data()
 
@@ -142,8 +148,8 @@ def read_known_anki_data() -> dict:
     }
 
 
-def write_known_anki_data(data: dict) -> dict:
-    path = known_anki_words_path()
+def write_known_anki_data(data: dict, settings: Settings | None = None) -> dict:
+    path = known_anki_words_path(settings)
     normalized = {
         "updatedAt": data.get("updatedAt"),
         "decks": data.get("decks") if isinstance(data.get("decks"), list) else [],
@@ -156,10 +162,10 @@ def write_known_anki_data(data: dict) -> dict:
     return normalized
 
 
-def ensure_anki_highlight_files() -> None:
-    known_basic_words_path()
-    known_anki_path = known_anki_words_path()
+def ensure_anki_highlight_files(settings: Settings | None = None) -> None:
+    known_basic_words_path(settings)
+    known_anki_path = known_anki_words_path(settings)
     if not known_anki_path.exists():
-        write_known_anki_data(_default_known_anki_data())
-    if not anki_highlight_settings_path().exists():
-        write_anki_highlight_settings({"autoRefresh": "daily"})
+        write_known_anki_data(_default_known_anki_data(), settings)
+    if not anki_highlight_settings_path(settings).exists():
+        write_anki_highlight_settings({"autoRefresh": "daily"}, settings)

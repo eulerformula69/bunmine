@@ -2,6 +2,8 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
+from flask import current_app
+
 
 def load_env_file(path: Path) -> None:
     if not path.exists():
@@ -43,6 +45,10 @@ class Settings:
     anki_highlight_auto_refresh: str
     anki_highlight_auto_refresh_hour: int
     anki_highlight_auto_refresh_minute: int
+
+
+def current_settings() -> Settings:
+    return current_app.config["SETTINGS"]
 
 
 def _required_path_env(name: str, message: str) -> Path:

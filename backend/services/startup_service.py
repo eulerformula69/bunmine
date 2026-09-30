@@ -10,7 +10,7 @@ from backend.settings import Settings
 _startup_stale_check_started = False
 
 
-def start_anki_highlight_startup_stale_check() -> None:
+def start_anki_highlight_startup_stale_check(settings: Settings) -> None:
     """Run one stale auto-refresh check after backend startup."""
     global _startup_stale_check_started
     if _startup_stale_check_started:
@@ -19,7 +19,7 @@ def start_anki_highlight_startup_stale_check() -> None:
 
     def worker() -> None:
         try:
-            result = refresh_known_anki_words_if_stale_on_startup()
+            result = refresh_known_anki_words_if_stale_on_startup(settings)
             print(f"Anki highlight startup stale-check result: {result}")
         except Exception as err:
             print(f"Anki highlight startup stale-check skipped/failed: {err}")
@@ -69,8 +69,8 @@ def cleanup_on_startup(settings: Settings) -> None:
 def initialize_backend(settings: Settings) -> None:
     ensure_directories(settings)
     migrate_legacy_data_paths(settings)
-    ensure_anki_highlight_files()
-    start_anki_highlight_startup_stale_check()
+    ensure_anki_highlight_files(settings)
+    start_anki_highlight_startup_stale_check(settings)
     cleanup_on_startup(settings)
     init_library_db(settings.library_db_path)
     migrate_cover_paths(settings)

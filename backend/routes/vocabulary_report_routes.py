@@ -6,6 +6,7 @@ from flask import Blueprint, jsonify, request, send_file
 from backend.api_response import error_response
 from backend.services.job_service import get_job, start_job
 from backend.services.vocabulary_report_service import VocabularyReportError, generate_vocabulary_report
+from backend.settings import current_settings
 
 vocabulary_report_bp = Blueprint("vocabulary-report", __name__)
 _report_files = {}
@@ -14,6 +15,7 @@ _report_files = {}
 @vocabulary_report_bp.post("/library/series/<int:series_id>/vocabulary-report")
 def start_vocabulary_report(series_id):
     payload = request.get_json(silent=True) or {}
+    settings = current_settings()
     try:
         # Validate cheap user errors before accepting a background job.
         if not payload.get("statuses"): raise VocabularyReportError("Select at least one status")
@@ -22,7 +24,7 @@ def start_vocabulary_report(series_id):
         return error_response(str(error), 400, "INVALID_REPORT_OPTIONS")
 
     def worker():
-        stream, filename = generate_vocabulary_report(series_id, payload)
+        stream, filename = generate_vocabulary_report(settings, series_id, payload)
         target = Path(tempfile.gettempdir()) / f"bunmine-{filename}"
         target.write_bytes(stream.getvalue())
         return {"ok": True, "filename": filename, "path": str(target)}

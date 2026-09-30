@@ -69,13 +69,13 @@ def test_download_endpoint_xlsx_mime_and_cleanup(monkeypatch, tmp_path, temporar
     assert not report.exists()
 
 
-def test_analyzer_is_always_decoded_as_utf8(monkeypatch):
+def test_analyzer_is_always_decoded_as_utf8(monkeypatch, temporary_settings):
     import backend.services.vocabulary_report_service as service
     captured = {}
-    monkeypatch.setattr(service, "_series_files", lambda _id: ({"title": "番組"}, [{"path": "字幕.srt"}]))
-    monkeypatch.setattr(service, "read_known_anki_data", lambda: {"words": {}})
-    monkeypatch.setattr(service, "read_anki_highlight_settings", lambda: {})
-    monkeypatch.setattr(service, "known_basic_words_path", lambda: None)
+    monkeypatch.setattr(service, "_series_files", lambda _settings, _id: ({"title": "番組"}, [{"path": "字幕.srt"}]))
+    monkeypatch.setattr(service, "read_known_anki_data", lambda _settings: {"words": {}})
+    monkeypatch.setattr(service, "read_anki_highlight_settings", lambda _settings: {})
+    monkeypatch.setattr(service, "known_basic_words_path", lambda _settings: None)
     monkeypatch.setattr(service, "read_words_file", lambda _path: [])
     monkeypatch.setattr(service, "build_report_rows", lambda *args, **kwargs: ([], [], {}))
     monkeypatch.setattr(service, "create_workbook", lambda *args: BytesIO(b"xlsx"))
@@ -83,17 +83,17 @@ def test_analyzer_is_always_decoded_as_utf8(monkeypatch):
         captured.update(kwargs)
         return type("Result", (), {"returncode": 0, "stdout": '[{"sentence":"日本語"}]', "stderr": ""})()
     monkeypatch.setattr(service.subprocess, "run", fake_run)
-    service.generate_vocabulary_report(1, {"statuses": ["new"], "sheets": {"summary": True}})
+    service.generate_vocabulary_report(temporary_settings, 1, {"statuses": ["new"], "sheets": {"summary": True}})
     assert captured["encoding"] == "utf-8"
     assert captured["errors"] == "strict"
 
 
-def test_empty_analyzer_output_has_clear_error(monkeypatch):
+def test_empty_analyzer_output_has_clear_error(monkeypatch, temporary_settings):
     import backend.services.vocabulary_report_service as service
-    monkeypatch.setattr(service, "_series_files", lambda _id: ({"title": "Show"}, [{"path": "sub.srt"}]))
+    monkeypatch.setattr(service, "_series_files", lambda _settings, _id: ({"title": "Show"}, [{"path": "sub.srt"}]))
     monkeypatch.setattr(service.subprocess, "run", lambda *args, **kwargs: type("Result", (), {"returncode": 0, "stdout": "", "stderr": ""})())
     try:
-        service.generate_vocabulary_report(1, {"statuses": ["new"], "sheets": {"summary": True}})
+        service.generate_vocabulary_report(temporary_settings, 1, {"statuses": ["new"], "sheets": {"summary": True}})
         assert False, "expected VocabularyReportError"
     except VocabularyReportError as error:
         assert str(error) == "Subtitle analyzer returned no data"

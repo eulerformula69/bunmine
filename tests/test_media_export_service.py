@@ -50,8 +50,8 @@ def test_create_audio_clip_builds_ffmpeg_command_and_saves_dedupe(monkeypatch, t
     calls = []
     saved = []
 
-    monkeypatch.setattr(media_export_service, "get_cached_media", lambda kind, key: None)
-    monkeypatch.setattr(media_export_service, "save_cached_media", lambda kind, key, filename: saved.append((kind, key, filename)))
+    monkeypatch.setattr(media_export_service, "get_cached_media", lambda settings, kind, key: None)
+    monkeypatch.setattr(media_export_service, "save_cached_media", lambda settings, kind, key, filename: saved.append((kind, key, filename)))
     monkeypatch.setattr(media_export_service, "run_subprocess", lambda cmd: calls.append(cmd) or subprocess.CompletedProcess(cmd, 0))
 
     result = create_audio_clip(settings, {
@@ -74,7 +74,7 @@ def test_create_audio_clip_builds_ffmpeg_command_and_saves_dedupe(monkeypatch, t
 def test_create_audio_clip_reuses_existing_dedupe_without_ffmpeg(monkeypatch, tmp_path):
     settings = make_settings(tmp_path)
     (settings.video_dir / "clip.mkv").write_bytes(b"video")
-    monkeypatch.setattr(media_export_service, "get_cached_media", lambda kind, key: "audio_cached.mp3")
+    monkeypatch.setattr(media_export_service, "get_cached_media", lambda settings, kind, key: "audio_cached.mp3")
     monkeypatch.setattr(media_export_service, "run_subprocess", lambda cmd: (_ for _ in ()).throw(AssertionError("ffmpeg should not run")))
 
     result = create_audio_clip(settings, {"filename": "clip.mkv", "start": 1, "end": 2})
@@ -91,8 +91,8 @@ def test_create_audio_clip_lets_ffmpeg_choose_default_audio_track(monkeypatch, t
     (settings.video_dir / "clip.mkv").write_bytes(b"video")
     calls = []
 
-    monkeypatch.setattr(media_export_service, "get_cached_media", lambda kind, key: None)
-    monkeypatch.setattr(media_export_service, "save_cached_media", lambda kind, key, filename: None)
+    monkeypatch.setattr(media_export_service, "get_cached_media", lambda settings, kind, key: None)
+    monkeypatch.setattr(media_export_service, "save_cached_media", lambda settings, kind, key, filename: None)
     monkeypatch.setattr(
         media_export_service,
         "run_subprocess",
@@ -124,8 +124,8 @@ def test_create_animated_webp_clamps_duration_and_cleans_temp_ass(monkeypatch, t
     settings = make_settings(tmp_path)
     (settings.video_dir / "clip.mkv").write_bytes(b"video")
     calls = []
-    monkeypatch.setattr(media_export_service, "get_cached_media", lambda kind, key: None)
-    monkeypatch.setattr(media_export_service, "save_cached_media", lambda kind, key, filename: None)
+    monkeypatch.setattr(media_export_service, "get_cached_media", lambda settings, kind, key: None)
+    monkeypatch.setattr(media_export_service, "save_cached_media", lambda settings, kind, key, filename: None)
     monkeypatch.setattr(media_export_service, "run_subprocess", lambda cmd: calls.append(cmd) or subprocess.CompletedProcess(cmd, 0))
 
     result = create_animated_webp(settings, {"filename": "clip.mkv", "start": 10, "end": 30, "text": "hello"})
