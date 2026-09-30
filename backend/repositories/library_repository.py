@@ -89,32 +89,58 @@ def get_library_series_list(db_path: Path) -> list[dict]:
     with get_db(db_path) as conn:
         rows = conn.execute(
             """
+            WITH episode_file_stats AS (
+                SELECT
+                    episode_id,
+                    MAX(CASE WHEN file_type = 'video' AND file_exists = 1 THEN 1 ELSE 0 END) AS has_video,
+                    MAX(CASE WHEN file_type = 'subtitle' AND file_exists = 1 THEN 1 ELSE 0 END) AS has_subtitle
+                FROM library_files
+                WHERE file_type IN ('video', 'subtitle')
+                GROUP BY episode_id
+            ),
+            series_episode_stats AS (
+                SELECT
+                    e.series_id,
+                    COUNT(e.id) AS episodes_count,
+                    SUM(COALESCE(efs.has_video, 0)) AS episodes_with_video,
+                    SUM(COALESCE(efs.has_subtitle, 0)) AS episodes_with_subtitle,
+                    SUM(CASE WHEN wp.completed = 1 THEN 1 ELSE 0 END) AS completed_episodes,
+                    SUM(CASE WHEN wp.current_time_seconds > 5 AND wp.completed = 0 THEN 1 ELSE 0 END)
+                        AS in_progress_episodes,
+                    SUM(COALESCE(wp.watched_seconds, 0)) AS watched_seconds,
+                    MAX(CASE WHEN wp.completed = 0 THEN wp.current_time_seconds END) AS latest_current_time_seconds,
+                    MAX(wp.last_watched_at) AS last_watched_at
+                FROM episodes e
+                LEFT JOIN episode_file_stats efs ON efs.episode_id = e.id
+                LEFT JOIN watch_progress wp ON wp.episode_id = e.id
+                GROUP BY e.series_id
+            ),
+            series_card_stats AS (
+                SELECT
+                    series_id,
+                    COUNT(id) AS cards_count,
+                    COUNT(DISTINCT CASE WHEN word IS NOT NULL AND TRIM(word) != '' THEN word END) AS mined_words_count
+                FROM cards
+                GROUP BY series_id
+            )
             SELECT
                 s.id,
                 s.title,
                 s.cover_file_id,
-                COUNT(DISTINCT e.id) AS episodes_count,
-                COUNT(DISTINCT CASE WHEN EXISTS (
-                    SELECT 1 FROM library_files vf
-                    WHERE vf.episode_id = e.id AND vf.file_type = 'video' AND vf.file_exists = 1
-                ) THEN e.id END) AS episodes_with_video,
-                COUNT(DISTINCT CASE WHEN EXISTS (
-                    SELECT 1 FROM library_files sf
-                    WHERE sf.episode_id = e.id AND sf.file_type = 'subtitle' AND sf.file_exists = 1
-                ) THEN e.id END) AS episodes_with_subtitle,
-                COUNT(DISTINCT CASE WHEN wp.completed = 1 THEN e.id END) AS completed_episodes,
-                COUNT(DISTINCT CASE WHEN wp.current_time_seconds > 5 AND wp.completed = 0 THEN e.id END) AS in_progress_episodes,
-                COALESCE(SUM(wp.watched_seconds), 0) AS watched_seconds,
-                MAX(CASE WHEN wp.completed = 0 THEN wp.current_time_seconds END) AS latest_current_time_seconds,
-                MAX(wp.last_watched_at) AS last_watched_at,
+                COALESCE(ses.episodes_count, 0) AS episodes_count,
+                COALESCE(ses.episodes_with_video, 0) AS episodes_with_video,
+                COALESCE(ses.episodes_with_subtitle, 0) AS episodes_with_subtitle,
+                COALESCE(ses.completed_episodes, 0) AS completed_episodes,
+                COALESCE(ses.in_progress_episodes, 0) AS in_progress_episodes,
+                COALESCE(ses.watched_seconds, 0) AS watched_seconds,
+                ses.latest_current_time_seconds,
+                ses.last_watched_at,
                 s.created_at,
-                COUNT(DISTINCT c.id) AS cards_count,
-                COUNT(DISTINCT CASE WHEN c.word IS NOT NULL AND TRIM(c.word) != '' THEN c.word END) AS mined_words_count
+                COALESCE(scs.cards_count, 0) AS cards_count,
+                COALESCE(scs.mined_words_count, 0) AS mined_words_count
             FROM series s
-            LEFT JOIN episodes e ON e.series_id = s.id
-            LEFT JOIN watch_progress wp ON wp.episode_id = e.id
-            LEFT JOIN cards c ON c.series_id = s.id
-            GROUP BY s.id, s.title
+            LEFT JOIN series_episode_stats ses ON ses.series_id = s.id
+            LEFT JOIN series_card_stats scs ON scs.series_id = s.id
             ORDER BY s.sort_title, s.title
             """
         ).fetchall()
@@ -154,29 +180,72 @@ def get_library_series_detail(db_path: Path, series_id: int) -> dict:
 
         episode_rows = conn.execute(
             """
+            WITH ranked_files AS (
+                SELECT
+                    id,
+                    episode_id,
+                    file_type,
+                    relative_path,
+                    file_exists,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY episode_id, file_type
+                        ORDER BY file_exists DESC, is_primary DESC, id ASC
+                    ) AS available_rank,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY episode_id, file_type
+                        ORDER BY is_primary DESC, id ASC
+                    ) AS filename_rank
+                FROM library_files
+                WHERE file_type IN ('video', 'subtitle')
+            ),
+            episode_card_stats AS (
+                SELECT
+                    episode_id,
+                    COUNT(id) AS cards_count,
+                    COUNT(DISTINCT CASE WHEN word IS NOT NULL AND TRIM(word) != '' THEN word END) AS mined_words_count
+                FROM cards
+                GROUP BY episode_id
+            )
             SELECT
                 e.id,
                 e.title,
                 e.episode_number,
                 e.season_number,
                 e.duration_seconds,
-                EXISTS (SELECT 1 FROM library_files vf WHERE vf.episode_id = e.id AND vf.file_type = 'video' AND vf.file_exists = 1) AS has_video,
-                EXISTS (SELECT 1 FROM library_files sf WHERE sf.episode_id = e.id AND sf.file_type = 'subtitle' AND sf.file_exists = 1) AS has_subtitle,
-                (SELECT vf.id FROM library_files vf WHERE vf.episode_id = e.id AND vf.file_type = 'video' AND vf.file_exists = 1 ORDER BY vf.is_primary DESC, vf.id ASC LIMIT 1) AS video_file_id,
-                (SELECT sf.id FROM library_files sf WHERE sf.episode_id = e.id AND sf.file_type = 'subtitle' AND sf.file_exists = 1 ORDER BY sf.is_primary DESC, sf.id ASC LIMIT 1) AS subtitle_file_id,
-                (SELECT vf.relative_path FROM library_files vf WHERE vf.episode_id = e.id AND vf.file_type = 'video' ORDER BY vf.is_primary DESC, vf.id ASC LIMIT 1) AS video_filename,
-                (SELECT sf.relative_path FROM library_files sf WHERE sf.episode_id = e.id AND sf.file_type = 'subtitle' ORDER BY sf.is_primary DESC, sf.id ASC LIMIT 1) AS subtitle_filename,
+                video_file.id IS NOT NULL AS has_video,
+                subtitle_file.id IS NOT NULL AS has_subtitle,
+                video_file.id AS video_file_id,
+                subtitle_file.id AS subtitle_file_id,
+                video_name.relative_path AS video_filename,
+                subtitle_name.relative_path AS subtitle_filename,
                 COALESCE(wp.current_time_seconds, 0) AS current_time_seconds,
                 COALESCE(wp.watched_seconds, 0) AS watched_seconds,
                 COALESCE(wp.completed, 0) AS completed,
                 wp.last_watched_at,
-                COUNT(DISTINCT c.id) AS cards_count,
-                COUNT(DISTINCT CASE WHEN c.word IS NOT NULL AND TRIM(c.word) != '' THEN c.word END) AS mined_words_count
+                COALESCE(ecs.cards_count, 0) AS cards_count,
+                COALESCE(ecs.mined_words_count, 0) AS mined_words_count
             FROM episodes e
             LEFT JOIN watch_progress wp ON wp.episode_id = e.id
-            LEFT JOIN cards c ON c.episode_id = e.id
+            LEFT JOIN ranked_files video_file
+                ON video_file.episode_id = e.id
+                AND video_file.file_type = 'video'
+                AND video_file.file_exists = 1
+                AND video_file.available_rank = 1
+            LEFT JOIN ranked_files subtitle_file
+                ON subtitle_file.episode_id = e.id
+                AND subtitle_file.file_type = 'subtitle'
+                AND subtitle_file.file_exists = 1
+                AND subtitle_file.available_rank = 1
+            LEFT JOIN ranked_files video_name
+                ON video_name.episode_id = e.id
+                AND video_name.file_type = 'video'
+                AND video_name.filename_rank = 1
+            LEFT JOIN ranked_files subtitle_name
+                ON subtitle_name.episode_id = e.id
+                AND subtitle_name.file_type = 'subtitle'
+                AND subtitle_name.filename_rank = 1
+            LEFT JOIN episode_card_stats ecs ON ecs.episode_id = e.id
             WHERE e.series_id = ?
-            GROUP BY e.id
             ORDER BY COALESCE(e.season_number, 1), e.episode_number IS NULL, e.episode_number, e.title
             """,
             (series_id,),
