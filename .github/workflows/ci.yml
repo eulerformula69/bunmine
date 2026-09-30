@@ -7,9 +7,9 @@ jobs:
   checks:
     runs-on: ubuntu-latest
     env:
-      ANKI_MEDIA_DIR: ${{ runner.temp }}/bunmine/anki-media
-      MEDIA_LIBRARY_DIR: ${{ runner.temp }}/bunmine/media-library
-      PLAYER_SERVER_DATA_DIR: ${{ runner.temp }}/bunmine/data
+      ANKI_MEDIA_DIR: /tmp/bunmine-ci/anki-media
+      MEDIA_LIBRARY_DIR: /tmp/bunmine-ci/media-library
+      PLAYER_SERVER_DATA_DIR: /tmp/bunmine-ci/data
 
     steps:
       - name: Check out the repository
