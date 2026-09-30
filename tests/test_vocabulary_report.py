@@ -57,11 +57,11 @@ def test_safe_filename():
     assert not any(character in filename for character in '<>:"/\\|?*')
 
 
-def test_download_endpoint_xlsx_mime_and_cleanup(monkeypatch, tmp_path):
+def test_download_endpoint_xlsx_mime_and_cleanup(monkeypatch, tmp_path, temporary_settings):
     report = tmp_path / "report.xlsx"; report.write_bytes(b"xlsx")
     monkeypatch.setattr("backend.routes.vocabulary_report_routes.get_job", lambda _job_id: {
         "kind": "vocabulary-report", "status": "completed", "result": {"path": str(report), "filename": "report.xlsx"}})
-    client = create_app().test_client()
+    client = create_app(settings=temporary_settings, initialize=False).test_client()
     response = client.get("/library/vocabulary-report/job/download")
     assert response.status_code == 200
     assert response.mimetype == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"

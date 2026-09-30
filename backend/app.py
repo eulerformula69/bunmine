@@ -19,9 +19,10 @@ from backend.services.startup_service import initialize_backend
 from backend.settings import Settings, load_settings
 
 
-def create_app(settings: Settings | None = None) -> Flask:
+def create_app(settings: Settings | None = None, initialize: bool = True) -> Flask:
     settings = settings or load_settings()
-    initialize_backend(settings)
+    if initialize:
+        initialize_backend(settings)
     app = Flask(__name__, static_folder=str(settings.frontend_dir))
     app.config["SETTINGS"] = settings
 
@@ -68,7 +69,4 @@ def create_app(settings: Settings | None = None) -> Flask:
         response.headers["Content-Type"] = "application/json"
         return response
     return app
-
-
-app = create_app()
 
