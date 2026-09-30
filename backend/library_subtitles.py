@@ -6,7 +6,8 @@ import urllib.request
 from pathlib import Path
 
 from backend.config import ALLOWED_SUBTITLE_EXTENSIONS, JIMAKU_API_TOKEN, MEDIA_LIBRARY_DIR
-from backend.library_db import get_db, get_library_series_detail
+from backend.repositories.connection import get_db
+from backend.repositories.library_repository import get_library_series_detail
 from backend.library_scanner import normalize_title
 from backend.subtitles.jimaku_release import (
     compact_token as _compact_token,

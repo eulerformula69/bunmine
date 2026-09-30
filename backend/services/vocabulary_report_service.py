@@ -5,7 +5,7 @@ from datetime import date
 from pathlib import Path
 
 from backend.config import LIBRARY_DB_PATH, PROJECT_DIR
-from backend.library_db import get_db
+from backend.repositories.connection import get_db
 from backend.services.anki_highlight_store import read_anki_highlight_settings, read_known_anki_data, read_words_file, known_basic_words_path
 from backend.services.vocabulary_report_model import STATUSES, build_report_rows, pick_sentence
 from backend.services.vocabulary_report_workbook import create_workbook

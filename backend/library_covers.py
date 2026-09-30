@@ -2,7 +2,7 @@ import re
 import urllib.request
 from pathlib import Path
 
-from backend.library_db import get_db
+from backend.repositories.connection import get_db
 from backend.utils_validation import is_within
 
 

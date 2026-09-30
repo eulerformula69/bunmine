@@ -2,7 +2,7 @@ import re
 from pathlib import Path
 from typing import Optional
 
-from backend.library_db import get_db
+from backend.repositories.connection import get_db
 
 
 def normalize_title(value: str) -> str:

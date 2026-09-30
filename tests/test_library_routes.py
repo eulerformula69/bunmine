@@ -1,7 +1,14 @@
 from flask import Flask
 
-from backend.library_db import get_db, init_library_db
-from backend.routes import library_routes
+from backend.repositories.connection import get_db
+from backend.repositories.library_repository import init_library_db
+from backend.routes.library import (
+    cover_routes,
+    episode_routes,
+    file_routes,
+    series_routes,
+    subtitle_routes,
+)
 
 
 def make_client(tmp_path, monkeypatch):
@@ -10,13 +17,19 @@ def make_client(tmp_path, monkeypatch):
     media_root.mkdir()
     init_library_db(db_path)
 
-    monkeypatch.setattr(library_routes, "LIBRARY_DB_PATH", db_path)
-    monkeypatch.setattr(library_routes, "MEDIA_LIBRARY_DIR", media_root)
-    monkeypatch.setattr(library_routes, "ALLOWED_VIDEO_EXTENSIONS", {".mkv"})
-    monkeypatch.setattr(library_routes, "ALLOWED_SUBTITLE_EXTENSIONS", {".srt"})
+    for routes in (cover_routes, episode_routes, file_routes, series_routes, subtitle_routes):
+        monkeypatch.setattr(routes, "LIBRARY_DB_PATH", db_path)
+    monkeypatch.setattr(file_routes, "MEDIA_LIBRARY_DIR", media_root)
+    monkeypatch.setattr(series_routes, "MEDIA_LIBRARY_DIR", media_root)
+    monkeypatch.setattr(file_routes, "ALLOWED_VIDEO_EXTENSIONS", {".mkv"})
+    monkeypatch.setattr(file_routes, "ALLOWED_SUBTITLE_EXTENSIONS", {".srt"})
 
     app = Flask(__name__)
-    app.register_blueprint(library_routes.library_bp)
+    app.register_blueprint(series_routes.library_series_bp)
+    app.register_blueprint(episode_routes.library_episode_bp)
+    app.register_blueprint(subtitle_routes.library_subtitle_bp)
+    app.register_blueprint(cover_routes.library_cover_bp)
+    app.register_blueprint(file_routes.library_file_bp)
     return app.test_client(), db_path, media_root
 
 
@@ -28,7 +41,7 @@ def test_kitsu_cover_can_be_selected(tmp_path, monkeypatch):
         saved.update(kwargs)
         return {"found": True, "coverFileId": 42}
 
-    monkeypatch.setattr(library_routes, "save_series_cover", save)
+    monkeypatch.setattr(cover_routes, "save_series_cover", save)
     response = client.post("/library/series/1/cover/select", json={
         "source": "kitsu", "externalId": "1555",
         "coverUrl": "https://media.kitsu.app/anime/poster_images/1555/large.jpg",

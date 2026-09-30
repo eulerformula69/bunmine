@@ -1,6 +1,7 @@
 from pathlib import Path
 
-from backend.library_db import get_db, refresh_library_file_existence
+from backend.repositories.connection import get_db
+from backend.repositories.library_repository import refresh_library_file_existence
 
 
 def delete_library_series(db_path: Path, series_id: int) -> dict:

@@ -3,7 +3,13 @@ import json
 from flask import Flask
 from flask_cors import CORS
 
-from backend.routes.library_routes import library_bp
+from backend.routes.library import (
+    library_series_bp,
+    library_episode_bp,
+    library_subtitle_bp,
+    library_cover_bp,
+    library_file_bp,
+)
 from backend.routes.vocabulary_report_routes import vocabulary_report_bp
 from backend.routes.media_routes import media_bp
 from backend.routes.misc_routes import misc_bp
@@ -24,7 +30,11 @@ def create_app(settings: Settings | None = None) -> Flask:
     else:
         CORS(app)
 
-    app.register_blueprint(library_bp)
+    app.register_blueprint(library_series_bp)
+    app.register_blueprint(library_episode_bp)
+    app.register_blueprint(library_subtitle_bp)
+    app.register_blueprint(library_cover_bp)
+    app.register_blueprint(library_file_bp)
     app.register_blueprint(candidate_bp)
     app.register_blueprint(vocabulary_report_bp)
     app.register_blueprint(media_bp)

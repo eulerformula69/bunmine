@@ -1,13 +1,15 @@
-from backend.library_db import (
-    delete_library_series,
-    get_db,
+from backend.repositories.connection import get_db
+from backend.repositories.library_repository import (
     get_library_series_detail,
     get_library_series_list,
     init_library_db,
-    relink_library_series_files,
+)
+from backend.repositories.playback_repository import (
     save_episode_progress,
     set_episode_completed,
 )
+from backend.services.library_service import relink_library_series_files
+from backend.library_deletion import delete_library_series
 from backend.repositories.playback_repository import get_episode_playback
 
 

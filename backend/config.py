@@ -1,4 +1,4 @@
-from backend.settings import Settings, load_settings
+from backend.settings import load_settings
 
 
 _SETTINGS = load_settings()

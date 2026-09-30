@@ -1,6 +1,6 @@
 import sqlite3
 
-from backend.library_db import init_library_db
+from backend.repositories.library_repository import init_library_db
 from backend.library_scanner import detect_episode, infer_series_title, scan_library
 
 

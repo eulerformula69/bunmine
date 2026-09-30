@@ -2,7 +2,8 @@ import os
 import shutil
 import threading
 
-from backend.library_db import get_db, init_library_db
+from backend.repositories.connection import get_db
+from backend.repositories.library_repository import init_library_db
 from backend.routes.misc_routes import ensure_anki_highlight_files, refresh_known_anki_words_if_stale_on_startup
 from backend.settings import Settings
 

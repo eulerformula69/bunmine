@@ -3,7 +3,7 @@ from types import SimpleNamespace
 import pytest
 from flask import Flask
 
-from backend.library_db import init_library_db
+from backend.repositories.library_repository import init_library_db
 from backend.repositories import candidate_repository as repository
 from backend.repositories.connection import get_db
 from backend.routes.candidate_routes import candidate_bp
