@@ -35,7 +35,7 @@ def create_screenshot(settings: Settings, data: dict) -> dict:
         return {"filename": cached_filename, "reused": True}
 
     cmd = ["ffmpeg", "-y", "-ss", str(t_val), "-i", str(video_path_obj), "-vframes", "1", "-q:v", "2", str(raw_screenshot)]
-    run_subprocess(cmd)
+    run_subprocess(cmd, settings.subprocess_timeout_seconds)
 
     img = Image.open(raw_screenshot)
     draw = ImageDraw.Draw(img)
@@ -111,7 +111,7 @@ def create_animated_webp(settings: Settings, data: dict) -> dict:
         "-loop", "0", "-an", str(final_path),
     ]
     try:
-        run_subprocess(cmd)
+        run_subprocess(cmd, settings.subprocess_timeout_seconds)
         save_cached_media(settings, "screenshot", webp_key, webp_filename)
     finally:
         if ass_path.exists():
@@ -209,7 +209,7 @@ def create_audio_clip(settings: Settings, data: dict) -> dict:
         str(audio_path),
     ])
 
-    run_subprocess(cmd)
+    run_subprocess(cmd, settings.subprocess_timeout_seconds)
 
     save_cached_media(settings, "audio", audio_key, audio_filename)
 

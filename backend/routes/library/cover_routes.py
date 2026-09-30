@@ -27,6 +27,7 @@ def library_series_cover_search(series_id):
 
 @library_cover_bp.route("/library/series/<int:series_id>/cover/select", methods=["POST"])
 def library_series_cover_select(series_id):
+    settings = current_settings()
     data = request.get_json(silent=True) or {}
     source = data.get("source")
     external_id = data.get("externalId")
@@ -39,12 +40,14 @@ def library_series_cover_select(series_id):
 
     try:
         result = save_series_cover(
-            db_path=current_settings().library_db_path,
-            covers_dir=current_settings().library_covers_dir,
+            db_path=settings.library_db_path,
+            covers_dir=settings.library_covers_dir,
             series_id=series_id,
             source=source,
             external_id=external_id,
             cover_url=cover_url,
+            allowed_hosts=settings.cover_allowed_hosts,
+            max_bytes=settings.cover_max_bytes,
         )
     except Exception as err:
         return jsonify({"error": str(err)}), 500

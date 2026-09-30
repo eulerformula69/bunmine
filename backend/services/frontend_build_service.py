@@ -24,12 +24,21 @@ def _npm_command() -> str | None:
     return shutil.which("npm.cmd") or shutil.which("npm")
 
 
-def _run_npm(project_dir: Path, args: list[str]) -> None:
+def _run_npm(project_dir: Path, args: list[str], timeout_seconds: int = 600) -> None:
     npm = _npm_command()
     if not npm:
         raise RuntimeError("npm is not available. Install Node.js or run with BUNMINE_SKIP_FRONTEND_BUILD=1.")
 
-    subprocess.run([npm, *args], cwd=project_dir, check=True)
+    try:
+        subprocess.run(
+            [npm, *args],
+            cwd=project_dir,
+            check=True,
+            timeout=timeout_seconds,
+            stdin=subprocess.DEVNULL,
+        )
+    except subprocess.TimeoutExpired as error:
+        raise RuntimeError(f"Frontend build timed out after {timeout_seconds} seconds.") from error
 
 
 def _frontend_dependencies_installed(project_dir: Path) -> bool:
@@ -126,7 +135,7 @@ def _write_typescript_build_stamp(project_dir: Path, fingerprint: str) -> None:
     stamp_path.write_text(f"{fingerprint}\n", encoding="utf-8")
 
 
-def build_frontend_on_startup(project_dir: Path) -> None:
+def build_frontend_on_startup(project_dir: Path, timeout_seconds: int = 600) -> None:
     if os.getenv("BUNMINE_SKIP_FRONTEND_BUILD", "").strip().lower() in {"1", "true", "yes"}:
         print("Frontend build skipped: BUNMINE_SKIP_FRONTEND_BUILD is set.")
         return
@@ -137,14 +146,14 @@ def build_frontend_on_startup(project_dir: Path) -> None:
 
     if not _frontend_dependencies_installed(project_dir):
         print("Installing frontend dependencies...")
-        _run_npm(project_dir, ["install"])
+        _run_npm(project_dir, ["install"], timeout_seconds)
 
     fingerprint = _dependency_build_fingerprint(project_dir)
     if _dependency_assets_are_current(project_dir, fingerprint):
         print("Frontend dependency assets are current; skipping their rebuild.")
     else:
         print("Building frontend dependency assets...")
-        _run_npm(project_dir, ["run", "build:libs"])
+        _run_npm(project_dir, ["run", "build:libs"], timeout_seconds)
         _write_dependency_build_stamp(project_dir, fingerprint)
 
     typescript_fingerprint = _typescript_build_fingerprint(project_dir)
@@ -152,5 +161,5 @@ def build_frontend_on_startup(project_dir: Path) -> None:
         print("TypeScript output is current; skipping compilation.")
     else:
         print("Building changed TypeScript files...")
-        _run_npm(project_dir, ["run", "build:ts"])
+        _run_npm(project_dir, ["run", "build:ts"], timeout_seconds)
         _write_typescript_build_stamp(project_dir, typescript_fingerprint)

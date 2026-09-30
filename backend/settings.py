@@ -45,6 +45,14 @@ class Settings:
     anki_highlight_auto_refresh: str
     anki_highlight_auto_refresh_hour: int
     anki_highlight_auto_refresh_minute: int
+    cover_allowed_hosts: frozenset[str] = frozenset({
+        "s3.anilist.co",
+        "media.kitsu.app",
+        "s3.kitsu.app",
+        "kitsu.app",
+    })
+    cover_max_bytes: int = 10 * 1024 * 1024
+    subprocess_timeout_seconds: int = 600
 
 
 def current_settings() -> Settings:
@@ -98,4 +106,14 @@ def load_settings() -> Settings:
         anki_highlight_auto_refresh=os.getenv("ANKI_HIGHLIGHT_AUTO_REFRESH", "daily").strip().lower(),
         anki_highlight_auto_refresh_hour=int(os.getenv("ANKI_HIGHLIGHT_AUTO_REFRESH_HOUR", "4")),
         anki_highlight_auto_refresh_minute=int(os.getenv("ANKI_HIGHLIGHT_AUTO_REFRESH_MINUTE", "0")),
+        cover_allowed_hosts=frozenset(
+            host.strip().lower()
+            for host in os.getenv(
+                "COVER_ALLOWED_HOSTS",
+                "s3.anilist.co,media.kitsu.app,s3.kitsu.app,kitsu.app",
+            ).split(",")
+            if host.strip()
+        ),
+        cover_max_bytes=int(os.getenv("COVER_MAX_BYTES", str(10 * 1024 * 1024))),
+        subprocess_timeout_seconds=int(os.getenv("SUBPROCESS_TIMEOUT_SECONDS", "600")),
     )

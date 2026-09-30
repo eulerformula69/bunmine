@@ -1,9 +1,40 @@
+import ipaddress
 import re
+import socket
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
 from backend.repositories.connection import get_db
 from backend.utils_validation import is_within
+
+
+def _validate_cover_url(cover_url: str, allowed_hosts: frozenset[str]) -> str:
+    parsed = urllib.parse.urlparse(cover_url)
+    hostname = (parsed.hostname or "").lower()
+    if parsed.scheme != "https" or not hostname or hostname not in allowed_hosts:
+        raise ValueError("Cover URL must use HTTPS and an allowed host")
+
+    try:
+        addresses = {item[4][0] for item in socket.getaddrinfo(hostname, 443, type=socket.SOCK_STREAM)}
+    except socket.gaierror as error:
+        raise ValueError("Cover host could not be resolved") from error
+    if not addresses:
+        raise ValueError("Cover host could not be resolved")
+    for address in addresses:
+        ip = ipaddress.ip_address(address)
+        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved or ip.is_unspecified:
+            raise ValueError("Cover host resolved to a non-public address")
+    return hostname
+
+
+class _ValidatedRedirectHandler(urllib.request.HTTPRedirectHandler):
+    def __init__(self, allowed_hosts: frozenset[str]):
+        self.allowed_hosts = allowed_hosts
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        _validate_cover_url(newurl, self.allowed_hosts)
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
 
 
 def _safe_cover_name(value: str) -> str:
@@ -20,7 +51,16 @@ def _extension_from_url(url: str) -> str:
     return ".jpg"
 
 
-def download_cover_file(covers_dir: Path, series_id: int, source: str, external_id: str | int, cover_url: str) -> Path:
+def download_cover_file(
+    covers_dir: Path,
+    series_id: int,
+    source: str,
+    external_id: str | int,
+    cover_url: str,
+    allowed_hosts: frozenset[str],
+    max_bytes: int,
+) -> Path:
+    _validate_cover_url(cover_url, allowed_hosts)
     covers_dir.mkdir(parents=True, exist_ok=True)
     filename = f"series_{series_id}_{_safe_cover_name(source)}_{_safe_cover_name(str(external_id))}{_extension_from_url(cover_url)}"
     target_path = covers_dir / filename
@@ -33,20 +73,40 @@ def download_cover_file(covers_dir: Path, series_id: int, source: str, external_
         },
         method="GET",
     )
-    with urllib.request.urlopen(request, timeout=20) as response:
+    opener = urllib.request.build_opener(_ValidatedRedirectHandler(allowed_hosts))
+    with opener.open(request, timeout=20) as response:
         content_type = response.headers.get("Content-Type", "")
-        data = response.read()
+        data = response.read(max_bytes + 1)
 
     if not content_type.startswith("image/"):
         raise ValueError(f"Cover URL did not return an image: {content_type}")
     if not data:
         raise ValueError("Downloaded cover is empty")
+    if len(data) > max_bytes:
+        raise ValueError("Downloaded cover exceeds the size limit")
     target_path.write_bytes(data)
     return target_path.resolve()
 
 
-def save_series_cover(db_path: Path, covers_dir: Path, series_id: int, source: str, external_id: str | int, cover_url: str) -> dict:
-    cover_path = download_cover_file(covers_dir, series_id, source, external_id, cover_url)
+def save_series_cover(
+    db_path: Path,
+    covers_dir: Path,
+    series_id: int,
+    source: str,
+    external_id: str | int,
+    cover_url: str,
+    allowed_hosts: frozenset[str],
+    max_bytes: int,
+) -> dict:
+    cover_path = download_cover_file(
+        covers_dir,
+        series_id,
+        source,
+        external_id,
+        cover_url,
+        allowed_hosts,
+        max_bytes,
+    )
     relative_path = str(cover_path.relative_to(covers_dir.parent.parent))
     with get_db(db_path) as conn:
         series = conn.execute("SELECT id FROM series WHERE id = ?", (series_id,)).fetchone()

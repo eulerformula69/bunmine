@@ -21,18 +21,21 @@ def make_friendly_ffmpeg_error(details: str) -> str:
     return raw[-1200:]
 
 
-def run_subprocess(cmd: list[str]) -> subprocess.CompletedProcess:
+def run_subprocess(cmd: list[str], timeout_seconds: int = 600) -> subprocess.CompletedProcess:
     try:
         return subprocess.run(
             cmd,
             check=True,
             capture_output=True,
             text=True,
+            timeout=timeout_seconds,
         )
     except FileNotFoundError:
         raise RuntimeError("FFmpeg/FFprobe is not installed or not available in PATH.")
     except subprocess.CalledProcessError as err:
         details = err.stderr.strip() if err.stderr else str(err)
         raise RuntimeError(make_friendly_ffmpeg_error(details))
+    except subprocess.TimeoutExpired as err:
+        raise RuntimeError(f"FFmpeg timed out after {timeout_seconds} seconds.") from err
 
 
