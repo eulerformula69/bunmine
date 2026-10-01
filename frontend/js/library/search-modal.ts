@@ -1,3 +1,4 @@
+import { TranslationKey } from "../core/i18n.js";
 import { ApiPayload } from "../types/api.js";
 import { LibraryTranslate } from "./library-presentation.js";
 
@@ -22,8 +23,8 @@ export function createLibrarySearchModal<Context, Result>(
         render(result: Result): HTMLButtonElement;
         payload(result: Result): Record<string, unknown>;
         saved(context: Context, data: ApiPayload): void | Promise<unknown>;
-        empty: string; searching: string; searchError: string; saveError: string;
-        initialHint?: string;
+        empty: TranslationKey; searching: TranslationKey; searchError: TranslationKey; saveError: TranslationKey;
+        initialHint?: TranslationKey;
         searchOnOpen?: boolean;
         closeBeforeSaved?: boolean;
     }

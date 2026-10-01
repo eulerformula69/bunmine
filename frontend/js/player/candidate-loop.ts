@@ -1,3 +1,4 @@
+import { logger } from "../core/logger.js";
 import { playMedia } from "../video/media-playback.js";
 
 import { AnkiMediaSnapshot } from "../anki/media-snapshot.js";
@@ -42,7 +43,7 @@ export function createCandidateLoop(media: HTMLVideoElement) {
     media.addEventListener("ended", () => {
         if (!range) return;
         media.currentTime = range.start;
-        void play((error) => console.error("Candidate playback failed:", error));
+        void play((error) => logger.error("Candidate playback failed:", error));
     });
     media.addEventListener("emptied", () => { playbackVersion++; range = null; cancel(); });
     return {

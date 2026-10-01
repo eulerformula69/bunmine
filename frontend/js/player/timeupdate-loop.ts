@@ -1,3 +1,4 @@
+import { logger } from "../core/logger.js";
 import { overlay,progress,sidebar,timeLabel,video } from "../core/dom.js";
 
 import { getActiveSubtitleEntries,getActiveSubtitles,getCurrentSubtitle } from "../subtitles/timing.js";
@@ -10,7 +11,7 @@ import { ankiSubtitleHighlighter,ensureStatusesForSubtitleText } from "../highli
 
 import { prefetchRuntimeStatusesForAllSubtitles } from "./controllers.js";
 
-import { formatTime } from "../subtitles/parsing.js";
+import { formatTime } from "../core/formatters.js";
 
 import { syncSubtitleStyle } from "../subtitles/subtitles-sidebar.js";
 
@@ -42,7 +43,7 @@ export function createTimeupdateLoop(options: { getCurrentSubtitle?: typeof getC
         state.lastRuntimeSubtitleText = sub.text;
 
         ensureStatusesForSubtitleText(sub.text).catch((err) => {
-            console.warn("Runtime subtitle status lookup failed:", err);
+            logger.warn("Runtime subtitle status lookup failed:", err);
         });
     }
 
@@ -64,7 +65,7 @@ export function createTimeupdateLoop(options: { getCurrentSubtitle?: typeof getC
 				!state.runtimePrefetchAllInProgress;
 
 			if (shouldPrefetchNextWindow) {
-				console.log(
+				logger.info(
 					`Runtime next window trigger: current=${currentSubtitleIndex}, next=${state.runtimeNextPrefetchStart}`
 				);
 

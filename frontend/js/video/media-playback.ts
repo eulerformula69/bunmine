@@ -1,6 +1,7 @@
+import { logger } from "../core/logger.js";
 export async function playMedia(
     media: HTMLMediaElement,
-    reportError: (error: unknown) => void = (error) => console.error("Media playback failed:", error)
+    reportError: (error: unknown) => void = (error) => logger.error("Media playback failed:", error)
 ): Promise<void> {
     try { await media.play(); }
     catch (error) {

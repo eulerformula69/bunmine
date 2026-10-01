@@ -1,3 +1,4 @@
+import { logger } from "../core/logger.js";
 import { AnkiNoteInfo } from "../anki/notes.js";
 export interface TargetNoteDropdownControllerOptions {
     select: HTMLSelectElement;
@@ -93,7 +94,7 @@ export function createTargetNoteDropdownController(
         const { menu } = getElements();
         if (!menu) return;
 
-        menu.innerHTML = "";
+        menu.replaceChildren();
 
         Array.from(select.options).forEach((option) => {
             const item = document.createElement("div");
@@ -119,7 +120,7 @@ export function createTargetNoteDropdownController(
     async function refresh({ preserveSelection = true } = {}): Promise<void> {
         const previousValue = preserveSelection ? select.value : "";
 
-        select.innerHTML = "";
+        select.replaceChildren();
 
         const autoOption = document.createElement("option");
         autoOption.value = "";
@@ -161,7 +162,7 @@ export function createTargetNoteDropdownController(
                 ? previousValue
                 : "";
         } catch (error) {
-            console.error("Could not load deck notes:", error);
+            logger.error("Could not load deck notes:", error);
         }
 
         updateButtonText();

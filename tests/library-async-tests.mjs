@@ -17,7 +17,7 @@ await assert.rejects(pollLibraryJob("test",{failureMessage:"failed"}, {
 const cancelled=new AbortController();
 cancelled.abort();
 await assert.rejects(pollLibraryJob("test",{failureMessage:"failed",signal:cancelled.signal},deps),{name:"AbortError"});
-const {retryOnRateLimit} = await import("../dist/esm/core/rate-limit.js");
+const {requestSubtitleWithRetry: retryOnRateLimit} = await import("../dist/esm/library/library-subtitle-request.js");
 const backoff = new AbortController();
 const waiting = retryOnRateLimit(async()=>({response:new Response("",{status:429}),data:{retryAfter:60}}), {
     failureMessage:"failed",exhaustedMessage:"limit",signal:backoff.signal,onWait:()=>queueMicrotask(()=>backoff.abort())

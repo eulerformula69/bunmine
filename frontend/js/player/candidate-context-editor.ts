@@ -2,7 +2,7 @@ import { MiningCandidate } from "./candidate-model.js";
 
 import { CandidateContext,candidateContextSnapshot } from "./candidate-context-model.js";
 
-import { formatTime } from "../subtitles/parsing.js";
+import { formatTime } from "../core/formatters.js";
 
 import { t } from "../core/translate.js";
 

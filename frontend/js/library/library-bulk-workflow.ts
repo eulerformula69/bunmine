@@ -1,4 +1,6 @@
-import { retryOnRateLimit } from "../core/rate-limit.js";
+import { LibraryBulkModel } from "./library-bulk-model.js";
+import { requestSubtitleWithRetry } from "./library-subtitle-request.js";
+import { JIMAKU_DOWNLOAD_CONCURRENCY, JIMAKU_PLAN_REQUEST_DELAY_MS } from "../core/rate-limit.js";
 import { bulkSubtitleList,bulkSubtitleModal,bulkSubtitleModalSubtitle,bulkSubtitleModalTitle,bulkSubtitleSearchBtn,bulkSubtitleSearchInput,bulkSubtitleSets,bulkSubtitleStatus,cancelBulkSubtitleDownloadBtn,closeBulkSubtitleModalBtn,confirmBulkSubtitleDownloadBtn,downloadMissingSubtitlesBtn } from "./library-dom.js";
 
 import { currentBulkSubtitlePlanState,currentBulkSubtitleSetKeyState,currentOpenedSeriesState,isBulkSubtitleDownloadingState,isBulkSubtitlePreparingState } from "./library-state.js";
@@ -7,15 +9,15 @@ import { lt } from "./library-i18n.js";
 
 import { getSelectedBulkSubtitleItems,renderBulkSubtitlePlan,updateBulkSubtitleConfirmState } from "./bulk-subtitle-view.js";
 
-import { BulkSubtitlePlan, BulkSubtitlePlanItem, SubtitleCandidate } from "./library-types.js";
+import { BulkSubtitlePlan, BulkSubtitlePlanItem } from "./library-types.js";
 
-import { formatBytes,JIMAKU_DOWNLOAD_CONCURRENCY,JIMAKU_PLAN_REQUEST_DELAY_MS,loadLibrarySeries,openSeries } from "./library.js";
+import { loadLibrarySeries,openSeries } from "./library.js";
 
 import { libraryAnalyzeSeriesSubtitles,libraryPlanEpisodeSubtitle,librarySelectEpisodeSubtitle } from "./library-api.js";
 
 import { sleep } from "../core/api.js";
 
-import { LibraryBulkModel } from "./library-bulk-model.js";
+
 
 export function openBulkSubtitleModal() {
     bulkSubtitleModal.classList.remove("hidden");
@@ -29,8 +31,8 @@ export function closeBulkSubtitleModal() {
     document.body.classList.remove("modal-open");
     currentBulkSubtitlePlanState.value = null;
     currentBulkSubtitleSetKeyState.value = null;
-    if (bulkSubtitleSets) bulkSubtitleSets.innerHTML = "";
-    bulkSubtitleList.innerHTML = "";
+    if (bulkSubtitleSets) bulkSubtitleSets.replaceChildren();
+    bulkSubtitleList.replaceChildren();
     bulkSubtitleStatus.textContent = "";
     confirmBulkSubtitleDownloadBtn.disabled = true;
 }
@@ -45,8 +47,8 @@ export async function prepareMissingSubtitlesForCurrentSeries() {
     bulkSubtitleSearchInput.value = currentOpenedSeriesState.value.title;
     bulkSubtitleStatus.classList.remove("error");
     bulkSubtitleStatus.textContent = lt("subtitleQueryHint");
-    if (bulkSubtitleSets) bulkSubtitleSets.innerHTML = "";
-    bulkSubtitleList.innerHTML = "";
+    if (bulkSubtitleSets) bulkSubtitleSets.replaceChildren();
+    bulkSubtitleList.replaceChildren();
     confirmBulkSubtitleDownloadBtn.disabled = true;
     openBulkSubtitleModal();
     bulkSubtitleSearchInput.focus();
@@ -61,8 +63,8 @@ export async function analyzeMissingSubtitlesForCurrentSeries() {
     currentBulkSubtitleSetKeyState.value = null;
     bulkSubtitleStatus.classList.remove("error");
     bulkSubtitleStatus.textContent = lt("analyzingJimakuEntries");
-    if (bulkSubtitleSets) bulkSubtitleSets.innerHTML = "";
-    bulkSubtitleList.innerHTML = "";
+    if (bulkSubtitleSets) bulkSubtitleSets.replaceChildren();
+    bulkSubtitleList.replaceChildren();
     confirmBulkSubtitleDownloadBtn.disabled = true;
 
     const previousText = downloadMissingSubtitlesBtn.textContent;
@@ -102,7 +104,7 @@ export async function analyzeMissingSubtitlesForCurrentSeries() {
 }
 
 export async function requestSeriesSubtitleAnalysisWithBackoff(seriesId: string | number, query: string): Promise<BulkSubtitlePlan> {
-    const data = await retryOnRateLimit(() => libraryAnalyzeSeriesSubtitles(seriesId, query), {
+    const data = await requestSubtitleWithRetry(() => libraryAnalyzeSeriesSubtitles(seriesId, query), {
         failureMessage: lt("couldNotAnalyzeJimaku"), exhaustedMessage: lt("jimakuRetryReached"),
         onWait: waitMs => {
         bulkSubtitleStatus.textContent = lt("jimakuRateLimitWait", { seconds: Math.ceil(waitMs / 1000) });
@@ -111,22 +113,10 @@ export async function requestSeriesSubtitleAnalysisWithBackoff(seriesId: string 
     return data as BulkSubtitlePlan;
 }
 
-export function candidateKey(candidate: SubtitleCandidate | null | undefined) {
-    return LibraryBulkModel.candidateKey(candidate);
-}
-
-export function formatSubtitleCandidate(candidate: SubtitleCandidate | null | undefined) {
-    return LibraryBulkModel.formatCandidate(candidate, formatBytes);
-}
-
-export function getBulkSubtitleSets(plan: BulkSubtitlePlan | null | undefined) {
-    return LibraryBulkModel.getSets(plan, lt);
-}
-
 export async function requestEpisodeSubtitlePlanWithBackoff(item: BulkSubtitlePlanItem) {
     const series = currentOpenedSeriesState.value;
     if (!series) return;
-    const data = await retryOnRateLimit(() => libraryPlanEpisodeSubtitle(item.episodeId, series.title), {
+    const data = await requestSubtitleWithRetry(() => libraryPlanEpisodeSubtitle(item.episodeId, series.title), {
         failureMessage: lt("couldNotSearchEpisodeJimaku"), exhaustedMessage: lt("jimakuRetryReached"),
         onWait: waitMs => {
         item.status = "rate-limited";
@@ -191,7 +181,7 @@ export async function prepareBulkSubtitlePlanGradually(plan: BulkSubtitlePlan) {
 export async function postSubtitleDownloadWithBackoff(item: BulkSubtitlePlanItem, signal?: AbortSignal) {
     const selected = item.selected;
     if (!selected) throw new Error(lt("noSubtitleSelected"));
-    const data = await retryOnRateLimit(() => librarySelectEpisodeSubtitle(item.episodeId, {
+    const data = await requestSubtitleWithRetry(() => librarySelectEpisodeSubtitle(item.episodeId, {
             source: selected.source,
             entryId: selected.entryId,
             filename: selected.filename,
@@ -267,4 +257,11 @@ export async function downloadSelectedBulkSubtitles() {
         closeBulkSubtitleModalBtn.disabled = false;
         confirmBulkSubtitleDownloadBtn.disabled = true;
     }
+}
+
+export function applyBulkSubtitleSet(releaseKey: string) {
+    if (!currentBulkSubtitlePlanState.value) return;
+    currentBulkSubtitleSetKeyState.value = releaseKey;
+    LibraryBulkModel.applySet(currentBulkSubtitlePlanState.value, releaseKey, lt);
+    renderBulkSubtitlePlan(currentBulkSubtitlePlanState.value);
 }

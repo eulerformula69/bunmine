@@ -10,7 +10,7 @@ import { t } from "../core/translate.js";
 
 import { VideoFilePayload } from "../types/runtime-types.js";
 
-import { formatTime } from "../subtitles/parsing.js";
+import { formatTime } from "../core/formatters.js";
 
 export function createCandidatePanel(options: {
     list?: typeof candidateApi.list;

@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { installDom } from "./dom-environment.mjs";
 const dom = installDom();
-const { retryAfterToMs, retryOnRateLimit } = await import("../dist/esm/core/rate-limit.js");
+const { retryAfterToMs } = await import("../dist/esm/core/rate-limit.js");
+const { requestSubtitleWithRetry: retryOnRateLimit } = await import("../dist/esm/library/library-subtitle-request.js");
 assert.equal(retryAfterToMs("2"), 2000);
 assert.equal(retryAfterToMs("invalid"), 12000);
 assert.equal(retryAfterToMs("Thu, 01 Oct 2026 00:00:02 GMT", 12000, Date.parse("2026-10-01T00:00:00Z")), 2000);

@@ -1,3 +1,4 @@
+import { logger } from "../core/logger.js";
 import { ankiAllBtn,deleteVideoBtn,fontSizeRange,fullscreenBtn,overlay,settingsBtn,settingsModal,subtitleOverlay,targetNoteSelect,video,videoContainer,volume } from "../core/dom.js";
 import { reportError } from "./toast.js";
 
@@ -139,7 +140,7 @@ const highlightDeckNamesInput = document.getElementById("highlightDeckNames");
 
         if (sub?.text) {
             ensureStatusesForSubtitleText(sub.text).catch((err) => {
-                console.warn("Runtime subtitle status lookup failed:", err);
+                logger.warn("Runtime subtitle status lookup failed:", err);
             });
         }
 

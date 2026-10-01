@@ -1,3 +1,4 @@
+import { logger } from "../core/logger.js";
 import { JapaneseTokenizer } from "../types/runtime-types.js";
 
 export const japaneseTokenizerPromiseState = { value: null as Promise<JapaneseTokenizer> | null };
@@ -24,7 +25,7 @@ export function getJapaneseTokenizer() {
             }
 
             japaneseTokenizerInstanceState.value = tokenizer;
-            console.log("Japanese tokenizer loaded");
+            logger.info("Japanese tokenizer loaded");
             resolve(tokenizer);
         });
     });

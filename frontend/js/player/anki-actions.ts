@@ -1,3 +1,4 @@
+import { logger } from "../core/logger.js";
 import { getApiErrorMessage } from "../core/api.js";
 import { fetchDeckNoteIds,fetchNotesInfo } from "../anki/notes.js";
 
@@ -179,7 +180,7 @@ export function createAnkiMediaController(options: AnkiMediaControllerOptions): 
                     targetWord
                 );
             } catch (error) {
-                console.warn("Furigana generation skipped:", error);
+                logger.warn("Furigana generation skipped:", error);
             }
         }
 
@@ -204,12 +205,12 @@ export function createAnkiMediaController(options: AnkiMediaControllerOptions): 
                 wordFields: options.getHighlightWordFields()
             });
         } catch (error) {
-            console.warn("Could not refresh known-anki-words.json for updated card:", error);
+            logger.warn("Could not refresh known-anki-words.json for updated card:", error);
         }
 
         options.ensureSubtitleStatuses(snapshot.combinedText)
             .then(options.prefetchSubtitleStatuses)
-            .catch((error) => console.warn("Could not update runtime highlight status:", error));
+            .catch((error) => logger.warn("Could not update runtime highlight status:", error));
 
         return { targetWord };
     }

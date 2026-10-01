@@ -1,3 +1,4 @@
+import { logger } from "../core/logger.js";
 import { apiJson,buildApiUrl,getApiErrorMessage } from "../core/api.js";
 
 import { VideoListResponse } from "../types/api.js";
@@ -53,7 +54,7 @@ export async function restoreCurrentVideoFromServer(): Promise<void> {
 
         showVideoPickerModal(videos);
     } catch (err) {
-        console.warn("Could not restore videos from server:", err);
+        logger.warn("Could not restore videos from server:", err);
         dropzone.classList.remove("hidden");
     }
 }
@@ -92,11 +93,11 @@ export async function restoreSelectedVideoFromServer(videoInfo: UploadedVideoInf
     }
 
     video.addEventListener("loadedmetadata", () => {
-        console.log("Restored video loaded:", video.duration);
+        logger.info("Restored video loaded:", video.duration);
     }, { once: true });
 
     video.addEventListener("error", () => {
-        console.error("Video restore failed:", video.error);
+        logger.error("Video restore failed:", video.error);
         showToast("Could not load selected video", "error", 5000);
         dropzone.classList.remove("hidden");
     }, { once: true });
@@ -107,7 +108,7 @@ export function showVideoPickerModal(videos: UploadedVideoInfo[]): void {
         return;
     }
 
-    videoPickerList.innerHTML = "";
+    videoPickerList.replaceChildren();
 
     videos.forEach((videoInfo) => {
         const item = document.createElement("button");
@@ -166,7 +167,7 @@ export async function loadLibraryEpisodeFromUrl(): Promise<boolean> {
         await loadLibraryEpisodePlayback(data);
         return true;
     } catch (err) {
-        console.error("Library episode load failed:", err);
+        logger.error("Library episode load failed:", err);
         showToast(`Could not load library episode: ${(err instanceof Error ? err.message : String(err))}`, "error", 6000);
         dropzone.classList.remove("hidden");
         return false;
@@ -235,7 +236,7 @@ export async function loadLibraryEpisodePlayback(
     }
 
     const logLoadedEpisode = () => {
-        console.log(
+        logger.info(
             `Library episode loaded: ${playback.seriesTitle} / ${playback.episodeTitle}`
         );
     };
@@ -246,7 +247,7 @@ export async function loadLibraryEpisodePlayback(
     }
 
     video.addEventListener("error", () => {
-        console.error("Library video load failed:", video.error);
+        logger.error("Library video load failed:", video.error);
         showToast("Could not load library video", "error", 6000);
         dropzone.classList.remove("hidden");
     }, { once: true });
@@ -287,7 +288,7 @@ export async function restoreLibrarySubtitle(subtitleUrl: string): Promise<void>
             showToast("Subtitle file was loaded, but no subtitles were parsed", "error", 5000);
         }
     } catch (err) {
-        console.error("Library subtitle restore failed:", err);
+        logger.error("Library subtitle restore failed:", err);
         state.subtitles = [];
 
         renderSubtitles();

@@ -1,4 +1,4 @@
-import { fetchWithRetry } from "../core/api.js";
+import { requestWithRetry } from "../core/rate-limit.js";
 
 export async function ankiRequest<T>(
     url: string,
@@ -15,12 +15,20 @@ export async function ankiRequest<T>(
         signal: controller.signal
     };
     try {
-        const response = options.retries === 0
-            ? await fetch(url, request)
-            : await fetchWithRetry(url, request, {
-                retries: options.retries ?? 3, delayMs: 1000,
-                label: options.label || `AnkiConnect ${action}`
-            });
+        let response: Response;
+        try {
+            ({response} = await requestWithRetry(async () => ({response: await fetch(url, request)}), {
+                networkRetries: Math.max(0, (options.retries ?? 3) - 1),
+                retries: options.retries === 0 ? 0 : undefined,
+                delayMs: 1000, signal: controller.signal,
+                exhaustedMessage: options.label || `AnkiConnect ${action}`,
+            }));
+        } catch (error) {
+            if (controller.signal.aborted || options.retries === 0) throw error;
+            const label = options.label || `AnkiConnect ${action}`;
+            const message = error instanceof Error ? error.message : String(error || "Unknown error");
+            throw new Error(`${label} failed. Make sure Anki is open and AnkiConnect is installed. Details: ${message}`);
+        }
         const data = await response.json() as { result: T; error?: string };
         if (data.error || !response.ok) {
             throw new Error(data.error || `Anki update failed: HTTP ${response.status}`);

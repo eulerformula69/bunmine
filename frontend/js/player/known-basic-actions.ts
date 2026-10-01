@@ -1,9 +1,11 @@
+import { TranslationKey } from "../core/i18n.js";
+import { logger } from "../core/logger.js";
 import { ApiPayload } from "../types/api.js";
 
 export interface KnownBasicActionsOptions {
     tokenize: (text: string) => Promise<Array<Record<string, unknown>>>;
     request: (path: string, options: RequestInit) => Promise<{ response: Response; data: ApiPayload }>;
-    translate: (key: string, params?: Record<string, unknown>) => string;
+    translate: (key: TranslationKey, params?: Record<string, unknown>) => string;
     toast: (message: string, kind?: string, duration?: number) => void;
     markMature: (word: string) => void;
     hideButton: () => void;
@@ -32,7 +34,7 @@ export function createKnownBasicActions(options: KnownBasicActionsOptions) {
             const basic = String(meaningful[0].basic_form || "").trim();
             return basic && basic !== "*" ? basic : selected;
         } catch (error) {
-            console.warn("Known-basic dictionary form lookup failed:", error);
+            logger.warn("Known-basic dictionary form lookup failed:", error);
             return selected;
         }
     }
@@ -65,7 +67,7 @@ export function createKnownBasicActions(options: KnownBasicActionsOptions) {
                 options.toast(options.translate("toastKnownBasicAlreadyExists", { word: cleanWord }), "info", 3000);
             }
         } catch (error) {
-            console.error("Known-basic add failed:", error);
+            logger.error("Known-basic add failed:", error);
             options.toast(options.translate("toastKnownBasicAddFailed", {
                 message: error instanceof Error ? error.message : String(error),
             }), "error", 6000);
@@ -82,7 +84,7 @@ export function createKnownBasicActions(options: KnownBasicActionsOptions) {
             await options.copyText(cleanWord);
             options.toast(`Copied for Yomitan: ${cleanWord}`, "success", 3000);
         } catch (error) {
-            console.error("Copy for Yomitan failed:", error);
+            logger.error("Copy for Yomitan failed:", error);
             options.toast(options.translate("toastCopyFailed", {
                 message: error instanceof Error ? error.message : String(error),
             }), "error", 5000);

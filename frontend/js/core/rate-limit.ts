@@ -1,7 +1,12 @@
 import { ApiPayload } from "../types/api.js";
 import { abortableDelay } from "./async-work.js";
 
-export function retryAfterToMs(value: unknown, fallback = 12000, now = Date.now()): number {
+export const JIMAKU_PLAN_REQUEST_DELAY_MS = 1300;
+export const JIMAKU_429_DEFAULT_WAIT_MS = 12000;
+export const JIMAKU_429_MAX_RETRIES = 4;
+export const JIMAKU_DOWNLOAD_CONCURRENCY = 2;
+
+export function retryAfterToMs(value: unknown, fallback = JIMAKU_429_DEFAULT_WAIT_MS, now = Date.now()): number {
     const raw = String(value || "").trim();
     if (!raw) return fallback;
     const seconds = Number(raw);
@@ -10,28 +15,45 @@ export function retryAfterToMs(value: unknown, fallback = 12000, now = Date.now(
     return Number.isFinite(date) ? Math.max(1000, date - now) : fallback;
 }
 
-export async function retryOnRateLimit<T extends ApiPayload>(
-    request: () => Promise<{response: Response; data: T}>,
-    options: {
-        failureMessage: string;
-        exhaustedMessage: string;
-        onWait(milliseconds: number): void;
-        retries?: number;
-        wait?: (milliseconds: number) => Promise<void>;
-        signal?: AbortSignal;
-    }
+export interface RetryOptions {
+    retries?: number;
+    networkRetries?: number;
+    delayMs?: number;
+    exhaustedMessage: string;
+    onWait?(milliseconds: number): void;
+    wait?: (milliseconds: number) => Promise<void>;
+    signal?: AbortSignal;
+}
+
+export async function requestWithRetry<T extends {response: Response; data?: ApiPayload}>(
+    request: () => Promise<T>, options: RetryOptions
 ): Promise<T> {
-    for (let attempt = 0; attempt <= (options.retries ?? 4); attempt++) {
+    let rateLimits = 0;
+    let networkErrors = 0;
+    const wait = async (delay: number) => {
+        options.onWait?.(delay);
         options.signal?.throwIfAborted();
-        const {response, data} = await request();
-        if (response.status !== 429) {
-            if (!response.ok || data.error) throw new Error(String(data.error || options.failureMessage));
-            return data;
-        }
-        const delay = retryAfterToMs(data.retryAfter);
-        options.onWait(delay);
         if (options.wait) await options.wait(delay);
         else await abortableDelay(delay, options.signal);
+    };
+    for (;;) {
+        options.signal?.throwIfAborted();
+        let result: T;
+        try {
+            result = await request();
+        } catch (error) {
+            options.signal?.throwIfAborted();
+            if (error instanceof Error && error.name === "AbortError") throw error;
+            if (networkErrors >= (options.networkRetries ?? 0)) throw error;
+            networkErrors += 1;
+            await wait((options.delayMs ?? 800) * networkErrors);
+            continue;
+        }
+        if (result.response.status !== 429) return result;
+        if (rateLimits >= (options.retries ?? JIMAKU_429_MAX_RETRIES)) {
+            throw new Error(options.exhaustedMessage);
+        }
+        rateLimits += 1;
+        await wait(retryAfterToMs(result.response.headers.get("Retry-After") ?? result.data?.retryAfter));
     }
-    throw new Error(options.exhaustedMessage);
 }

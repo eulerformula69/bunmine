@@ -1,3 +1,4 @@
+import { safeWebUrl } from "../core/safe-url.js";
 import { LibraryTranslate } from "./library-presentation.js";
 import { createLibrarySearchModal } from "./search-modal.js";
 
@@ -32,7 +33,7 @@ export function createLibraryCoverController(options: LibraryCoverControllerOpti
             const meta = [result.source === "kitsu" ? "Kitsu" : "AniList", result.format, result.seasonYear, result.episodes ? `${result.episodes} ${t("eps")}` : null]
                 .filter(Boolean).join(" · ");
             item.innerHTML = `
-                <img src="${options.escapeHtml(result.coverUrl)}" alt="">
+                <img src="${options.escapeHtml(safeWebUrl(result.coverUrl))}" alt="">
                 <div class="cover-result-info">
                     <div class="cover-result-title">${options.escapeHtml(result.title || result.preferredTitle || t("untitled"))}</div>
                     <div class="cover-result-subtitle">${options.escapeHtml(result.englishTitle || result.nativeTitle || "")}</div>

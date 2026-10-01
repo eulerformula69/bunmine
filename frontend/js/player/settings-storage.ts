@@ -1,3 +1,4 @@
+import { logger } from "../core/logger.js";
 import { ApiPayload } from "../types/api.js";
 
 import { state } from "../core/state.js";
@@ -103,7 +104,7 @@ export function collectSettings(): PlayerSettings {
 export function saveSettings(): void {
     const settings = saveSettingsLocal({ silent: true });
     saveAnkiHighlightAutoRefreshSettings(settings).catch((err) => {
-        console.warn("Failed to save Anki highlight auto-refresh settings:", err);
+        logger.warn("Failed to save Anki highlight auto-refresh settings:", err);
         showToast?.(err?.message || String(err), "error", 6000);
     });
     showToast("Settings saved", "success");

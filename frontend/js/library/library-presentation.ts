@@ -1,6 +1,8 @@
+import { TranslationKey } from "../core/i18n.js";
+import { formatTime, formatBytes, escapeHtml } from "../core/formatters.js";
 import { LibraryEpisodeView,LibraryFilterState,LibraryPrimaryAction,LibrarySeriesFilter,LibrarySeriesStatus,LibrarySeriesView } from "./library-types.js";
 
-export type LibraryTranslate = (key: string, params?: Record<string, unknown>) => string;
+export type LibraryTranslate = (key: TranslationKey, params?: Record<string, unknown>) => string;
 
 export const LibraryPresentation = {
     progressThresholdSeconds: 5,
@@ -53,31 +55,9 @@ export const LibraryPresentation = {
             return String(right[field] || "").localeCompare(String(left[field] || "")) || String(left.title).localeCompare(String(right.title));
         });
     },
-    formatTime(seconds: unknown): string {
-        const value = Number(seconds || 0);
-        if (value <= 0) return "0m";
-
-        const hours = Math.floor(value / 3600);
-        const minutes = Math.floor((value % 3600) / 60);
-        return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
-    },
-
-    formatBytes(bytes: unknown): string {
-        const value = Number(bytes || 0);
-        if (value <= 0) return "";
-        if (value < 1024) return `${value} B`;
-        if (value < 1024 * 1024) return `${Math.round(value / 1024)} KB`;
-        return `${(value / (1024 * 1024)).toFixed(1)} MB`;
-    },
-
-    escapeHtml(value: unknown): string {
-        return String(value ?? "")
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#39;");
-    },
+    formatTime: (seconds: unknown): string => formatTime(seconds, "duration"),
+    formatBytes,
+    escapeHtml,
 
     linkStatus(episodes: LibraryEpisodeView[]): string {
         const items = Array.isArray(episodes) ? episodes : [];

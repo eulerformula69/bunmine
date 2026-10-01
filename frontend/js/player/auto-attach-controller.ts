@@ -1,3 +1,4 @@
+import { TranslationKey } from "../core/i18n.js";
 import { AnkiMediaSnapshot } from "../anki/media-snapshot.js";
 
 import { findCandidateNote } from "./candidate-model.js";
@@ -13,7 +14,7 @@ export interface AutoAttachOptions {
     exclusive(work: () => Promise<void>): Promise<void>;
     sleep(ms: number): Promise<void>;
     now(): number;
-    status(key: string, word: string): void;
+    status(key: TranslationKey, word: string): void;
     done(): void;
     error(error: unknown): void;
 }

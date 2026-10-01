@@ -1,3 +1,4 @@
+import { logger } from "../core/logger.js";
 import { getCurrentVideoPayload } from "./media-payload.js";
 
 import { showToast } from "../player/ui.js";
@@ -63,7 +64,7 @@ document.getElementById("previewAudioBtn")?.addEventListener("click", async () =
         audio.volume = Math.min(1, Math.max(0, volumeLevel));
         await playMedia(audio, (error) => { throw error; });
     } catch (err) {
-        console.error("Preview failed:", err);
+        logger.error("Preview failed:", err);
         showToast(`Audio preview failed: ${(err instanceof Error ? err.message : String(err))}`, "error", 6000);
     }
 });

@@ -1,3 +1,4 @@
+import { logger } from "../core/logger.js";
 import { BunmineState } from "../core/state.js";
 
 import { RuntimeSubtitleCue } from "../subtitles/model.js";
@@ -68,7 +69,7 @@ export function createRuntimePrefetchController(options: RuntimePrefetchOptions)
                 options.rerender();
             }
         } catch (error) {
-            console.warn("Runtime batch prefetch failed:", error);
+            logger.warn("Runtime batch prefetch failed:", error);
         } finally {
             if (runId === state.runtimePrefetchAllRunId) {
                 state.runtimePrefetchAllInProgress = false;

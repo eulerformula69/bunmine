@@ -1,3 +1,4 @@
+import { logger } from "../core/logger.js";
 import { PlayerSettings,collectSettings,getSettingsInput,getSettingsSelect,saveSettings } from "./settings-storage.js";
 
 import { showToast,updateFullscreenButtonText } from "./ui.js";
@@ -6,7 +7,7 @@ import { state } from "../core/state.js";
 
 import { video } from "../core/dom.js";
 
-import { i18n } from "../core/i18n.js";
+import { i18n, isTranslationKey } from "../core/i18n.js";
 
 import { updateSubtitleSidebarLabels } from "../subtitles/sidebar-shell.js";
 
@@ -187,7 +188,7 @@ export function applyLanguage(lang: string): void {
     const dictionary = i18n[lang].dict;
     document.querySelectorAll("[data-i18n]").forEach((el) => {
         const key = el.getAttribute("data-i18n");
-        if (key && dictionary[key]) el.textContent = dictionary[key];
+        if (key && isTranslationKey(key) && dictionary[key]) el.textContent = dictionary[key];
     });
 
     updateSubtitleSidebarLabels();
@@ -208,7 +209,7 @@ export function applyLanguage(lang: string): void {
 export function initLangSelector(): void {
     const langSelect = getSettingsSelect("interfaceLangSelect");
     if (!langSelect) return;
-    langSelect.innerHTML = "";
+    langSelect.replaceChildren();
     Object.keys(i18n).forEach((langCode) => {
         const opt = document.createElement("option");
         opt.value = langCode;
@@ -230,7 +231,7 @@ export function queueSettingsAutosave(): void {
         try {
             saveSettingsLocal({ silent: true });
         } catch (err) {
-            console.warn("Settings autosave failed:", err);
+            logger.warn("Settings autosave failed:", err);
         }
     }, 250);
 }
@@ -294,7 +295,7 @@ export function updateImageSubtitleModeButton(): void {
     if (!button) return;
     const timed = button.value === "timed";
     button.dataset.i18n = timed ? "imageSubtitleTimed" : "imageSubtitleAll";
-    button.textContent = i18n[state.currentLang].dict[button.dataset.i18n];
+    button.textContent = i18n[state.currentLang].dict[timed ? "imageSubtitleTimed" : "imageSubtitleAll"];
     button.title = i18n[state.currentLang].dict.imageSubtitleModeHelp;
     button.setAttribute("aria-pressed", String(timed));
     button.disabled = getSettingsInput("includeImageSubtitle")?.checked === false;

@@ -1,3 +1,4 @@
+import { logger } from "../core/logger.js";
 import { apiJson,buildApiUrl,getApiErrorMessage } from "../core/api.js";
 
 import { CurrentVideoResponse } from "../types/api.js";
@@ -30,7 +31,7 @@ export async function uploadVideoInBackground(videoFile: File, subtitleFile: Fil
         });
 
         if (data.error) {
-            console.error("Server upload error:", data.error);
+            logger.error("Server upload error:", data.error);
             showToast(t("toastVideoUploadFailed", { message: getApiErrorMessage(data) }), "error", 5000);
             return;
         }
@@ -43,7 +44,7 @@ export async function uploadVideoInBackground(videoFile: File, subtitleFile: Fil
         }
 
     } catch (e) {
-        console.error("Upload failed:", e);
+        logger.error("Upload failed:", e);
         showToast(t("toastVideoUploadFailed", { message: (e instanceof Error ? e.message : String(e)) }), "error", 5000);
     }
 }
@@ -61,18 +62,18 @@ export async function uploadSubtitleInBackground(subtitleFile: File, videoFilena
         });
 
         if (data.error) {
-            console.error("Subtitle upload error:", data.error);
+            logger.error("Subtitle upload error:", data.error);
             showToast(t("toastSubtitleUploadFailed", { message: getApiErrorMessage(data) }), "error", 5000);
             return;
         }
 
-        console.log("Subtitle uploaded:", data.filename);
+        logger.info("Subtitle uploaded:", data.filename);
         if (data.filename) {
             await restoreSubtitleFromServer(data.filename);
         }
 
     } catch (err) {
-        console.error("Subtitle upload failed:", err);
+        logger.error("Subtitle upload failed:", err);
         showToast(t("toastSubtitleUploadFailed", { message: (err instanceof Error ? err.message : String(err)) }), "error", 5000);
     }
 }
@@ -107,7 +108,7 @@ export async function restoreSubtitleFromServer(subtitleFilename: string): Promi
 
         showToast(t("toastVideoAndSubtitlesRestored"), "info", 2500);
     } catch (err) {
-        console.error("Could not restore subtitles:", err);
+        logger.error("Could not restore subtitles:", err);
         showToast(t("toastVideoRestoredSubtitlesFailed"), "error", 5000);
     }
 }

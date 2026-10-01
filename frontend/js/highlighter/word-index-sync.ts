@@ -1,3 +1,4 @@
+import { logger } from "../core/logger.js";
 import { ApiPayload } from "../types/api.js";
 
 import { AnkiRuntimeWordInfo,ankiRuntimeWordStatusMap,AnkiWordStatus,clearRuntimeWordStatuses,knownAnkiWordsLoadedState,knownBasicWordsLoadedState,normalizeHighlightWord,pickBetterStatus,updateRuntimeKnownAnkiWords } from "./word-status-store.js";
@@ -83,9 +84,9 @@ export async function loadKnownBasicWords({ force = false } = {}) {
         }
 
         knownBasicWordsLoadedState.value = true;
-        console.log(`Known basic words loaded: ${words.length}`);
+        logger.info(`Known basic words loaded: ${words.length}`);
     } catch (err) {
-        console.warn("Known basic words load failed:", err);
+        logger.warn("Known basic words load failed:", err);
     }
 }
 
@@ -124,9 +125,9 @@ export async function loadKnownAnkiWords({ force = false } = {}) {
         }
 
         knownAnkiWordsLoadedState.value = true;
-        console.log(`Known Anki words loaded: ${loadedCount}`);
+        logger.info(`Known Anki words loaded: ${loadedCount}`);
     } catch (err) {
-        console.warn("Known Anki words load failed:", err);
+        logger.warn("Known Anki words load failed:", err);
     }
 }
 
@@ -154,12 +155,12 @@ export async function checkKnownAnkiWordsStaleOnPlayerOpen({ silent = true } = {
         }
 
         if (!silent) {
-            console.log("Anki highlight player stale-check:", data);
+            logger.info("Anki highlight player stale-check:", data);
         }
 
         return data;
     } catch (err) {
-        console.warn("Anki highlight player stale-check failed:", err);
+        logger.warn("Anki highlight player stale-check failed:", err);
         return { ok: false, error: err instanceof Error ? err.message : String(err) };
     }
 }

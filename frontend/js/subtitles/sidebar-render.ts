@@ -1,6 +1,6 @@
 import { SubtitleSearchResult } from "./search.js";
 
-import { formatTime } from "./parsing.js";
+import { formatTime } from "../core/formatters.js";
 
 import { RuntimeSubtitleCue } from "./model.js";
 

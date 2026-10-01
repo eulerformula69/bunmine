@@ -1,3 +1,4 @@
+import { logger } from "../core/logger.js";
 import { LibraryProgressPayload } from "../types/runtime-types.js";
 import { video } from "../core/dom.js";
 
@@ -173,7 +174,7 @@ export async function saveLibraryWatchProgress({
 
         return data.progress || null;
     } catch (err) {
-        console.warn("Could not save library watch progress:", err);
+        logger.warn("Could not save library watch progress:", err);
         if (rethrowErrors) {
             throw err;
         }

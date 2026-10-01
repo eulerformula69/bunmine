@@ -1,5 +1,5 @@
-import { libraryI18n as LIBRARY_I18N } from "../core/i18n.js";
-import { t } from "../core/translate.js";
+import { i18n as LIBRARY_I18N } from "../core/i18n.js";
+import { createTranslator } from "../core/translate.js";
 export { LIBRARY_I18N };
 export const libraryCurrentLangState = { value: loadLibraryLanguage() };
 
@@ -12,6 +12,4 @@ export function loadLibraryLanguage() {
     }
 }
 
-export function lt(key: string, params: Record<string, unknown> = {}): string {
-    return t(key, params, libraryCurrentLangState.value, LIBRARY_I18N);
-}
+export const lt = createTranslator(() => libraryCurrentLangState.value);

@@ -1,3 +1,4 @@
+import { logger } from "../core/logger.js";
 import { requiredElement } from "../core/dom.js";
 import { LibraryPlaybackPayload } from "../types/runtime-types.js";
 
@@ -39,6 +40,6 @@ export async function updateEpisodeNavigation(playback: LibraryPlaybackPayload):
         nextEpisode.title = next.title || "";
         nextEpisode.hidden = false;
     } catch (error) {
-        console.warn("Could not load episode navigation:", error);
+        logger.warn("Could not load episode navigation:", error);
     }
 }

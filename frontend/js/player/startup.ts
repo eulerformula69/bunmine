@@ -1,3 +1,4 @@
+import { logger } from "../core/logger.js";
 import { initTargetNoteDropdown,refreshTargetNoteList } from "./controllers.js";
 
 import { updateIconButtons } from "./ui.js";
@@ -46,11 +47,11 @@ export function startPlayer() {
 
             if (sub?.text) {
                 ensureStatusesForSubtitleText(sub.text).catch((err) => {
-                    console.warn("Runtime subtitle status lookup failed:", err);
+                    logger.warn("Runtime subtitle status lookup failed:", err);
                 });
             }
         })
         .catch((err) => {
-            console.warn("Japanese tokenizer/known words load failed:", err);
+            logger.warn("Japanese tokenizer/known words load failed:", err);
         });
 }

@@ -3,7 +3,7 @@ import { installDom } from "./dom-environment.mjs";
 const dom = installDom();
 const context = await import("../dist/esm/subtitles/sidebar-render.js");
 const {state} = await import("../dist/esm/core/state.js");
-const {formatTime} = await import("../dist/esm/subtitles/parsing.js");
+const {formatTime} = await import("../dist/esm/core/formatters.js");
 const {initSubtitleSearchPanel} = await import("../dist/esm/subtitles/search-controller.js");
 initSubtitleSearchPanel();
 const list = document.getElementById("subtitleList");

@@ -1,6 +1,6 @@
 import { t } from "../core/translate.js";
 
-import { formatTime } from "./parsing.js";
+import { formatTime } from "../core/formatters.js";
 
 export interface SubtitleSearchPanelCallbacks {
     onWordFocus(wordInput: HTMLInputElement, timeInput: HTMLInputElement | null): void;

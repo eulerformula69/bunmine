@@ -140,13 +140,3 @@ export function parseASS(data: string) {
 
     return subs.sort((left, right) => left.start - right.start || (left.layer ?? 0) - (right.layer ?? 0));
 }
-
-export function formatTime(t: number) {
-    if (!Number.isFinite(t) || t < 0) t = 0;
-
-    const minutes = Math.floor(t / 60);
-    const seconds = Math.floor(t % 60);
-    const milliseconds = Math.floor((t % 1) * 1000);
-
-    return `${minutes}:${seconds.toString().padStart(2, "0")}.${milliseconds.toString().padStart(3, "0")}`;
-}

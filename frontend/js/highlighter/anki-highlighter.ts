@@ -1,3 +1,4 @@
+import { logger } from "../core/logger.js";
 import { JapaneseToken } from "../types/runtime-types.js";
 
 import { AnkiTextMatch,AnkiWordStatus,ankiRuntimeWordStatusMap,normalizeHighlightWord } from "./word-status-store.js";
@@ -80,7 +81,7 @@ export async function ensureStatusesForSubtitleText(text: string, { rerender = t
     if (!silent) {
         const candidates = collectSubtitleCandidates(text);
         const knownCount = candidates.filter((candidate) => ankiRuntimeWordStatusMap.has(candidate)).length;
-        console.log(`Snapshot highlighter matched ${knownCount}/${candidates.length} subtitle candidates`);
+        logger.info(`Snapshot highlighter matched ${knownCount}/${candidates.length} subtitle candidates`);
     }
 
     if (rerender) {
@@ -94,7 +95,7 @@ export async function ensureStatusesForCandidates(candidates: string[], { silent
     if (!silent) {
         const uniqueCandidates = [...new Set(candidates)].filter(Boolean);
         const knownCount = uniqueCandidates.filter((candidate) => ankiRuntimeWordStatusMap.has(candidate)).length;
-        console.log(`Snapshot batch matched ${knownCount}/${uniqueCandidates.length} candidates`);
+        logger.info(`Snapshot batch matched ${knownCount}/${uniqueCandidates.length} candidates`);
     }
 }
 

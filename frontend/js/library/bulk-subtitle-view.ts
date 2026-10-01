@@ -3,9 +3,9 @@ import { currentBulkSubtitlePlanState,currentBulkSubtitleSetKeyState,isBulkSubti
 
 import { bulkSubtitleList,bulkSubtitleSets,bulkSubtitleStatus,confirmBulkSubtitleDownloadBtn } from "./library-dom.js";
 
-import { candidateKey,formatSubtitleCandidate,getBulkSubtitleSets } from "./library-bulk-workflow.js";
+import { escapeHtml, formatBytes } from "../core/formatters.js";
 
-import { escapeHtml,statusKeyLabel } from "./library.js";
+import { LibraryPresentation } from "./library-presentation.js";
 
 import { lt } from "./library-i18n.js";
 
@@ -24,9 +24,9 @@ export function renderBulkSubtitleSets(plan: BulkSubtitlePlan | null) {
 
     const items = Array.isArray(plan?.items) ? plan.items : [];
     const hasPending = items.some((item) => ["pending", "searching", "rate-limited"].includes(item.status ?? ""));
-    const sets = getBulkSubtitleSets(plan);
+    const sets = LibraryBulkModel.getSets(plan, lt);
 
-    bulkSubtitleSets.innerHTML = "";
+    bulkSubtitleSets.replaceChildren();
 
     if (!sets.length) {
         if (!hasPending) {
@@ -66,13 +66,6 @@ export function renderBulkSubtitleSets(plan: BulkSubtitlePlan | null) {
     bulkSubtitleSets.appendChild(wrapper);
 }
 
-export function applyBulkSubtitleSet(releaseKey: string) {
-    if (!currentBulkSubtitlePlanState.value) return;
-    currentBulkSubtitleSetKeyState.value = releaseKey;
-    LibraryBulkModel.applySet(currentBulkSubtitlePlanState.value, releaseKey, lt);
-    renderBulkSubtitlePlan(currentBulkSubtitlePlanState.value);
-}
-
 export function renderBulkSubtitlePlan(plan: BulkSubtitlePlan | null) {
     const items = Array.isArray(plan?.items) ? plan.items : [];
     const readyItems = items.filter((item) => item.status === "ready" && item.selected);
@@ -91,7 +84,7 @@ export function renderBulkSubtitlePlan(plan: BulkSubtitlePlan | null) {
     }
 
     renderBulkSubtitleSets(plan);
-    bulkSubtitleList.innerHTML = "";
+    bulkSubtitleList.replaceChildren();
 
     if (!items.length) {
         bulkSubtitleList.innerHTML = `<div class="cover-message">${escapeHtml(lt("noMissingSubtitleEpisodes"))}</div>`;
@@ -106,7 +99,7 @@ export function renderBulkSubtitlePlan(plan: BulkSubtitlePlan | null) {
         const canDownload = item.status === "ready" && selected?.downloadUrl;
         const hasManualChoices = candidates.length > 0 && !isBulkSubtitlePreparingState.value && !isBulkSubtitleDownloadingState.value;
         const meta = canDownload
-            ? formatSubtitleCandidate(selected)
+            ? LibraryBulkModel.formatCandidate(selected, formatBytes)
             : candidates.length
                 ? item.message || lt("chooseSubtitleSetOrManual")
                 : item.message || lt("noSubtitleSelected");
@@ -129,7 +122,7 @@ export function renderBulkSubtitlePlan(plan: BulkSubtitlePlan | null) {
                     <select class="bulk-subtitle-select" data-episode-id="${escapeHtml(item.episodeId)}">
                         <option value="">${escapeHtml(lt("chooseManually"))}</option>
                         ${candidates.map((candidate) => `
-                            <option value="${escapeHtml(candidateKey(candidate))}" ${selected && candidateKey(candidate) === candidateKey(selected) ? "selected" : ""}>
+                            <option value="${escapeHtml(LibraryBulkModel.candidateKey(candidate))}" ${selected && LibraryBulkModel.candidateKey(candidate) === LibraryBulkModel.candidateKey(selected) ? "selected" : ""}>
                                 ${escapeHtml(candidate.releaseLabel || candidate.entryTitle || lt("other"))} — ${escapeHtml(candidate.filename || lt("subtitle"))}
                             </option>
                         `).join("")}
@@ -137,7 +130,7 @@ export function renderBulkSubtitlePlan(plan: BulkSubtitlePlan | null) {
                 ` : ""}
             </div>
             <div class="bulk-subtitle-state" data-bulk-state-for="${escapeHtml(item.episodeId)}">
-                ${escapeHtml(canDownload ? lt("ready") : statusKeyLabel(item.status ?? ""))}
+                ${escapeHtml(canDownload ? lt("ready") : LibraryPresentation.planStatusLabel(item.status ?? "", lt))}
             </div>
         `;
 
