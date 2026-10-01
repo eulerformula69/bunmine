@@ -1,4 +1,4 @@
-import os
+from pathlib import Path
 import shutil
 import threading
 import logging
@@ -55,8 +55,13 @@ def migrate_legacy_data_paths(settings: Settings) -> None:
         (settings.frontend_dir / "LibraryCovers", settings.library_covers_dir),
     ]
     for source, target in legacy_dirs:
-        if source.exists() and not target.exists():
-            shutil.copytree(source, target)
+        if not source.is_dir() or source.resolve() == target.resolve():
+            continue
+        for old_file in source.rglob("*"):
+            new_file = target / old_file.relative_to(source)
+            if old_file.is_file() and not new_file.exists():
+                new_file.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(old_file, new_file)
 
 
 def cleanup_on_startup(settings: Settings) -> None:
@@ -71,8 +76,8 @@ def cleanup_on_startup(settings: Settings) -> None:
 
 
 def initialize_backend(settings: Settings) -> None:
-    ensure_directories(settings)
     migrate_legacy_data_paths(settings)
+    ensure_directories(settings)
     ensure_anki_highlight_files(settings)
     start_anki_highlight_startup_stale_check(settings)
     cleanup_on_startup(settings)
@@ -81,29 +86,19 @@ def initialize_backend(settings: Settings) -> None:
 
 
 def migrate_cover_paths(settings: Settings) -> None:
-    old_fragment = f"{os.sep}LibraryCovers{os.sep}"
-    new_fragment = f"{os.sep}data{os.sep}LibraryCovers{os.sep}"
-
+    legacy_roots = {settings.base_dir / "LibraryCovers", settings.frontend_dir / "LibraryCovers"}
     with get_db(settings.library_db_path) as conn:
-        conn.execute(
-            """
-            UPDATE library_files
-            SET path = REPLACE(path, ?, ?)
-            WHERE file_type = 'cover' AND path LIKE '%' || ? || '%'
-            """,
-            (old_fragment, new_fragment, old_fragment),
-        )
-        conn.execute(
-            """
-            UPDATE library_files
-            SET relative_path = REPLACE(relative_path, 'frontend/LibraryCovers/', 'data/LibraryCovers/')
-            WHERE file_type = 'cover' AND relative_path LIKE 'frontend/LibraryCovers/%'
-            """
-        )
-        conn.execute(
-            """
-            UPDATE library_files
-            SET relative_path = REPLACE(relative_path, 'LibraryCovers/', 'data/LibraryCovers/')
-            WHERE file_type = 'cover' AND relative_path LIKE 'LibraryCovers/%'
-            """
-        )
+        rows = conn.execute(
+            "SELECT id, path, relative_path FROM library_files WHERE file_type = 'cover'"
+        ).fetchall()
+        for row in rows:
+            path = Path(row["path"])
+            new_path = settings.library_covers_dir / path.name if path.parent in legacy_roots else path
+            relative = row["relative_path"]
+            if relative and relative.startswith(("frontend/LibraryCovers/", "LibraryCovers/")):
+                relative = "data/LibraryCovers/" + relative.rsplit("/", 1)[-1]
+            if str(new_path) != row["path"] or relative != row["relative_path"]:
+                conn.execute(
+                    "UPDATE library_files SET path = ?, relative_path = ? WHERE id = ?",
+                    (str(new_path), relative, row["id"]),
+                )

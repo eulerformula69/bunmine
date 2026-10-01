@@ -1,29 +1,54 @@
-# Backend layers
+# Backend architecture
 
-## Application setup
+## Application and settings
 
-`backend.app.create_app(settings, initialize=True)` creates the Flask application. Importing backend modules does not create directories, run migrations, or contact Anki.
+`create_app(settings, initialize=True)` creates the Flask application. Imports do not start the server or contact Anki.
+`Settings` holds all configuration. Routes use `current_settings()`. Background work receives settings as an argument.
+Logging setup keeps existing root handlers.
 
-`server.py` creates the application only when run as a program. Startup prepares data directories, runs migrations, and starts the stale Anki check. Tests use temporary settings and `initialize=False` when startup is not under test.
-
-## Settings
-
-`backend.settings.Settings` is the single configuration object. Routes get it through `current_settings()`, which reads `app.config["SETTINGS"]`. Background work receives it as an argument and does not depend on a Flask request.
+Startup copies missing legacy data before it creates directories. Existing destination files stay unchanged.
+Cover path migration changes only legacy paths. Repeated startup keeps current paths unchanged.
+Startup then prepares the database and starts the stale Anki check.
 
 ## Routes and services
 
-Routes validate request data, call application logic, and shape responses. Anki synchronization lives in `services/anki_word_sync_service.py`. Its pure status and schedule rules live in `services/anki_word_model.py`. Startup imports services, never routes.
+Routes check input and call services. Services contain application rules. Repositories contain database queries.
+`video_service.resolve_media_file()` checks a library file ID, its resolved path, its library root, and its disk state.
+Video export, candidate export, and playback routes share this check.
 
-Media services handle export, conversion, and fonts. Library operations use `library_scanner.py`, `library_subtitles.py`, and the cover modules. `http_client.py` supplies bounded HTTP reads. `text_processing.py` supplies shared HTML removal with caller-specific options.
+Media routes reject path separators, unsupported extensions, and paths outside the configured root.
+Series relink checks the selected path against the media library root before a recursive scan.
+`POST /library/scan` starts a scan. `GET /library/scan` returns 405.
+Candidate list and candidate creation use separate GET and POST handlers.
 
-## Repositories and migrations
+Anki synchronization uses `services/anki_word_sync_service.py`. Pure word rules use `services/anki_word_model.py`.
+Text cleanup uses `text_processing.strip_html()`. Its documented options preserve each caller's existing output.
 
-Repositories contain database queries. `connection.py` sets a five-second busy timeout. The migration runner enables WAL for a new database. It takes a write lock before reading the schema version. Pending migrations and the new version commit in one transaction.
+## HTTP downloads
 
-`episode_file_query.py` defines the shared primary-file selection query. Library reads trust the stored file-existence flag. Scans and `POST /library/refresh-files` check disk state. Updates use batches of 500 IDs.
+`http_client.py` supplies bounded reads and JSON requests. Anki keeps a small adapter for its action protocol and response checks.
+Cover downloads validate each redirect and pin the checked public IP address for the connection.
+TLS still checks the original host name. Proxy settings cannot bypass the pinned connection.
+Subtitle downloads accept approved HTTPS hosts and subtitle extensions. They enforce the five MiB limit during the read.
+Both download paths reject file URLs before network access.
 
-## Errors and jobs
+## SQLite
 
-`api_response.py` logs exceptions with a request ID. Error responses contain a neutral message and the same ID, not internal exception text. Invalid values return 400. Upstream HTTP errors return 502. Other failures return 500.
+`connection.py` sets the connection timeout and busy timeout to five seconds.
+`get_db(..., immediate=True)` owns the write transaction for candidate claims and updates.
+A concurrent writer waits for that transaction. Exceptions roll back changes.
+The migration runner enables WAL for both new and existing databases during initialization.
+It locks schema changes and commits migrations with their version update.
 
-The job service limits retained jobs by age and count. It keeps active jobs and rejects new work when capacity is full. Browser polling has a deadline and supports cancellation. Cancelling a browser request does not undo work the server already completed.
+`episode_file_query.py` supplies the shared primary-file query.
+`playback_repository.get_library_file_by_id()` reads a file without changing its existence flag.
+Scans and `POST /library/refresh-files` update disk existence. Refresh batches contain up to 500 IDs.
+
+## Responses and jobs
+
+API errors use `{ok: false, error: {code, message}}`. The response helper can add a request ID and error details.
+Unexpected errors use a neutral message and a logged request ID. Input errors return 400. Upstream errors return 502.
+The response normalizer accepts older service payloads and returns the same error shape.
+
+The job service limits stored jobs by age and count. Active jobs remain available.
+Browser job polling has a deadline and supports cancellation. Cancellation does not undo accepted server work.

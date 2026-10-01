@@ -1,92 +1,77 @@
-# Refactor results
+# Technical debt results — 2026-10-01
 
-Prose lint score: 0.98 findings per 100 words (STE-flavored).
+## Scope and phases
 
-## Scope
+This report replaces the previous seven-phase report. The archived prompt is historical reference only.
 
-All seven phases are complete. Each phase has its own commit or several commits for separate changes.
-The final phase includes the bug fixes requested in the prompt.
-The unused Jimaku routes were removed as requested in phase 4.
-The subtitle download response keeps `subtitlePath` and adds `subtitleFilename` for the repaired row display.
+| Phase | Result | Commit |
+| --- | --- | --- |
+| 1 | Media path checks, bounded downloads, pinned cover connections, explicit scan POST, SQLite write locks, passive file reads | `cfb5098` |
+| 2 | Shared media resolution, one API error shape, shared HTTP calls, documented HTML modes, logging cleanup | `7c8993f` |
+| 3 | Full strict TypeScript, explicit domain types, null guards, mandatory CI check | `aa800f4` |
+| 4 | Shared retries, catalog types, time and HTML helpers, notifications, safe cover URLs, independent bulk view | `cb05bc1` |
+| 5 | Tests for remaining modules, startup and search fixes, explicit test groups, current documentation | This commit |
+
+Each phase has its own commit. Checks ran again after each commit. The root repomix file remains ignored.
 
 ## Checks
 
-The full output of the four requested commands is in `refactor-verification.txt`.
-Python: 137 tests passed. Normal TypeScript and Ruff checks passed.
-Strict TypeScript: 47 errors remain, below the limit of 50. Strict mode remains off as requested.
-`npm run check` passed, including all frontend tests and both page startup tests.
-`npm run build` passed. No frontend TypeScript file exceeds 350 lines.
+The starting audit counted 59 output lines, but the compiler reported 47 strict errors.
+The explicit `noImplicitAny: false` setting hid more errors. Full strict mode exposed 113 errors, all now fixed.
+`tsconfig.json` enables strict mode without weaker overrides. CI requires strict checks.
 
-## Remaining work
+Final checks pass: 172 Python tests, Ruff, normal TypeScript, strict TypeScript, and `npm run check`.
+Strict TypeScript reports zero errors. Documentation prose scores range from 0.00 to 0.88 findings per 100 words.
+Frontend tests use jsdom and mocked services. Both page startup tests run once with an explicit page argument.
+The earlier runner used a default player argument, so the reported duplicate library startup was not present.
+The library test group now includes async tests, API and binding tests, and modal tests.
+Pytest uses separate temporary directories instead of one shared fixed directory.
 
-- The 47 strict errors need a separate type cleanup before strict mode can become the default.
-- Fonts remain in Git to preserve offline startup. A download script needs a source, version, and license audit first.
-- Tests use jsdom and mocked services. Real browser layout, playback, and live Anki/Jimaku integration still need end-to-end coverage.
-- Cancellation stops client requests and queued work. It does not undo work that the server already accepted.
-- `NEXT.md` stays ignored because it contains local planning notes.
+## Bugs and regression coverage
 
-Next recommendation: add one real-browser smoke test for opening a video and sending a card to Anki.
+| Bug or risk | Regression coverage |
+| --- | --- |
+| Video traversal and relink outside the library | Media and library route tests |
+| File URLs, oversized downloads, and DNS changes | Cover and subtitle download tests |
+| Mutating scan GET | GET returns 405 and the browser sends POST |
+| Competing candidate claims and transaction rollback | Concurrent repository tests and connection tests |
+| File lookup changed database state | Passive-read test |
+| Repeated startup added extra data prefixes to cover paths | Repeated current and legacy path migration tests |
+| Directory creation prevented legacy cover copy | Repeated startup test and current-file preservation test |
+| An old search response replaced another series' results | Modal race and closed-modal response tests |
+| Structured API errors displayed as an object | Modal error-message and HTML escaping assertions |
+| Failed upload or progress save damaged client state | Player flow tests |
 
-## Bugs and regression tests
+Additional tests cover dedupe recovery, media resolution, HTML modes, settings precedence, deletion, hotkeys, media playback, and settings storage.
 
-| Change | Test coverage |
-|---|---|
-| Import no longer starts the application | Import safety and temporary settings tests |
-| Cover downloads reject unsafe URLs, private addresses, and oversized responses | `test_library_covers.py` |
-| ffmpeg has a timeout | `test_ffmpeg_service.py` |
-| Migrations read the version after the write lock and roll back together | `test_migrations.py` |
-| Library reads no longer scan files or mark all files missing | Library database and route tests |
-| Manual Anki refresh no longer delays automatic refresh | `test_anki_word_sync.py` |
-| Subtitle selection updates the actual row elements | `library-subtitle-controller-tests.mjs`, `test_library_routes.py` |
-| Bulk download cancellation stops active and queued client work | `library-async-tests.mjs` |
-| Job polling has a deadline and supports cancellation | `library-async-tests.mjs` |
-| HTML escaping includes apostrophes | `library-presentation-tests.mjs` |
-| Jimaku cache reuse, expiry, and filename selection | `test_library_subtitles.py` |
-| Page modules start with the real HTML structure | `module-startup-tests.mjs` |
+## Deletion audit
 
-## Removal audit
+Each removal followed a reference search across `backend/`, `frontend/js/`, and `tests/`.
 
-Search scope: `backend`, `frontend/js`, and `tests`. Line references below use baseline commit `8e71584`.
-The search covered imports, direct calls, and references before each removal.
+| Removed code | Previous callers | Replacement or reason |
+| --- | --- | --- |
+| Playback `_mark_missing_files` and repeated ID query | `get_library_file_by_id` | Explicit refresh updates disk state |
+| `subtitle_conversion_service.py` and its test file | Its own conversion helper and three tests only | No production callers |
+| Cover-search `_http_json_post` and unused urllib imports | Cover search and its test stub | Shared `http_client.post_json` |
+| `legacy_error_response` | Media routes and response helpers | `error_response` and `normalize_payload` |
+| Candidate service's local import | Candidate media resolution | Module import and shared resolver |
+| `fetchWithRetry` and `retryOnRateLimit` | Anki API, library subtitle workflow, retry tests | `requestWithRetry` |
+| Page cover, subtitle, bulk, HTML, and time proxies | Library bindings, bulk view, page templates | Direct controller, model, and helper calls |
+| Separate library locale files | Library translation helper | Typed common catalog |
+| Parser time formatter | Subtitle sidebar and model tests | Common formatter with explicit format |
+| Duplicate toast CSS and player notification implementation | Player themes and UI exports | Common notification module and stylesheet |
+| Inline console calls and empty HTML assignments | Frontend modules | Logger and `replaceChildren()` |
 
-| Removed or replaced item | References found before removal |
-|---|---|
-| `backend.config` | `library_subtitles`, `misc_routes`, `anki_highlight_store`, `dedupe_service`, `vocabulary_report_service`. These now read Settings. |
-| `_init_jimaku_cache_table` | Only `_cached_http_json_get` in `library_subtitles.py:64`. Migration 001 now owns the table. |
-| `get_missing_jimaku_subtitle_candidates` | `subtitle_routes.py:13,77`. No frontend or test calls. |
-| `build_missing_jimaku_subtitle_plan` | `subtitle_routes.py:10,149`. No frontend or test calls. |
-| `bulk_download_missing_jimaku_subtitles` | `subtitle_routes.py:12,172`. No frontend or test calls. |
-| `_safe_subtitle_name`, `_episode_label` | Definitions only in `library_subtitles.py:103,109`. |
-| `last_heartbeat`, `_report_files` | Definitions only in `app_state.py:6` and `vocabulary_report_routes.py:11`. |
-| Duplicate `get_library_file_by_id` | `file_routes.py:16,128`, `video_service.py:4,24`, `candidate_service.py:15,16`. All now use the playback repository. |
-| `library_service.delete_library_series` | Definition and its own delegation only, lines 111,113. The real deletion service remains. |
-| Four unused Anki helpers | `hasRequiredAnkiMediaFields`, `normalizeSelectedAnkiWord`, `isKanaOnly`, `escapeAnkiFieldText`: definitions only in `anki-actions.ts`. |
-| Old highlighter `ankiRequest` | Definition only. The shared Anki client replaces duplicate request code. |
-| Three old toast helpers | `formatToastMessage`, `showTranslatedToast`, `showPersistentActionToast`: definitions only. |
-| `playerContext` | `app.ts:29` read the DOM field. No readers for its state or dictionary fields. Direct imports replace it. |
-| `getSubtitleSearchDict` | Local definition and call in `search-panel.ts`. Shared translation lookup replaces it. |
-| Duplicate language change handler | Two assignments in `settings.ts`. The main handler remains. |
-| `_target_subtitle_path` unused arguments | One caller in `library_subtitles.py`. Removed `source` and `entry_id` from both sites. |
-| Unused browser test | No callers or package scripts referenced `player-pointer-browser-tests.mjs`. |
+## Deliberate limits
 
-The following translation keys had no callers outside their definitions in three language catalogs:
+The shared search modal already existed. This work removed proxies and fixed its response race instead of creating another abstraction.
+The duplicate library file query was already absent from the baseline library repository.
+The Anki request adapter remains because it handles protocol semantics. The cover opener remains because it pins checked IP addresses.
+`json_object()` remains because it rejects arrays. It is not equivalent to `get_json() or {}`.
+Time formats and the previous fractional-millisecond rounding stay unchanged.
+Old paths already damaged by earlier startup runs need a separate repair policy. This change prevents further repeated prefixes.
 
-```text
-hideSubs
-showSubs
-closeSubtitlesPanel
-defaultAudio
-toastAutoAttachWaiting
-toastAutoAttachSnapshotReady
-toastAutoAttachAlreadyWaiting
-toastAutoAttachCancelled
-toastAutoAttachSelectionCleared
-toastAutoAttachQueued
-toastAutoAttachListeningQueued
-toastAutoAttachAddingQueued
-toastAutoAttachDoneQueued
-toastVideoRestoredNoSubtitles
-toastKnownBasicAdded
-```
+`NEXT.md` remains ignored. It now distinguishes existing helpers from unfinished UI work.
+Live Anki, live subtitle providers, browser layout, and actual video playback were not tested against external services.
 
-This removed 45 unused translation entries, not visible interface text.
+Next recommendation: add one browser smoke test that opens a video and sends a card to Anki.

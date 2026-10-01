@@ -7,7 +7,8 @@ function run(args) {
 }
 run(["tools/build-frontend.mjs", "--compile"]);
 run(["tools/build-frontend.mjs"]);
-for (const name of fs.readdirSync("tests").filter(name => name.endsWith("-tests.mjs")).sort()) {
+for (const name of fs.readdirSync("tests").filter(name => name.endsWith("-tests.mjs") && name !== "module-startup-tests.mjs").sort()) {
     run([`tests/${name}`]);
 }
+run(["tests/module-startup-tests.mjs", "player"]);
 run(["tests/module-startup-tests.mjs", "library"]);

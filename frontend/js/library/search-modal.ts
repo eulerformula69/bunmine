@@ -1,4 +1,5 @@
 import { TranslationKey } from "../core/i18n.js";
+import { getApiErrorMessage } from "../core/api.js";
 import { ApiPayload } from "../types/api.js";
 import { LibraryTranslate } from "./library-presentation.js";
 
@@ -30,11 +31,15 @@ export function createLibrarySearchModal<Context, Result>(
     }
 ) {
     let current: Context | null = null;
+    let searchRevision = 0;
     const t = options.translate;
     const message = (text: string, error = false) => {
         options.results.innerHTML = `<div class="cover-message${error ? " error" : ""}">${options.escapeHtml(text)}</div>`;
     };
     function close(): void {
+        searchRevision += 1;
+        options.searchButton.disabled = false;
+        options.searchButton.textContent = t("search");
         options.modal.classList.add("hidden");
         document.body.classList.remove("modal-open");
         current = null;
@@ -45,7 +50,7 @@ export function createLibrarySearchModal<Context, Result>(
         options.results.classList.add("is-loading");
         try {
             const {response, data} = await options.select(config.describe(context).id, config.payload(result));
-            if (!response.ok || data.error) throw new Error(String(data.error || t(config.saveError)));
+            if (!response.ok || data.error) throw new Error(getApiErrorMessage(data, t(config.saveError)));
             if (config.closeBeforeSaved) close();
             await config.saved(context, data);
             if (!config.closeBeforeSaved) close();
@@ -57,13 +62,15 @@ export function createLibrarySearchModal<Context, Result>(
     }
     async function search(): Promise<void> {
         if (!current) return;
+        const revision = ++searchRevision;
         const context = config.describe(current);
         options.searchButton.disabled = true;
         options.searchButton.textContent = t("searching");
         message(t(config.searching));
         try {
             const {response, data} = await options.search(context.id, options.searchInput.value.trim() || context.query);
-            if (!response.ok || data.error) throw new Error(String(data.error || t(config.searchError)));
+            if (revision !== searchRevision) return;
+            if (!response.ok || data.error) throw new Error(getApiErrorMessage(data, t(config.searchError)));
             const results = (data.results || []) as Result[];
             options.results.replaceChildren();
             if (!results.length) message(t(config.empty));
@@ -73,13 +80,18 @@ export function createLibrarySearchModal<Context, Result>(
                 options.results.appendChild(item);
             }
         } catch (error) {
-            message(error instanceof Error ? error.message : String(error), true);
+            if (revision === searchRevision) message(error instanceof Error ? error.message : String(error), true);
         } finally {
-            options.searchButton.disabled = false;
-            options.searchButton.textContent = t("search");
+            if (revision === searchRevision) {
+                options.searchButton.disabled = false;
+                options.searchButton.textContent = t("search");
+            }
         }
     }
     async function open(context: Context): Promise<void> {
+        searchRevision += 1;
+        options.searchButton.disabled = false;
+        options.searchButton.textContent = t("search");
         current = context;
         const description = config.describe(context);
         options.title.textContent = description.title;
