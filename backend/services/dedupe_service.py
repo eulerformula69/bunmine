@@ -8,6 +8,9 @@ from backend.settings import Settings
 from backend.text_processing import strip_html
 
 
+logger = logging.getLogger(__name__)
+
+
 def load_dedupe_index(settings: Settings) -> dict:
     if not settings.dedupe_index_path.exists():
         return {"screenshot": {}, "audio": {}}
@@ -19,7 +22,7 @@ def load_dedupe_index(settings: Settings) -> dict:
         data.setdefault("audio", {})
         return data
     except Exception:
-        logging.getLogger(__name__).exception("Could not read media cache index")
+        logger.exception("Could not read media cache index")
         return {"screenshot": {}, "audio": {}}
 
 

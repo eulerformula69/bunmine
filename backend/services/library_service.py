@@ -9,6 +9,9 @@ import logging
 from backend.repositories.connection import get_db
 
 
+logger = logging.getLogger(__name__)
+
+
 def relink_library_series_files(db_path: Path, series_id: int, new_base: Path, media_root: Path) -> dict:
     """Rebind missing video/subtitle paths for a series without rebuilding the DB."""
     from backend.repositories.library_repository import refresh_library_file_existence
@@ -99,7 +102,7 @@ def _path_candidates_for_relink(new_base: Path, stored_path: Path, relative_path
             for match in new_base.rglob(stored_path.name):
                 candidates.append(match)
         except OSError:
-            logging.getLogger(__name__).exception("Could not search for relocated media")
+            logger.exception("Could not search for relocated media")
 
     unique: list[Path] = []
     seen: set[str] = set()

@@ -1,5 +1,4 @@
 import urllib.error
-import urllib.request
 from collections.abc import Callable, Iterator
 from backend.http_client import post_json
 
@@ -11,7 +10,10 @@ def chunked(items: list, size: int) -> Iterator[list]:
 
 def request(anki_url: str, action: str, params: dict | None = None):
     try:
-        data = post_json(anki_url, {"action": action, "version": 6, "params": params or {}}, timeout=60)
+        data = post_json(
+            anki_url, {"action": action, "version": 6, "params": params or {}},
+            timeout=60, max_bytes=16 * 1024 * 1024,
+        )
     except urllib.error.URLError as err:
         reason = getattr(err, "reason", err)
         raise RuntimeError(

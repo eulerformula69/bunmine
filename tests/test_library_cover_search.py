@@ -43,7 +43,7 @@ def test_both_providers_unavailable(monkeypatch):
 
 
 def test_graphql_errors_are_failures(monkeypatch):
-    monkeypatch.setattr(covers, "_http_json_post", Mock(return_value={"data": None, "errors": [{}]}))
+    monkeypatch.setattr(covers, "post_json", Mock(return_value={"data": None, "errors": [{}]}))
     with pytest.raises(ValueError):
         covers.search_anilist_covers("Naruto")
 

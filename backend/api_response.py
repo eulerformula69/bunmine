@@ -17,7 +17,7 @@ def exception_response(error: Exception, status: int | None = None, code: str = 
     message = (
         "Invalid request" if status < 500 else "External service request failed" if status == 502 else "Request failed"
     )
-    response, status = legacy_error_response(message, status, code, requestId=request_id)
+    response, status = error_response(message, status, code, requestId=request_id)
     response.headers["X-Request-ID"] = request_id
     return response, status
 
@@ -44,8 +44,10 @@ def error_response(message: str, status: int = 400, code: str = "ERROR", **extra
     return jsonify({"ok": False, "error": error}), status
 
 
-def legacy_error_response(message: str, status: int = 400, code: str = "ERROR", **extra):
-    error = {"code": code, "message": message}
-    if extra:
-        error.update(extra)
-    return jsonify({"ok": False, "error": message, "errorInfo": error}), status
+def normalize_payload(payload: dict) -> dict:
+    if payload.get("error") is not None:
+        error = payload["error"]
+        if not isinstance(error, dict):
+            error = {"code": "ERROR", "message": str(error or "Request failed")}
+        return {**payload, "ok": False, "error": error}
+    return {"ok": True, **payload}

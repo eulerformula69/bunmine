@@ -1,4 +1,5 @@
 """Library series routes."""
+from pathlib import Path
 
 from backend.api_response import exception_response
 
@@ -60,8 +61,6 @@ def library_series_relink(series_id):
     raw_path = str(data.get("path") or "").strip()
     if not raw_path:
         return jsonify({"error": "path is required"}), 400
-
-    from pathlib import Path
 
     target_path = Path(raw_path).expanduser().resolve()
     if not is_within(current_settings().media_library_dir, target_path):

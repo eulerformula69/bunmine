@@ -18,11 +18,12 @@ from backend.routes.static_routes import static_bp
 from backend.routes.candidate_routes import candidate_bp
 from backend.services.startup_service import initialize_backend
 from backend.settings import Settings, load_settings
-from backend.api_response import register_error_handlers
+from backend.api_response import normalize_payload, register_error_handlers
 
 
 def create_app(settings: Settings | None = None, initialize: bool = True) -> Flask:
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    if not logging.getLogger().handlers:
+        logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     settings = settings or load_settings()
     if initialize:
         initialize_backend(settings)
@@ -52,22 +53,10 @@ def create_app(settings: Settings | None = None, initialize: bool = True) -> Fla
             return response
 
         payload = response.get_json(silent=True)
-        if not isinstance(payload, dict) or "ok" in payload:
+        if not isinstance(payload, dict):
             return response
 
-        if "error" in payload:
-            message = str(payload.get("error") or "Request failed")
-            payload = {
-                "ok": False,
-                **payload,
-                "error": message,
-                "errorInfo": {
-                    "code": "ERROR",
-                    "message": message,
-                },
-            }
-        else:
-            payload = {"ok": True, **payload}
+        payload = normalize_payload(payload)
 
         response.set_data(json.dumps(payload, ensure_ascii=False))
         response.headers["Content-Type"] = "application/json"

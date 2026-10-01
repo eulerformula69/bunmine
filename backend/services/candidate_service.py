@@ -1,6 +1,7 @@
 import math
 
 from backend.repositories import candidate_repository as repository
+from backend.repositories.playback_repository import get_library_file_by_id
 from backend.services.video_service import resolve_video_path_from_payload
 
 
@@ -12,8 +13,6 @@ def source_details(settings, snapshot):
     identity = f"{stat.st_size}:{stat.st_mtime_ns}"
     episode_id = None
     if info["source"] == "library":
-        from backend.repositories.playback_repository import get_library_file_by_id
-
         episode_id = get_library_file_by_id(settings.library_db_path, info["videoFileId"])["file"]["episode_id"]
     return identity, episode_id
 

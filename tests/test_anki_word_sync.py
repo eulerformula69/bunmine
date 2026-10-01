@@ -39,8 +39,8 @@ def test_refresh_route_reports_invalid_request_without_private_details(temporary
     client = create_app(temporary_settings, initialize=False).test_client()
     response = client.post("/known-anki-words/refresh", json={})
     assert response.status_code == 400
-    assert response.json["error"] == "Invalid request"
-    assert response.json["errorInfo"]["requestId"] == response.headers["X-Request-ID"]
+    assert response.json["error"]["message"] == "Invalid request"
+    assert response.json["error"]["requestId"] == response.headers["X-Request-ID"]
 
 
 @pytest.mark.parametrize(("card", "expected"), [

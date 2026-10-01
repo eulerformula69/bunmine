@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from "../core/api.js";
 import { fetchDeckNoteIds,fetchNotesInfo } from "../anki/notes.js";
 
 import { AnkiMediaSnapshot,buildImageSubtitleExport } from "../anki/media-snapshot.js";
@@ -155,7 +156,7 @@ export function createAnkiMediaController(options: AnkiMediaControllerOptions): 
         const audioData = await audioResponse.json();
 
         if (!pictureResponse.ok || !audioResponse.ok) {
-            throw new Error(pictureData.error || audioData.error || "Media server error");
+            throw new Error(getApiErrorMessage(pictureData, getApiErrorMessage(audioData, "Media server error")));
         }
 
         const [targetNoteInfo] = await (options.fetchNotesInfo || fetchNotesInfo)(snapshot.ankiUrl, [targetNoteId]);

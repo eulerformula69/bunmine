@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import { installDom } from './dom-environment.mjs';
+const dom = installDom();
+const { apiJson, getApiErrorMessage } = await import('../dist/esm/core/api.js');
+const error = { ok: false, error: { code: 'MEDIA_ERROR', message: 'Invalid request' } };
+assert.equal(getApiErrorMessage(error), 'Invalid request');
+globalThis.fetch = async () => new Response(JSON.stringify(error), {status: 400});
+const result = await apiJson('/audio-to-anki');
+assert.equal(result.data.error, 'Invalid request');
+assert.equal(result.data.errorInfo.code, 'MEDIA_ERROR');
+dom.window.close();

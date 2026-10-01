@@ -5,6 +5,19 @@ from backend.settings import Settings
 from backend.utils_validation import is_within, safe_media_name
 
 
+def resolve_media_file(file_id: int, settings: Settings) -> tuple[Path | None, dict | None, tuple | None]:
+    result = get_library_file_by_id(settings.library_db_path, file_id)
+    if not result.get("found"):
+        return None, None, ({"error": "File not found"}, 404)
+    info = result["file"]
+    path = Path(info["path"]).resolve()
+    if not is_within(settings.media_library_dir, path):
+        return None, info, ({"error": "File is outside MEDIA_LIBRARY_DIR"}, 403)
+    if not path.is_file():
+        return None, info, ({"error": "File is missing"}, 404)
+    return path, info, None
+
+
 def resolve_video_path_from_payload(
     data: dict,
     settings: Settings,
@@ -20,19 +33,16 @@ def resolve_video_path_from_payload(
         except (TypeError, ValueError):
             return None, None, ({"error": "Invalid videoFileId"}, 400)
 
-        result = get_library_file_by_id(settings.library_db_path, file_id)
-        if not result.get("found"):
+        video_path, file_info, error = resolve_media_file(file_id, settings)
+        if file_info is None:
             return None, None, ({"error": "Library video file not found"}, 404)
 
-        file_info = result["file"]
         if file_info.get("file_type") != "video":
             return None, None, ({"error": "Library file is not a video"}, 400)
 
-        video_path = Path(file_info["path"]).resolve()
-        if not is_within(settings.media_library_dir, video_path):
-            return None, None, ({"error": "Video file is outside MEDIA_LIBRARY_DIR"}, 403)
-        if not video_path.exists() or not video_path.is_file():
-            return None, None, ({"error": "Video file is missing"}, 404)
+        if error:
+            message = "Video file is outside MEDIA_LIBRARY_DIR" if error[1] == 403 else "Video file is missing"
+            return None, None, ({"error": message}, error[1])
 
         return (
             video_path,

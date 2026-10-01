@@ -3,7 +3,7 @@ import logging
 
 from flask import Blueprint, current_app, jsonify, request, send_from_directory
 
-from backend.api_response import exception_response, legacy_error_response, ok_response
+from backend.api_response import exception_response, error_response, ok_response
 from backend.services.dedupe_service import clean_srt_text_file
 from backend.services.media_export_service import (
     MediaExportError,
@@ -13,6 +13,9 @@ from backend.services.media_export_service import (
 )
 from backend.settings import Settings
 from backend.utils_validation import is_within, safe_media_name, safe_uploaded_filename
+
+logger = logging.getLogger(__name__)
+
 
 media_bp = Blueprint("media", __name__)
 
@@ -30,7 +33,7 @@ def upload_video():
     settings = _settings()
     file = request.files.get("videoFile")
     if not file:
-        return legacy_error_response("File was not received", 400, "MISSING_FILE")
+        return error_response("File was not received", 400, "MISSING_FILE")
     try:
         filename = safe_uploaded_filename(file.filename, settings.allowed_video_extensions)
     except ValueError as err:
@@ -48,9 +51,9 @@ def upload_subtitle():
     video_filename = request.form.get("videoFilename")
 
     if not subtitle_file:
-        return legacy_error_response("Subtitle file is not received", 400, "MISSING_SUBTITLE")
+        return error_response("Subtitle file is not received", 400, "MISSING_SUBTITLE")
     if not video_filename:
-        return legacy_error_response("Video filename is required", 400, "MISSING_VIDEO_FILENAME")
+        return error_response("Video filename is required", 400, "MISSING_VIDEO_FILENAME")
 
     try:
         safe_video_filename = safe_uploaded_filename(video_filename, settings.allowed_video_extensions)
@@ -59,7 +62,7 @@ def upload_subtitle():
 
     subtitle_ext = os.path.splitext(subtitle_file.filename or "")[1].lower()
     if subtitle_ext not in settings.allowed_subtitle_extensions:
-        return legacy_error_response("Unsupported subtitle format", 400, "INVALID_SUBTITLE_EXTENSION")
+        return error_response("Unsupported subtitle format", 400, "INVALID_SUBTITLE_EXTENSION")
 
     video_base_name = os.path.splitext(safe_video_filename)[0]
     subtitle_filename = f"{video_base_name}{subtitle_ext}"
@@ -130,9 +133,9 @@ def serve_video(filename):
         return _json_error(err, 400, "INVALID_FILENAME")
     video_path = settings.video_dir / safe_name
     if video_path.suffix.lower() not in settings.allowed_video_extensions:
-        return legacy_error_response("Invalid video extension", 400, "INVALID_VIDEO_EXTENSION")
+        return error_response("Invalid video extension", 400, "INVALID_VIDEO_EXTENSION")
     if not is_within(settings.video_dir, video_path) or not video_path.is_file():
-        return legacy_error_response("File not found", 404, "VIDEO_NOT_FOUND")
+        return error_response("File not found", 404, "VIDEO_NOT_FOUND")
     return send_from_directory(str(settings.video_dir), safe_name)
 
 
@@ -142,9 +145,9 @@ def serve_subtitle(filename):
     safe_name = os.path.basename(filename)
     subtitle_path = settings.video_dir / safe_name
     if not subtitle_path.exists():
-        return legacy_error_response("Subtitle not found", 404, "SUBTITLE_NOT_FOUND")
+        return error_response("Subtitle not found", 404, "SUBTITLE_NOT_FOUND")
     if os.path.splitext(safe_name)[1].lower() not in settings.allowed_subtitle_extensions:
-        return legacy_error_response("Invalid subtitle extension", 400, "INVALID_SUBTITLE_EXTENSION")
+        return error_response("Invalid subtitle extension", 400, "INVALID_SUBTITLE_EXTENSION")
     return send_from_directory(str(subtitle_path.parent), subtitle_path.name)
 
 
@@ -194,7 +197,7 @@ def get_temp_audio():
         return _json_error(err, 400, "INVALID_FILENAME")
     file_path = settings.audio_dir / safe_name
     if not file_path.exists() or not is_within(settings.audio_dir, file_path):
-        return legacy_error_response("File not found", 404, "AUDIO_NOT_FOUND")
+        return error_response("File not found", 404, "AUDIO_NOT_FOUND")
     return send_from_directory(str(settings.audio_dir), safe_name, mimetype="audio/mpeg")
 
 
@@ -203,7 +206,7 @@ def delete_video():
     settings = _settings()
     filename = request.args.get("filename")
     if not filename:
-        return legacy_error_response("filename is required", 400, "MISSING_FILENAME")
+        return error_response("filename is required", 400, "MISSING_FILENAME")
     try:
         safe_filename = safe_media_name(filename)
     except ValueError as err:
@@ -223,5 +226,5 @@ def delete_video():
             try:
                 (settings.video_dir / item).unlink()
             except Exception:
-                logging.getLogger(__name__).exception("Could not remove temporary media file")
+                logger.exception("Could not remove temporary media file")
     return ok_response({"success": True})[0]

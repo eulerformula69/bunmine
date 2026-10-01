@@ -1,7 +1,5 @@
 import logging
-import urllib.error
 import urllib.parse
-import urllib.request
 from backend.http_client import get_json, post_json
 
 
@@ -87,16 +85,12 @@ query ($search: String!) {
 """
 
 
-def _http_json_post(url: str, payload: dict, timeout: int = 12) -> dict:
-    return post_json(url, payload, timeout=timeout)
-
-
 def search_anilist_covers(query: str) -> list[dict]:
     query = str(query or "").strip()
     if not query:
         return []
     payload = {"query": ANILIST_SEARCH_QUERY, "variables": {"search": query}}
-    data = _http_json_post(ANILIST_GRAPHQL_URL, payload)
+    data = post_json(ANILIST_GRAPHQL_URL, payload, timeout=12, max_bytes=16 * 1024 * 1024)
     if data.get("errors") or not isinstance(data.get("data"), dict):
         raise ValueError("AniList returned an invalid search response")
     media_items = data["data"].get("Page", {}).get("media", [])

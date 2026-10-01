@@ -1,7 +1,7 @@
 """Library file routes."""
 
 from pathlib import Path
-from backend.repositories.playback_repository import get_library_file_by_id
+from backend.services.video_service import resolve_media_file
 
 from backend.api_response import exception_response
 
@@ -134,13 +134,7 @@ def library_scan_path():
 @library_file_bp.route("/library/file/<int:file_id>", methods=["GET"])
 def serve_library_file(file_id):
     settings = current_settings()
-    result = get_library_file_by_id(settings.library_db_path, file_id)
-    if not result.get("found"):
-        return jsonify({"error": "File not found"}), 404
-
-    file_path = Path(result["file"]["path"]).resolve()
-    if not is_within(settings.media_library_dir, file_path):
-        return jsonify({"error": "File is outside MEDIA_LIBRARY_DIR"}), 403
-    if not file_path.exists() or not file_path.is_file():
-        return jsonify({"error": "File is missing"}), 404
+    file_path, _, error = resolve_media_file(file_id, settings)
+    if error:
+        return jsonify(error[0]), error[1]
     return send_from_directory(str(file_path.parent), file_path.name, as_attachment=False)

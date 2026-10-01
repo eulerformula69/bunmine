@@ -41,6 +41,7 @@ export function normalizeApiPayload<T extends ApiPayload>(data: T): T {
 export function getApiErrorMessage(data: ApiPayload | null | undefined, fallback = "Request failed"): string {
     if (!data || typeof data !== "object") return fallback;
     if (typeof data.error === "string" && data.error) return data.error;
+    if (data.error && typeof data.error === "object" && data.error.message) return data.error.message;
     if (data.errorInfo?.message) return data.errorInfo.message;
     return fallback;
 }
