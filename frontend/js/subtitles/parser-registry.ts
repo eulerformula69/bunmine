@@ -1,7 +1,11 @@
-import { SubtitleParseError, SubtitleParser } from "./parser-types.js";
+import { SubtitleParseError,SubtitleParser } from "./parser-types.js";
+
 import { SubtitleFormat } from "./model.js";
+
 import { LegacySubtitleParser } from "./parsers/legacy-parser.js";
+
 import { MediaCaptionsSubtitleParser } from "./parsers/media-captions-parser.js";
+
 export class SubtitleParserRegistry {
     private readonly providers: SubtitleParser[] = [];
 
@@ -32,5 +36,7 @@ export class SubtitleParserRegistry {
 }
 
 export const subtitleParserRegistry = new SubtitleParserRegistry();
+
 subtitleParserRegistry.register(new LegacySubtitleParser());
+
 subtitleParserRegistry.register(new MediaCaptionsSubtitleParser());

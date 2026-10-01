@@ -1,5 +1,7 @@
 import { BunmineState } from "../core/state.js";
+
 import { RuntimeSubtitleCue } from "../subtitles/model.js";
+
 export interface RuntimePrefetchOptions {
     state: BunmineState;
     getSubtitles: () => RuntimeSubtitleCue[];

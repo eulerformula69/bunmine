@@ -1,4 +1,5 @@
-import { ApiPayload, LibraryEpisode, LibrarySeries } from "../types/api.js";
+import { ApiPayload,LibraryEpisode,LibrarySeries } from "../types/api.js";
+
 export interface LibrarySeriesView extends LibrarySeries {
     cardsCount?: number;
     episodesWithVideo?: number;
@@ -7,7 +8,9 @@ export interface LibrarySeriesView extends LibrarySeries {
 }
 
 export type LibrarySeriesStatus = "not-started" | "watching" | "completed";
+
 export type LibrarySeriesFilter = "all" | LibrarySeriesStatus | "missing-video" | "missing-subtitles" | "file-problems";
+
 export type LibrarySeriesSort = "last-watched" | "progress" | "title" | "recently-added";
 
 export interface LibraryFilterState {

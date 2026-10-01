@@ -1,8 +1,13 @@
 import { MiningCandidate } from "./candidate-model.js";
-import { CandidateContext, candidateContextSnapshot } from "./candidate-context-model.js";
+
+import { CandidateContext,candidateContextSnapshot } from "./candidate-context-model.js";
+
 import { formatTime } from "../subtitles/parsing.js";
-import { t } from "./ui.js";
+
+import { t } from "../core/translate.js";
+
 import { createSubtitleTimeContainer } from "../subtitles/sidebar-render.js";
+
 export function createCandidateContextEditor(options: {
     change(start: number, end: number): Promise<void>;
     editing(active: boolean): void;

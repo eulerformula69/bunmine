@@ -1,4 +1,3 @@
-
 export type SubtitleFormat = "srt" | "vtt" | "ass" | "ssa" | "unknown";
 
 export interface SubtitleCue {

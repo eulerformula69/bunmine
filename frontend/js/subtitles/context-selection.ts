@@ -1,4 +1,3 @@
-
 export interface SubtitleContextSelection {
     startIndex: number;
     endIndex: number;

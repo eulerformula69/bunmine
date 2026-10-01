@@ -1,4 +1,5 @@
 import { SubtitleFormat } from "./model.js";
+
 export interface SubtitleFormatDetectionInput {
     format?: SubtitleFormat;
     filename?: string;

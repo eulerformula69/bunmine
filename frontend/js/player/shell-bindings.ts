@@ -1,4 +1,5 @@
 import { playMedia } from "../video/media-playback.js";
+
 export interface PlayerShellBindingsOptions {
     video: HTMLVideoElement;
     volume: HTMLInputElement;

@@ -1,5 +1,7 @@
 import { overlay } from "../core/dom.js";
+
 import { getPrimarySubtitleIndex } from "../subtitles/timing.js";
+
 export function getSubtitleIndexFromSelection(selection = window.getSelection()) {
     if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
         return -1;

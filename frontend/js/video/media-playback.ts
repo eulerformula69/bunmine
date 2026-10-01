@@ -1,4 +1,3 @@
-
 export async function playMedia(
     media: HTMLMediaElement,
     reportError: (error: unknown) => void = (error) => console.error("Media playback failed:", error)

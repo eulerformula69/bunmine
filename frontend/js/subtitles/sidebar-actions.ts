@@ -1,12 +1,25 @@
 import { getPrimarySubtitleIndex } from "./timing.js";
-import { overlay, sidebar, toggleBtn, video } from "../core/dom.js";
+
+import { overlay,sidebar,toggleBtn,video } from "../core/dom.js";
+
 import { state } from "../core/state.js";
+
 import { findSubtitleIndexForOffset } from "./navigation.js";
-import { clearSearchMatches, syncSubtitleStyle, updateSubtitleSidebarLabels } from "./subtitles-sidebar.js";
+
+import { syncSubtitleStyle } from "./subtitles-sidebar.js";
+
+import { clearSearchMatches } from "./search-controller.js";
+
 import { renderSubtitleOverlay } from "./subtitles.js";
+
 import { ankiSubtitleHighlighter } from "../highlighter/anki-highlighter.js";
+
 import { playMedia } from "../video/media-playback.js";
+
 import { updateSubtitleSearchPanelLabels } from "./search-panel.js";
+
+import { updateSubtitleSidebarLabels } from "./sidebar-shell.js";
+
 export function getCurrentSubtitleIndexForNavigation(): number {
     const primaryIndex = getPrimarySubtitleIndex();
     if (primaryIndex !== -1) return primaryIndex;

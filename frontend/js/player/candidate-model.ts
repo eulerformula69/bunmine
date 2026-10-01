@@ -1,5 +1,7 @@
-import { AnkiMediaSnapshot } from "./anki-actions.js";
-import { t } from "./ui.js";
+import { AnkiMediaSnapshot } from "../anki/media-snapshot.js";
+
+import { t } from "../core/translate.js";
+
 export interface MiningCandidate {
     revision?: number;
     id: number;

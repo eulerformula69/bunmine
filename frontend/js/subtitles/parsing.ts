@@ -1,4 +1,3 @@
-
 // parsing
 
 export function parseSubtitleTimestamp(value) {

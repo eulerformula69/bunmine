@@ -1,6 +1,7 @@
-import { i18n } from "../core/i18n.js";
-import { state } from "../core/state.js";
+import { t } from "../core/translate.js";
+
 import { formatTime } from "./parsing.js";
+
 export interface SubtitleSearchPanelCallbacks {
     onWordFocus(wordInput: HTMLInputElement, timeInput: HTMLInputElement | null): void;
     onTimeFocus(wordInput: HTMLInputElement | null, timeInput: HTMLInputElement): void;
@@ -16,10 +17,6 @@ export interface SubtitleSearchPanelCallbacks {
 export interface SubtitleSearchPanelState {
     query: string;
     timeSeconds: number | null;
-}
-
-export function getSubtitleSearchDict(): Record<string, string> {
-    return i18n?.[state.currentLang]?.dict || i18n?.en?.dict || {};
 }
 
 export function ensureSubtitleSearchPanel(
@@ -88,8 +85,6 @@ export function ensureSubtitleSearchPanel(
 }
 
 export function updateSubtitleSearchPanelLabels(): void {
-    const dict = getSubtitleSearchDict();
-
     const wordInput = document.getElementById("subtitleWordSearchInput");
     const timeInput = document.getElementById("subtitleTimeSearchInput");
     const prevBtn = document.getElementById("subtitleSearchPrevBtn");
@@ -97,27 +92,27 @@ export function updateSubtitleSearchPanelLabels(): void {
     const commitBtn = document.getElementById("subtitleSearchCommitBtn");
 
     if (wordInput) {
-        wordInput.setAttribute("placeholder", dict.subtitleSearchWord || "Search word");
-        wordInput.setAttribute("aria-label", dict.subtitleSearchWord || "Search word");
+        wordInput.setAttribute("placeholder", t("subtitleSearchWord"));
+        wordInput.setAttribute("aria-label", t("subtitleSearchWord"));
     }
 
     if (timeInput) {
-        timeInput.setAttribute("placeholder", dict.subtitleSearchTime || "Time");
-        timeInput.setAttribute("aria-label", dict.subtitleSearchTime || "Time");
+        timeInput.setAttribute("placeholder", t("subtitleSearchTime"));
+        timeInput.setAttribute("aria-label", t("subtitleSearchTime"));
     }
 
     if (prevBtn) {
-        prevBtn.setAttribute("title", dict.subtitleSearchPrev || "Previous result");
-        prevBtn.setAttribute("aria-label", dict.subtitleSearchPrev || "Previous result");
+        prevBtn.setAttribute("title", t("subtitleSearchPrev"));
+        prevBtn.setAttribute("aria-label", t("subtitleSearchPrev"));
     }
 
     if (nextBtn) {
-        nextBtn.setAttribute("title", dict.subtitleSearchNext || "Next result");
-        nextBtn.setAttribute("aria-label", dict.subtitleSearchNext || "Next result");
+        nextBtn.setAttribute("title", t("subtitleSearchNext"));
+        nextBtn.setAttribute("aria-label", t("subtitleSearchNext"));
     }
 
     if (commitBtn) {
-        commitBtn.setAttribute("title", dict.subtitleSearchCommit || "Go to result");
-        commitBtn.setAttribute("aria-label", dict.subtitleSearchCommit || "Go to result");
+        commitBtn.setAttribute("title", t("subtitleSearchCommit"));
+        commitBtn.setAttribute("aria-label", t("subtitleSearchCommit"));
     }
 }

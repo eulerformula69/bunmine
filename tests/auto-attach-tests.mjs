@@ -1,6 +1,6 @@
 import { installDom } from "./dom-environment.mjs";
 const dom = installDom();
-const { t: translate } = await import("../dist/esm/player/ui.js");
+const { t: translate } = await import("../dist/esm/core/translate.js");
 import assert from "node:assert/strict";
 
 let browserLock = false;

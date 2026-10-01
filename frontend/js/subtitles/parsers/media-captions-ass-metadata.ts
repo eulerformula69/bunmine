@@ -1,4 +1,3 @@
-
 export interface MediaCaptionsAssCueMetadata {
     startTime: number;
     endTime: number;

@@ -1,12 +1,21 @@
-import { addCardToDeck, addKnownBasicBtn, overlay } from "../core/dom.js";
-import { addWordToKnownBasic } from "./app.js";
+import { addCardToDeck,addKnownBasicBtn,overlay } from "../core/dom.js";
+
+import { addWordToKnownBasic } from "./controllers.js";
+
 import { state } from "../core/state.js";
+
 import { captureSelectedCandidate } from "./candidate-bindings.js";
+
 import { candidateCaptureHotkey } from "./candidate-model.js";
+
 import { isEditableHotkeyTarget } from "./hotkeys.js";
-import { getCleanSelectedText, hideAddKnownBasicButton, showAddKnownBasicButtonForSelection } from "./ui.js";
-import { getSubtitleIndexFromSelection } from "./selection-model.js";
+
+import { getCleanSelectedText,hideAddKnownBasicButton,showAddKnownBasicButtonForSelection } from "./ui.js";
+
 import { autoAttachController } from "./auto-attach-bindings.js";
+
+import { getSubtitleIndexFromSelection } from "./selection-model.js";
+
 addKnownBasicBtn?.addEventListener("mousedown", (e) => {
     e.preventDefault();
 });
@@ -19,6 +28,7 @@ addKnownBasicBtn?.addEventListener("click", async (e) => {
 });
 
 addCardToDeck?.addEventListener("mousedown", (event) => event.preventDefault());
+
 addCardToDeck?.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();

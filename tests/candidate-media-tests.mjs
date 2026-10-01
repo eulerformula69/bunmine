@@ -11,7 +11,7 @@ const fields = {
 let includeImageSubtitle = true;
 let currentContext = { startTime: 10, endTime: 15, text: "猫です。" };
 const requests = [];
-const context = await import("../dist/esm/player/anki-actions.js");
+const context = { ...await import("../dist/esm/player/anki-actions.js"), ...await import("../dist/esm/anki/media-snapshot.js") };
 function syncFields() {
     for (const [id, value] of Object.entries(fields)) document.getElementById(id).value = value;
     document.getElementById("includeImageSubtitle").checked = includeImageSubtitle;

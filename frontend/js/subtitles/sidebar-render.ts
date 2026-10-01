@@ -1,13 +1,27 @@
 import { SubtitleSearchResult } from "./search.js";
+
 import { formatTime } from "./parsing.js";
+
 import { RuntimeSubtitleCue } from "./model.js";
-import { clearSearchMatches, getCurrentSearchMatch, getSubtitleContextRange, initSubtitleSearchPanel, syncSubtitleStyle } from "./subtitles-sidebar.js";
+
+import { getSubtitleContextRange } from "./context-range.js";
+
+import { clearSearchMatches,getCurrentSearchMatch,initSubtitleSearchPanel } from "./search-controller.js";
+
 import { state } from "../core/state.js";
+
 import { startSubtitleContextDrag } from "./context-drag.js";
-import { overlay, video } from "../core/dom.js";
+
+import { overlay,video } from "../core/dom.js";
+
+import { syncSubtitleStyle } from "./subtitles-sidebar.js";
+
 import { renderSubtitleOverlay } from "./subtitles.js";
+
 import { ankiSubtitleHighlighter } from "../highlighter/anki-highlighter.js";
+
 import { updatePlayButton } from "../player/ui.js";
+
 export type SubtitleDepthKind = "back" | "forward";
 
 export interface SubtitleContextRangeLike {
@@ -99,9 +113,13 @@ export function createSubtitleDepthHandleElement(
 }
 
 export const renderedSubtitleSourceState = { value: null as RuntimeSubtitleCue[] | null };
+
 export const renderedSubtitleDelayState = { value: NaN };
+
 export const renderedSubtitleListState = { value: null as HTMLElement | null };
+
 export const renderedSubtitleContextState = { value: null as SubtitleContextRangeLike | null };
+
 export const renderedSubtitleSearchState = { value: null as SubtitleSearchResult | null };
 
 export function refreshSubtitleRows(): void {

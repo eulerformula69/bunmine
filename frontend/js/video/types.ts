@@ -1,4 +1,5 @@
 import { VideoListItem } from "../types/api.js";
+
 export interface VideoRestoreDom {
     video: HTMLVideoElement;
     dropzone: HTMLElement;

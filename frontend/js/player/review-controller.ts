@@ -1,7 +1,11 @@
 import { candidateApi } from "./candidate-api.js";
-import { AnkiMediaSnapshot } from "./anki-actions.js";
-import { MiningCandidate, findCandidateNote } from "./candidate-model.js";
-import { t } from "./ui.js";
+
+import { AnkiMediaSnapshot } from "../anki/media-snapshot.js";
+
+import { MiningCandidate,findCandidateNote } from "./candidate-model.js";
+
+import { t } from "../core/translate.js";
+
 export interface CandidateReviewOptions {
     action: typeof candidateApi.action;
     noteIds(snapshot: AnkiMediaSnapshot): Promise<number[]>;

@@ -2,8 +2,7 @@ import assert from "node:assert/strict";
 import { installDom } from "./dom-environment.mjs";
 const dom = installDom();
 
-await import("../dist/esm/player/sidebar-i18n.js");
-const context = { ...await import("../dist/esm/player/candidate-panel.js"), ...await import("../dist/esm/player/ui.js") };
+const context = { ...await import("../dist/esm/player/candidate-panel.js"), ...await import("../dist/esm/core/translate.js") };
 const {state} = await import("../dist/esm/core/state.js");
 context.setLanguage = language => { state.currentLang = language; };
 context.setLanguage("ru");

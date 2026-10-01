@@ -1,19 +1,16 @@
 import { ApiPayload } from "./api.js";
-export type ToastType = "info" | "success" | "error" | "warning" | string;
 
+export type ToastType = "info" | "success" | "error" | "warning" | string;
 
 export interface VideoFilePayload {
     filename: string;
 }
 
-
 export interface LibraryVideoFilePayload {
     videoFileId: string | number;
 }
 
-
 export type CurrentVideoPayload = VideoFilePayload | LibraryVideoFilePayload;
-
 
 export interface LibraryPlaybackPayload extends ApiPayload {
     seriesId?: string | number | null;
@@ -27,7 +24,6 @@ export interface LibraryPlaybackPayload extends ApiPayload {
     episodeTitle?: string;
 }
 
-
 export interface LibraryProgressPayload extends ApiPayload {
     progress?: {
         completed?: boolean;
@@ -36,7 +32,6 @@ export interface LibraryProgressPayload extends ApiPayload {
         watched_seconds?: number;
     };
 }
-
 
 declare global {
 interface Window {
@@ -49,11 +44,9 @@ interface Window {
 }
 }
 
-
 export interface JapaneseTokenizer {
     tokenize(text: string): JapaneseToken[];
 }
-
 
 export interface JapaneseToken {
     surface_form?: string;
@@ -64,12 +57,10 @@ export interface JapaneseToken {
     [key: string]: unknown;
 }
 
-
 export interface RuntimeWordStatusInfo {
     status?: string;
     [key: string]: unknown;
 }
-
 
 export interface AnkiHighlightRefreshResult {
     count?: number;

@@ -1,21 +1,40 @@
-import { apiJson, buildApiUrl, getApiErrorMessage } from "../core/api.js";
+import { apiJson,buildApiUrl,getApiErrorMessage } from "../core/api.js";
+
 import { VideoListResponse } from "../types/api.js";
-import { dropzone, overlay, video, videoPickerList, videoPickerModal } from "../core/dom.js";
+
+import { dropzone,overlay,video,videoPickerList,videoPickerModal } from "../core/dom.js";
+
 import { UploadedVideoInfo } from "./types.js";
+
 import { state } from "../core/state.js";
+
 import { restoreSubtitleFromServer } from "./upload.js";
-import { clearRuntimeWordStatuses } from "../highlighter/anki-highlighter.js";
+
+import { clearRuntimeWordStatuses } from "../highlighter/word-status-store.js";
+
 import { renderSubtitles } from "../subtitles/sidebar-render.js";
+
 import { renderSubtitleOverlay } from "../subtitles/subtitles.js";
-import { showToast, t } from "../player/ui.js";
+
+import { t } from "../core/translate.js";
+import { showToast } from "../player/ui.js";
+
 import { LibraryPlaybackPayload } from "../types/runtime-types.js";
+
 import { updateEpisodeNavigation } from "../player/episode-navigation.js";
+
 import { resetLibraryProgressTracking } from "./progress.js";
+
 import { restoreSubtitleFromCurrentTime } from "../subtitles/subtitles-sidebar.js";
-import { prefetchRuntimeStatusesForAllSubtitles } from "../player/app.js";
+
+import { prefetchRuntimeStatusesForAllSubtitles } from "../player/controllers.js";
+
 import { parseSubtitleSource } from "../subtitles/parse-subtitle-source.js";
+
 import { detectSubtitleFormat } from "../subtitles/format-detection.js";
+
 import { toRuntimeSubtitleCues } from "../subtitles/model.js";
+
 export async function restoreCurrentVideoFromServer(): Promise<void> {
     try {
         const { data } = await apiJson<VideoListResponse>("/videos");
@@ -119,7 +138,6 @@ export function showVideoPickerModal(videos: UploadedVideoInfo[]): void {
     videoPickerModal.classList.remove("hidden");
 }
 
-
 export async function loadLibraryEpisodeFromUrl(): Promise<boolean> {
     const params = new URLSearchParams(window.location.search);
     const episodeId = params.get("episodeId");
@@ -154,7 +172,6 @@ export async function loadLibraryEpisodeFromUrl(): Promise<boolean> {
         return false;
     }
 }
-
 
 export async function loadLibraryEpisodePlayback(
     playback: LibraryPlaybackPayload,
@@ -238,7 +255,6 @@ export async function loadLibraryEpisodePlayback(
         prefetchRuntimeStatusesForAllSubtitles({ silent: true });
     });
 }
-
 
 export async function restoreLibrarySubtitle(subtitleUrl: string): Promise<void> {
     try {

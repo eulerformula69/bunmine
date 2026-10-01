@@ -1,5 +1,7 @@
 import { RuntimeSubtitleCue } from "../subtitles/model.js";
+
 import { SubtitleSearchResult } from "../subtitles/search.js";
+
 export interface SubtitleElementRef {
     index: number;
     div: HTMLElement;

@@ -1,4 +1,5 @@
 import { RuntimeSubtitleCue } from "./model.js";
+
 export interface SubtitleRenderModel {
     index: number;
     start: number;

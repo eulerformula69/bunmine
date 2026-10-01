@@ -1,7 +1,11 @@
-import { SubtitleParseError, SubtitleParseInput, SubtitleParseResult, SubtitleParser } from "../parser-types.js";
+import { SubtitleParseError,SubtitleParseInput,SubtitleParseResult,SubtitleParser } from "../parser-types.js";
+
 import { SubtitleFormat } from "../model.js";
-import { MediaCaptionsAssCueMetadata, extractMediaCaptionsAssMetadata, extractMediaCaptionsAssText, matchMediaCaptionsAssMetadata, normalizeMediaCaptionsAssSource } from "./media-captions-ass-metadata.js";
-import { SubtitleCueDraft, normalizeSubtitleCues } from "../normalization.js";
+
+import { MediaCaptionsAssCueMetadata,extractMediaCaptionsAssMetadata,extractMediaCaptionsAssText,matchMediaCaptionsAssMetadata,normalizeMediaCaptionsAssSource } from "./media-captions-ass-metadata.js";
+
+import { SubtitleCueDraft,normalizeSubtitleCues } from "../normalization.js";
+
 export interface MediaCaptionsLibraryCue {
     id: string;
     startTime: number;

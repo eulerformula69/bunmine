@@ -1,6 +1,9 @@
-import { SubtitleParseInput, SubtitleParseResult, SubtitleParser } from "../parser-types.js";
+import { SubtitleParseInput,SubtitleParser,SubtitleParseResult } from "../parser-types.js";
+
 import { SubtitleFormat } from "../model.js";
-import { SubtitleCueDraft, normalizeSubtitleCues } from "../normalization.js";
+
+import { normalizeSubtitleCues,SubtitleCueDraft } from "../normalization.js";
+
 export interface ExternalSubtitleCue {
     id?: string;
     startTime: number;

@@ -1,6 +1,9 @@
-import { SubtitleDepthKind, renderSubtitles } from "./sidebar-render.js";
+import { SubtitleDepthKind,renderSubtitles } from "./sidebar-render.js";
+
 import { state } from "../core/state.js";
-import { getSubtitleContextRange, setSubtitleContextDepths } from "./subtitles-sidebar.js";
+
+import { getSubtitleContextRange,setSubtitleContextDepths } from "./context-range.js";
+
 export interface ActiveSubtitleContextDrag {
     kind: SubtitleDepthKind;
     currentIdx: number;

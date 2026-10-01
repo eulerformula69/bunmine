@@ -1,4 +1,5 @@
 import { RuntimeSubtitleCue } from "./model.js";
+
 export function findSubtitleIndexForOffset(
     cues: RuntimeSubtitleCue[],
     currentTime: number,

@@ -1,4 +1,3 @@
-
 export interface ApiErrorInfo {
     code?: string;
     message?: string;

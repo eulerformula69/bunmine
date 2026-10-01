@@ -1,6 +1,10 @@
-import { LibraryEpisodeView, LibrarySeriesView, SubtitleCandidate, SubtitleEpisodeSelection } from "./library-types.js";
+import { LibraryEpisodeView,LibrarySeriesView,SubtitleCandidate,SubtitleEpisodeSelection } from "./library-types.js";
+import { createLibrarySearchModal } from "./search-modal.js";
+
 import { LibraryTranslate } from "./library-presentation.js";
-import { ApiPayload, LibraryMutationResponse } from "../types/api.js";
+
+import { ApiPayload,LibraryMutationResponse } from "../types/api.js";
+
 export interface LibrarySubtitleControllerOptions {
     modal: HTMLElement;
     title: HTMLElement;
@@ -19,27 +23,12 @@ export interface LibrarySubtitleControllerOptions {
 }
 
 export function createLibrarySubtitleController(options: LibrarySubtitleControllerOptions) {
-    let current: SubtitleEpisodeSelection | null = null;
     const t = options.translate;
-
-    function openModal(): void {
-        options.modal.classList.remove("hidden");
-        document.body.classList.add("modal-open");
-    }
-
-    function close(): void {
-        options.modal.classList.add("hidden");
-        document.body.classList.remove("modal-open");
-        current = null;
-    }
-
-    function render(results: SubtitleCandidate[]): void {
-        options.results.innerHTML = "";
-        if (!results.length) {
-            options.results.innerHTML = `<div class="cover-message">${options.escapeHtml(t("noDirectSubtitles"))}</div>`;
-            return;
-        }
-        for (const result of results) {
+    const controller = createLibrarySearchModal<SubtitleEpisodeSelection, SubtitleCandidate>(options, {
+        describe: ({episode}) => ({id: episode.id, query: options.getSeries()?.title || "",
+            title: t(episode.hasSubtitle ? "changeJapaneseSubtitles" : "findJapaneseSubtitles"),
+            subtitle: `${options.getSeries()?.title} · ${t("episodeLabel", {number: episode.episodeNumber ?? "?"})}`}),
+        render(result) {
             const item = document.createElement("button");
             item.type = "button";
             item.className = "subtitle-result-item";
@@ -50,53 +39,11 @@ export function createLibrarySubtitleController(options: LibrarySubtitleControll
                 <div class="cover-result-title">${options.escapeHtml(result.filename || t("untitledSubtitle"))}</div>
                 <div class="cover-result-meta">${options.escapeHtml(meta)}</div>
             </div>`;
-            item.addEventListener("click", () => selectResult(result));
-            options.results.appendChild(item);
-        }
-    }
 
-    async function open(episode: LibraryEpisodeView, row: HTMLElement): Promise<void> {
-        const series = options.getSeries();
-        if (!series) return;
-        current = { episode, row };
-        options.title.textContent = episode.hasSubtitle ? t("changeJapaneseSubtitles") : t("findJapaneseSubtitles");
-        options.subtitle.textContent = `${series.title} · ${t("episodeLabel", { number: episode.episodeNumber ?? "?" })}`;
-        options.searchInput.value = series.title;
-        options.results.innerHTML = `<div class="cover-message">${options.escapeHtml(t("subtitleQueryHint"))}</div>`;
-        openModal();
-        options.searchInput.focus();
-        options.searchInput.select();
-    }
-
-    async function searchCurrent(): Promise<void> {
-        if (!current) return;
-        const query = options.searchInput.value.trim() || options.getSeries()?.title || "";
-        options.searchButton.disabled = true;
-        options.searchButton.textContent = t("searching");
-        options.results.innerHTML = `<div class="cover-message">${options.escapeHtml(t("searchingJimaku"))}</div>`;
-        try {
-            const { response, data } = await options.search(current.episode.id, query);
-            if (!response.ok || data.error) throw new Error(String(data.error || t("subtitleSearchFailed")));
-            render((data.results || []) as SubtitleCandidate[]);
-        } catch (error) {
-            const message = error instanceof Error ? error.message : String(error);
-            options.results.innerHTML = `<div class="cover-message error">${options.escapeHtml(message)}</div>`;
-        } finally {
-            options.searchButton.disabled = false;
-            options.searchButton.textContent = t("search");
-        }
-    }
-
-    async function selectResult(result: SubtitleCandidate): Promise<void> {
-        if (!current) return;
-        const { episode, row } = current;
-        options.results.classList.add("is-loading");
-        try {
-            const { response, data } = await options.select(episode.id, {
-                source: result.source, entryId: result.entryId,
-                filename: result.filename, downloadUrl: result.downloadUrl,
-            });
-            if (!response.ok || data.error) throw new Error(String(data.error || t("couldNotSaveSubtitle")));
+            return item;
+        },
+        payload: result => ({source: result.source, entryId: result.entryId, filename: result.filename, downloadUrl: result.downloadUrl}),
+        saved({episode,row},data) {
             episode.hasSubtitle = true;
             episode.subtitleFileId = (data as LibraryMutationResponse & { subtitleFileId?: number | null }).subtitleFileId;
             episode.linkStatus = episode.hasVideo ? "linked" : "partial";
@@ -108,13 +55,12 @@ export function createLibrarySubtitleController(options: LibrarySubtitleControll
             const button = row.querySelector(".find-subtitles-btn");
             if (button) button.textContent = t("changeJpSubs");
             options.refreshSeriesStatus();
-            close();
-        } catch (error) {
-            options.reportError?.(error instanceof Error ? error.message : String(error));
-        } finally {
-            options.results.classList.remove("is-loading");
-        }
-    }
 
-    return { open, close, search: searchCurrent };
+        },
+        empty: "noDirectSubtitles", searching: "searchingJimaku", searchError: "subtitleSearchFailed",
+        saveError: "couldNotSaveSubtitle", initialHint: "subtitleQueryHint"
+    });
+    return {...controller, async open(episode: LibraryEpisodeView, row: HTMLElement) {
+        if (options.getSeries()) await controller.open({episode,row});
+    }};
 }

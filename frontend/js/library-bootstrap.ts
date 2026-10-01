@@ -1,12 +1,1 @@
-import "./core/api.js";
-import "./library/library-api.js";
-import "./library/library-types.js";
-import "./library/library-i18n.js";
-import "./library/library-presentation.js";
-import "./library/library-bulk-model.js";
-import "./library/library-cover-controller.js";
-import "./library/library-subtitle-controller.js";
-import "./library/library-bulk-workflow.js";
-import "./library/vocabulary-report-controller.js";
-import "./library/library.js";
 import "./library/library-bindings.js";

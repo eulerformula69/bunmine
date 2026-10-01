@@ -1,4 +1,5 @@
-import { ApiPayload, ApiResult } from "../types/api.js";
+import { ApiPayload,ApiResult } from "../types/api.js";
+
 export const API_BASE = window.location.origin;
 
 export function buildApiUrl(path: string): string {

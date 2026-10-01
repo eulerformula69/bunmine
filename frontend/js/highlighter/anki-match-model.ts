@@ -1,5 +1,7 @@
-import { AnkiTextMatch, HighlightSpan, normalizeHighlightWord } from "./anki-highlighter.js";
+import { AnkiTextMatch,HighlightSpan,normalizeHighlightWord } from "./word-status-store.js";
+
 import { JapaneseToken } from "../types/runtime-types.js";
+
 export function normalizeJapaneseNumberText(value: unknown): string {
     return String(value || "")
         .replace(/[０-９]/g, (ch) =>
@@ -22,8 +24,6 @@ export function getTokenStart(token: JapaneseToken): number {
 export function getTokenEnd(token: JapaneseToken): number {
     return getTokenStart(token) + String(token.surface_form || "").length;
 }
-
-
 
 export function getJapaneseTokenCandidates(token: JapaneseToken): string[] {
     const surface = String(token.surface_form || "");

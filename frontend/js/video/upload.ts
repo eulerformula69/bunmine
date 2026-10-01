@@ -1,13 +1,24 @@
-import { apiJson, buildApiUrl, getApiErrorMessage } from "../core/api.js";
+import { apiJson,buildApiUrl,getApiErrorMessage } from "../core/api.js";
+
 import { CurrentVideoResponse } from "../types/api.js";
-import { showToast, t } from "../player/ui.js";
+
+import { t } from "../core/translate.js";
+import { showToast } from "../player/ui.js";
+
 import { state } from "../core/state.js";
+
 import { parseSubtitleSource } from "../subtitles/parse-subtitle-source.js";
+
 import { detectSubtitleFormat } from "../subtitles/format-detection.js";
+
 import { toRuntimeSubtitleCues } from "../subtitles/model.js";
-import { clearRuntimeWordStatuses } from "../highlighter/anki-highlighter.js";
+
+import { clearRuntimeWordStatuses } from "../highlighter/word-status-store.js";
+
 import { renderSubtitles } from "../subtitles/sidebar-render.js";
-import { prefetchRuntimeStatusesForAllSubtitles } from "../player/app.js";
+
+import { prefetchRuntimeStatusesForAllSubtitles } from "../player/controllers.js";
+
 export async function uploadVideoInBackground(videoFile: File, subtitleFile: File | null = null): Promise<void> {
     const form = new FormData();
     form.append("videoFile", videoFile);

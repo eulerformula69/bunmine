@@ -1,4 +1,5 @@
-import type { LibraryPlaybackPayload } from "./types/runtime-types.js";
+import { LibraryPlaybackPayload } from "./types/runtime-types.js";
+
 {
     const startEarlyLibraryPlayback = (): Promise<LibraryPlaybackPayload | null> => {
         const episodeId = new URLSearchParams(window.location.search).get("episodeId");

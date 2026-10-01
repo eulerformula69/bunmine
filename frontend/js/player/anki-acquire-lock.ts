@@ -1,4 +1,5 @@
-import { t } from "./ui.js";
+import { t } from "../core/translate.js";
+
 export const ankiAcquireRunningState = { value: false };
 
 export async function runExclusiveAnkiAcquire<T>(work: () => Promise<T>): Promise<T> {

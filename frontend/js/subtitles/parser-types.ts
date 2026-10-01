@@ -1,4 +1,5 @@
-import { SubtitleCue, SubtitleFormat } from "./model.js";
+import { SubtitleCue,SubtitleFormat } from "./model.js";
+
 export interface SubtitleParseInput {
     source: string;
     format: SubtitleFormat;

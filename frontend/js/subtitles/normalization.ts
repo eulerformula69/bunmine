@@ -1,5 +1,7 @@
-import { SubtitleCue, SubtitleFormat } from "./model.js";
+import { SubtitleCue,SubtitleFormat } from "./model.js";
+
 import { SubtitleParseWarning } from "./parser-types.js";
+
 export interface SubtitleCueDraft extends Omit<SubtitleCue, "id" | "startTime" | "endTime" | "text"> {
     id?: string;
     startTime: number;

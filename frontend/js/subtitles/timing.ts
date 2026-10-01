@@ -1,7 +1,11 @@
 import { state } from "../core/state.js";
+
 import { RuntimeSubtitleCue } from "./model.js";
+
 import { video } from "../core/dom.js";
+
 import { syncSubtitleStyle } from "./subtitles-sidebar.js";
+
 // state helpers
 
 export function getCurrentSubtitle() {

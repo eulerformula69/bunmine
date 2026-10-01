@@ -1,23 +1,49 @@
-import { AnkiMediaSnapshot, fetchNoteIdsByQuery, fetchNotesInfo, stripHtml } from "./anki-actions.js";
-import { getCleanSelectedText, showToast, t } from "./ui.js";
-import { getSubtitleIndexFromSelection } from "./selection-model.js";
+import { AnkiMediaSnapshot } from "../anki/media-snapshot.js";
+import { reportError } from "./toast.js";
+
+import { fetchNoteIdsByQuery,fetchNotesInfo } from "../anki/notes.js";
+
+import { stripHtml } from "../anki/note-fields.js";
+
+import { t } from "../core/translate.js";
+import { getCleanSelectedText,showToast } from "./ui.js";
+
 import { createCandidateExportService } from "./candidate-export.js";
+
 import { candidateApi } from "./candidate-api.js";
+
 import { createCandidateReviewController } from "./review-controller.js";
-import { ankiMediaController, refreshTargetNoteList, updateAnkiNoteWithSnapshot } from "./app.js";
+
+import { ankiMediaController,refreshTargetNoteList,updateAnkiNoteWithSnapshot } from "./controllers.js";
+
 import { sleep } from "../core/api.js";
+
 import { createCandidateLoop } from "./candidate-loop.js";
-import { sidebar, video } from "../core/dom.js";
+
+import { sidebar,video } from "../core/dom.js";
+
 import { createCandidatePanel } from "./candidate-panel.js";
-import { ankiAcquireRunningState, runExclusiveAnkiAcquire } from "./anki-acquire-lock.js";
+
+import { ankiAcquireRunningState,runExclusiveAnkiAcquire } from "./anki-acquire-lock.js";
+
 import { getCurrentVideoPayload } from "../video/media-payload.js";
+
 import { resetLibraryProgressTracking } from "../video/progress.js";
+
 import { playCandidateSource } from "./candidate-playback.js";
-import { captureCandidateContext, restoreCandidateContext } from "./candidate-context-model.js";
+
+import { captureCandidateContext,restoreCandidateContext } from "./candidate-context-model.js";
+
 import { state } from "../core/state.js";
+
 import { createCandidateCaptureController } from "./capture-controller.js";
-import { getSubtitleContextRange } from "../subtitles/subtitles-sidebar.js";
+
+import { getSubtitleContextRange } from "../subtitles/context-range.js";
+
 import { autoAttachController } from "./auto-attach-bindings.js";
+
+import { getSubtitleIndexFromSelection } from "./selection-model.js";
+
 export async function verifyCandidateAnkiNote(noteId: number, snapshot: AnkiMediaSnapshot): Promise<void> {
     const [note] = await fetchNotesInfo(snapshot.ankiUrl, [noteId]);
     const word = stripHtml(snapshot.selectedWord).toLowerCase();
@@ -53,6 +79,7 @@ export const candidateReview = createCandidateReviewController({
 });
 
 export const candidateLoop = createCandidateLoop(video);
+
 export const candidatePanel = createCandidatePanel({
     sidebar,
     busy: () => candidateReview.isBusy() || ankiAcquireRunningState.value,
@@ -73,9 +100,7 @@ export const candidatePanel = createCandidatePanel({
     },
     reject: candidateReview.reject,
     error: (error) => {
-        const message = error instanceof Error ? error.message : String(error);
-        candidatePanel.status(message);
-        showToast(message, "error", 6000);
+        reportError(error, {status: candidatePanel.status});
     },
 });
 
@@ -98,11 +123,12 @@ export async function captureSelectedCandidate(): Promise<void> {
         autoAttachController.cancel();
         await captureCandidate(getCleanSelectedText(), getSubtitleIndexFromSelection());
     } catch (error) {
-        showToast(error instanceof Error ? error.message : String(error), "error", 6000);
+        reportError(error);
     }
 }
 
 void candidatePanel.refresh().catch((error) => candidatePanel.status(String(error)));
+
 window.addEventListener("focus", () => {
     if (!candidateReview.isBusy()) void candidatePanel.refresh().catch((error) => candidatePanel.status(String(error)));
 });

@@ -1,7 +1,11 @@
-import { apiJson, getApiErrorMessage } from "../core/api.js";
+import { apiJson,getApiErrorMessage } from "../core/api.js";
+
 import { MiningCandidate } from "./candidate-model.js";
-import { AnkiMediaSnapshot } from "./anki-actions.js";
+
+import { AnkiMediaSnapshot } from "../anki/media-snapshot.js";
+
 import { CandidateContext } from "./candidate-context-model.js";
+
 export async function candidateRequest(path = "", body?: object): Promise<any> {
     const { response, data } = await apiJson(`/mining-candidates${path}`, body === undefined ? {} : {
         method: "POST",

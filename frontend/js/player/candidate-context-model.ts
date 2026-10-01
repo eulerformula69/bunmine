@@ -1,6 +1,9 @@
-import { AnkiMediaSnapshot } from "./anki-actions.js";
+import { AnkiMediaSnapshot } from "../anki/media-snapshot.js";
+
 import { buildSubtitleContextSelection } from "../subtitles/context-selection.js";
+
 export interface CandidateCue { start: number; end: number; text: string; }
+
 export interface CandidateContext {
     cues: CandidateCue[];
     anchor: number;

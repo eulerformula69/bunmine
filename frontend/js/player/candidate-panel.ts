@@ -1,10 +1,17 @@
-import { MiningCandidate } from "./candidate-model.js";
-import { CandidateContext } from "./candidate-context-model.js";
-import { t } from "./ui.js";
-import { createCandidateContextEditor } from "./candidate-context-editor.js";
-import { VideoFilePayload } from "../types/runtime-types.js";
-import { formatTime } from "../subtitles/parsing.js";
 import { candidateApi } from "./candidate-api.js";
+
+import { createCandidateContextEditor } from "./candidate-context-editor.js";
+
+import { MiningCandidate } from "./candidate-model.js";
+
+import { CandidateContext } from "./candidate-context-model.js";
+
+import { t } from "../core/translate.js";
+
+import { VideoFilePayload } from "../types/runtime-types.js";
+
+import { formatTime } from "../subtitles/parsing.js";
+
 export function createCandidatePanel(options: {
     list?: typeof candidateApi.list;
     createEditor?: typeof createCandidateContextEditor;

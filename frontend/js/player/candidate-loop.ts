@@ -1,5 +1,7 @@
 import { playMedia } from "../video/media-playback.js";
-import { AnkiMediaSnapshot } from "./anki-actions.js";
+
+import { AnkiMediaSnapshot } from "../anki/media-snapshot.js";
+
 export function createCandidateLoop(media: HTMLVideoElement) {
     let range: { start: number; end: number } | null = null;
     let frame = 0;

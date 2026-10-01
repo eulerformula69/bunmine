@@ -1,7 +1,11 @@
-import { RuntimeSubtitleCue, SubtitleFormat } from "../model.js";
-import { SubtitleCueDraft, normalizeSubtitleCues } from "../normalization.js";
-import { SubtitleParseError, SubtitleParseInput, SubtitleParseResult, SubtitleParser } from "../parser-types.js";
-import { parseASS, parseSRT } from "../parsing.js";
+import { RuntimeSubtitleCue,SubtitleFormat } from "../model.js";
+
+import { SubtitleCueDraft,normalizeSubtitleCues } from "../normalization.js";
+
+import { SubtitleParseError,SubtitleParseInput,SubtitleParseResult,SubtitleParser } from "../parser-types.js";
+
+import { parseASS,parseSRT } from "../parsing.js";
+
 export function fromRuntimeSubtitleCue(
     cue: RuntimeSubtitleCue,
     format: SubtitleFormat

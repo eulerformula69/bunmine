@@ -1,6 +1,10 @@
 import { LibraryTranslate } from "./library-presentation.js";
+import { createLibrarySearchModal } from "./search-modal.js";
+
 import { ApiPayload } from "../types/api.js";
-import { CoverSearchResult, LibrarySeriesView } from "./library-types.js";
+
+import { CoverSearchResult,LibrarySeriesView } from "./library-types.js";
+
 export interface LibraryCoverControllerOptions {
     modal: HTMLElement;
     title: HTMLElement;
@@ -17,28 +21,11 @@ export interface LibraryCoverControllerOptions {
 }
 
 export function createLibraryCoverController(options: LibraryCoverControllerOptions) {
-    let currentSeries: LibrarySeriesView | null = null;
     const t = options.translate;
-
-    function openModal(): void {
-        options.modal.classList.remove("hidden");
-        document.body.classList.add("modal-open");
-    }
-
-    function closeModal(): void {
-        options.modal.classList.add("hidden");
-        document.body.classList.remove("modal-open");
-        currentSeries = null;
-    }
-
-    function render(results: CoverSearchResult[]): void {
-        options.results.innerHTML = "";
-        if (!results.length) {
-            options.results.innerHTML = `<div class="cover-message">${options.escapeHtml(t("noResultsFound"))}</div>`;
-            return;
-        }
-
-        for (const result of results) {
+    return createLibrarySearchModal<LibrarySeriesView, CoverSearchResult>(options, {
+        describe: series => ({ id: series.id, query: series.title,
+            title: t(series.coverUrl ? "changeCover" : "findCover"), subtitle: series.title }),
+        render(result) {
             const item = document.createElement("button");
             item.type = "button";
             item.className = "cover-result-item";
@@ -51,57 +38,11 @@ export function createLibraryCoverController(options: LibraryCoverControllerOpti
                     <div class="cover-result-subtitle">${options.escapeHtml(result.englishTitle || result.nativeTitle || "")}</div>
                     <div class="cover-result-meta">${options.escapeHtml(meta)}</div>
                 </div>`;
-            item.addEventListener("click", () => selectResult(result));
-            options.results.appendChild(item);
-        }
-    }
 
-    async function searchCurrent(): Promise<void> {
-        if (!currentSeries) return;
-        const series = currentSeries;
-        const query = options.searchInput.value.trim() || series.title;
-        options.searchButton.disabled = true;
-        options.searchButton.textContent = t("searching");
-        options.results.innerHTML = `<div class="cover-message">${options.escapeHtml(t("searching"))}</div>`;
-        try {
-            const { response, data } = await options.search(series.id, query);
-            if (!response.ok || data.error) throw new Error(String(data.error || t("coverSearchFailed")));
-            render((data.results || []) as CoverSearchResult[]);
-        } catch (error) {
-            const message = error instanceof Error ? error.message : String(error);
-            options.results.innerHTML = `<div class="cover-message error">${options.escapeHtml(message)}</div>`;
-        } finally {
-            options.searchButton.disabled = false;
-            options.searchButton.textContent = t("search");
-        }
-    }
-
-    async function open(series: LibrarySeriesView): Promise<void> {
-        currentSeries = series;
-        options.title.textContent = series.coverUrl ? t("changeCover") : t("findCover");
-        options.subtitle.textContent = series.title;
-        options.searchInput.value = series.title;
-        options.results.innerHTML = "";
-        openModal();
-        await searchCurrent();
-    }
-
-    async function selectResult(result: CoverSearchResult): Promise<void> {
-        if (!currentSeries) return;
-        options.results.classList.add("is-loading");
-        try {
-            const { response, data } = await options.select(currentSeries.id, {
-                source: result.source, externalId: result.externalId, coverUrl: result.coverUrl,
-            });
-            if (!response.ok || data.error) throw new Error(String(data.error || t("couldNotSaveCover")));
-            closeModal();
-            await options.reload();
-        } catch (error) {
-            options.reportError?.(error instanceof Error ? error.message : String(error));
-        } finally {
-            options.results.classList.remove("is-loading");
-        }
-    }
-
-    return { open, close: closeModal, search: searchCurrent };
+            return item;
+        },
+        payload: result => ({source: result.source, externalId: result.externalId, coverUrl: result.coverUrl}),
+        saved: () => options.reload(), closeBeforeSaved: true, searchOnOpen: true,
+        empty: "noResultsFound", searching: "searching", searchError: "coverSearchFailed", saveError: "couldNotSaveCover"
+    });
 }

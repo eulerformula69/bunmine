@@ -1,4 +1,3 @@
-
 export interface TargetNoteDropdownControllerOptions {
     select: HTMLSelectElement;
     getAnkiUrl(): string;

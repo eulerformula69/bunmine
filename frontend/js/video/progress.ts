@@ -1,16 +1,28 @@
 import { video } from "../core/dom.js";
+
 import { state } from "../core/state.js";
-import { showActionToast, showToast, t } from "../player/ui.js";
-import { apiJson, buildApiUrl, getApiErrorMessage } from "../core/api.js";
+
+import { t } from "../core/translate.js";
+import { showActionToast,showToast } from "../player/ui.js";
+
+import { apiJson,buildApiUrl,getApiErrorMessage } from "../core/api.js";
+
 export const LIBRARY_AUTO_COMPLETE_MIN_WATCHED_RATIO = 0.75;
+
 export const LIBRARY_AUTO_COMPLETE_POSITION_RATIO = 0.92;
+
 export const LIBRARY_AUTO_COMPLETE_ENDING_RATIO = 0.05;
+
 export const LIBRARY_AUTO_COMPLETE_ENDING_MAX_SECONDS = 90;
 
 export const libraryProgressLastSentAtMsState = { value: 0 };
+
 export const libraryProgressLastVideoTimeState = { value: 0 };
+
 export const libraryProgressSaveInFlightState = { value: false };
+
 export const libraryAutoCompletePromptEpisodeIdState = { value: null };
+
 export const libraryAutoCompleteDismissedEpisodeIdState = { value: null };
 
 export function resetLibraryProgressTracking() {

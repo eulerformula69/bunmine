@@ -1,6 +1,7 @@
+import { JapaneseTokenizer } from "../types/runtime-types.js";
 
-import type { JapaneseTokenizer } from "../types/runtime-types.js";
 export const japaneseTokenizerPromiseState = { value: null as Promise<JapaneseTokenizer> | null };
+
 export const japaneseTokenizerInstanceState = { value: null as JapaneseTokenizer | null };
 
 export function getJapaneseTokenizer() {

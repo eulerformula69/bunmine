@@ -1,4 +1,3 @@
-
 export function isEditableHotkeyTarget(target: EventTarget | null): boolean {
     if (!(target instanceof HTMLElement)) return false;
 

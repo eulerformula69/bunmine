@@ -1,4 +1,5 @@
 import { ApiPayload } from "../types/api.js";
+
 export interface KnownBasicActionsOptions {
     tokenize: (text: string) => Promise<Array<Record<string, unknown>>>;
     request: (path: string, options: RequestInit) => Promise<{ response: Response; data: ApiPayload }>;

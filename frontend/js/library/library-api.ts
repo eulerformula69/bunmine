@@ -1,6 +1,9 @@
-import { ApiResult, JobResponse, LibraryCoverSearchResponse, LibraryFolderDialogResponse, LibraryJobStatusResponse, LibraryMutationResponse, LibraryPlaybackResponse, LibrarySeriesDetailResponse, LibrarySeriesListResponse, LibrarySubtitlePlanResponse, LibrarySubtitleSearchResponse } from "../types/api.js";
+import { ApiResult,JobResponse,LibraryCoverSearchResponse,LibraryFolderDialogResponse,LibraryJobStatusResponse,LibraryMutationResponse,LibraryPlaybackResponse,LibrarySeriesDetailResponse,LibrarySeriesListResponse,LibrarySubtitlePlanResponse,LibrarySubtitleSearchResponse } from "../types/api.js";
+
 import { apiJson } from "../core/api.js";
+
 import { LibraryProgressPayload } from "../types/runtime-types.js";
+
 export function libraryListSeries(): Promise<ApiResult<LibrarySeriesListResponse>> {
     return apiJson<LibrarySeriesListResponse>("/library/series");
 }

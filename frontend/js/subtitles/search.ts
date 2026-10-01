@@ -1,6 +1,9 @@
 import { JapaneseToken } from "../types/runtime-types.js";
+
 import { SubtitleSearchMatch } from "../core/state.js";
+
 import { RuntimeSubtitleCue } from "./model.js";
+
 export type SubtitleTokenizer = (text: string) => JapaneseToken[] | null;
 
 export interface SubtitleWordSearchMatch extends SubtitleSearchMatch {

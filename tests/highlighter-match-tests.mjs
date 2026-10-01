@@ -8,7 +8,7 @@ import kuromoji from "kuromoji";
 
 const tokenFixtures = new Map();
 const context = Object.assign({}, ...await Promise.all([
-    "highlighter/anki-highlighter", "highlighter/anki-match-model", "subtitles/comprehension-level"
+    "highlighter/anki-highlighter", "highlighter/word-status-store", "highlighter/anki-match-model", "subtitles/comprehension-level"
 ].map(name => import('../dist/esm/' + name + '.js'))));
 const { japaneseTokenizerInstanceState } = await import("../dist/esm/japanese/japanese-tokenizer.js");
 japaneseTokenizerInstanceState.value = { tokenize: text => tokenFixtures.get(text) ?? null };

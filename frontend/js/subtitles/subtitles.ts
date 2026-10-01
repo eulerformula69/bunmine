@@ -1,5 +1,7 @@
-import { getActiveSubtitleEntries, getActiveSubtitles, getPrimarySubtitleIndex, selectPrimarySubtitle } from "./timing.js";
-import { getSubtitleComprehensionLevel, shouldShowSubtitleForComprehensionLevel } from "./comprehension-level.js";
+import { getActiveSubtitleEntries,getActiveSubtitles,getPrimarySubtitleIndex,selectPrimarySubtitle } from "./timing.js";
+
+import { getSubtitleComprehensionLevel,shouldShowSubtitleForComprehensionLevel } from "./comprehension-level.js";
+
 // overlay rendering
 
 export function clearSubtitleOverlay(overlayEl) {

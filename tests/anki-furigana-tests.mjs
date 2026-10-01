@@ -2,7 +2,7 @@ import { installDom } from "./dom-environment.mjs";
 const dom = installDom();
 import assert from "node:assert/strict";
 
-const context = await import("../dist/esm/player/anki-actions.js");
+const context = await import("../dist/esm/anki/furigana.js");
 
 const normalize = context.normalizeAnkiFuriganaWhitespace;
 const encode = context.encodeAnkiFuriganaSpaces;

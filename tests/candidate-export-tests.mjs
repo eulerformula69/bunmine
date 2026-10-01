@@ -2,14 +2,14 @@ import assert from "node:assert/strict";
 import { installDom } from "./dom-environment.mjs";
 const dom = installDom();
 
-await import("../dist/esm/player/sidebar-i18n.js");
 const ctx = Object.assign({}, ...await Promise.all(["anki-actions", "candidate-export", "candidate-model", "auto-attach-controller"].map(name => import('../dist/esm/player/' + name + '.js'))));
-const {t} = await import("../dist/esm/player/ui.js");
+const {t} = await import("../dist/esm/core/translate.js");
 const requests = [];
 globalThis.fetch = async (url, options) => {
     requests.push([url, JSON.parse(options.body)]);
     return new Response(JSON.stringify({ filename: "media", result: null }));
 };
+Object.assign(ctx, await import("../dist/esm/anki/media-snapshot.js"));
 const stored = new Map([1, 2].map((id) => [id, {
     id, revision: 1, snapshot: {
         videoPayload: { videoFileId: id }, currentIdx: 142,

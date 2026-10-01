@@ -1,8 +1,13 @@
 import { lt } from "./library-i18n.js";
-import { libraryGetJobStatus, libraryStartJob } from "./library-api.js";
+
+import { libraryGetJobStatus,libraryStartJob } from "./library-api.js";
+
 import { LibraryJobData } from "./library-types.js";
+
 import { getApiErrorMessage } from "../core/api.js";
-import { currentOpenedSeriesState } from "./library.js";
+
+import { currentOpenedSeriesState } from "./library-state.js";
+
 export function buildVocabularyReportPayload(root: ParentNode = document) {
     const statuses = Array.from(root.querySelectorAll<HTMLInputElement>('input[name="reportStatus"]:checked')).map(input => input.value);
     const selectedSheets = new Set(Array.from(root.querySelectorAll<HTMLInputElement>('input[name="reportSheet"]:checked')).map(input => input.value));

@@ -1,4 +1,3 @@
-
 export type SubtitleHighlightStatus = "new" | "learning" | "young" | "mature" | "suspended" | "unknown";
 
 export interface SubtitleHighlightStatusSetting {

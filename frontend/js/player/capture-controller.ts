@@ -1,6 +1,9 @@
-import { AnkiMediaSnapshot } from "./anki-actions.js";
+import { AnkiMediaSnapshot } from "../anki/media-snapshot.js";
+
 import { MiningCandidate } from "./candidate-model.js";
-import { t } from "./ui.js";
+
+import { t } from "../core/translate.js";
+
 export function createCandidateCaptureController(options: {
     buildSnapshot(index: number): AnkiMediaSnapshot;
     save(snapshot: AnkiMediaSnapshot): Promise<MiningCandidate>;

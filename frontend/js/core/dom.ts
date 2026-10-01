@@ -1,4 +1,3 @@
-
 function requiredElement<T>(element: T | null): T {
     if (element === null) throw new Error("Required player element is missing");
     return element;
@@ -64,7 +63,7 @@ export const dom: PlayerDom = {
     volume: requiredElement(document.getElementById("volume") as HTMLInputElement | null)
 };
 
-﻿export const {
+export const {
     video,
     sidebar,
     multiInput,

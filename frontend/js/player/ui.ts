@@ -1,13 +1,15 @@
 import { ToastType } from "../types/runtime-types.js";
+
 import { i18n } from "../core/i18n.js";
+
 import { state } from "../core/state.js";
-import { addCardToDeck, addKnownBasicBtn, fullscreenBtn, playPause, settingsBtn, video } from "../core/dom.js";
+
+import { addCardToDeck,addKnownBasicBtn,fullscreenBtn,playPause,settingsBtn,video } from "../core/dom.js";
+
 export interface ToastActionButton {
   label: string;
   onClick?: () => void | Promise<void>;
 }
-
-import { getSubtitleIndexFromSelection } from "./selection-model.js";
 
 export function showToast(message: string, type: ToastType = "info", timeout = 3000): void {
   let container = document.getElementById("mpToastContainer");
@@ -92,19 +94,6 @@ export function showActionToast(message: string, actions: ToastActionButton[] = 
   return toast;
 }
 
-export function t(key: string, params: Record<string, unknown> = {}): string {
-    const fallbackDict = i18n?.en?.dict || {};
-    const dictionary = i18n?.[state.currentLang]?.dict || fallbackDict;
-
-    let text = dictionary[key] || fallbackDict[key] || key;
-
-    for (const [name, value] of Object.entries(params)) {
-        text = text.replaceAll(`{${name}}`, String(value));
-    }
-
-    return text;
-}
-
 export function updatePlayButton(): void {
     playPause.textContent = video.paused ? "▶" : "⏸";
 }
@@ -151,7 +140,6 @@ export function isTypingTarget(target: EventTarget | null): boolean {
     return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || target.isContentEditable;
 }
 
-
 // add dynamic frame step
 export const FRAME_STEP_SECONDS = 1 / 24;
 
@@ -193,7 +181,6 @@ export function getCleanSelectedText(): string {
         .trim()
         .replace(/\s+/g, " ");
 }
-
 
 export function showAddKnownBasicButtonForSelection(): void {
     if (!addKnownBasicBtn && !addCardToDeck) return;

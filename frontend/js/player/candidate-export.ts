@@ -1,8 +1,13 @@
 import { MiningCandidate } from "./candidate-model.js";
-import { AnkiMediaSnapshot } from "./anki-actions.js";
-import { t } from "./ui.js";
-import { candidateExports, candidatePanel } from "./candidate-bindings.js";
-import { ankiMediaController } from "./app.js";
+
+import { AnkiMediaSnapshot } from "../anki/media-snapshot.js";
+
+import { t } from "../core/translate.js";
+
+import { candidateExports,candidatePanel } from "./candidate-bindings.js";
+
+import { ankiMediaController } from "./controllers.js";
+
 // Export data belongs to a candidate ID, never to the current video position.
 export function createCandidateExportService(options: {
     source(id: number): Promise<MiningCandidate>;
