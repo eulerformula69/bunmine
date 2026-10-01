@@ -5,6 +5,7 @@ from threading import Event
 import pytest
 
 from backend.app import create_app
+from backend.http_client import ResponseTooLargeError
 from backend.services import anki_highlight_store as store
 from backend.services import anki_word_model as model
 from backend.services import anki_word_sync_service as sync
@@ -86,6 +87,33 @@ def test_refresh_preserves_locked_words_or_rebuilds_them(temporary_settings, mon
     assert result["count"] == 2
     assert result["cardsChecked"] == (3 if full_rebuild else 2)
     assert calls[-1][1]["cards"] == ([11, 22, 23] if full_rebuild else [22, 23])
+
+
+def test_card_info_request_splits_large_responses(monkeypatch):
+    calls = []
+
+    def anki(_url, action, params):
+        assert action == "cardsInfo"
+        card_ids = params["cards"]
+        calls.append(card_ids)
+        if len(card_ids) > 2:
+            raise ResponseTooLargeError("Response exceeds the size limit")
+        return [{"cardId": card_id} for card_id in card_ids]
+
+    monkeypatch.setattr(sync, "_anki_request", anki)
+    result = sync._fetch_cards_info("http://anki.test", [1, 2, 3, 4, 5])
+
+    assert [card["cardId"] for card in result] == [1, 2, 3, 4, 5]
+    assert calls == [[1, 2, 3, 4, 5], [1, 2], [3, 4, 5], [3], [4, 5]]
+
+
+def test_card_info_request_reports_oversized_single_card(monkeypatch):
+    def anki(*_args):
+        raise ResponseTooLargeError("Response exceeds the size limit")
+
+    monkeypatch.setattr(sync, "_anki_request", anki)
+    with pytest.raises(ResponseTooLargeError, match="size limit"):
+        sync._fetch_cards_info("http://anki.test", [1])
 
 
 def test_failed_refresh_does_not_advance_success_clock(temporary_settings, monkeypatch):

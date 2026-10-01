@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 
+from backend.http_client import ResponseTooLargeError
 from backend.settings import Settings
 from backend.services.anki_client import (
     build_deck_query as _build_deck_query,
@@ -111,7 +112,7 @@ def _fetch_notes(request: RefreshRequest, previous_words: dict, next_words: dict
 def _fetch_card_statuses(anki_url: str, notes: dict[str, RefreshNote], card_to_note: dict[int, str],
                          candidate_card_ids: list[int]) -> None:
     for card_chunk in _chunked(candidate_card_ids, 500):
-        cards_info = _anki_request(anki_url, "cardsInfo", {"cards": card_chunk}) or []
+        cards_info = _fetch_cards_info(anki_url, card_chunk)
         for card in cards_info:
             try:
                 card_id = int(card.get("cardId") or card.get("id"))
@@ -132,6 +133,21 @@ def _fetch_card_statuses(anki_url: str, notes: dict[str, RefreshNote], card_to_n
             deck_name = str(card.get("deckName") or "").strip()
             if deck_name and (not note.deck or deck_name < note.deck):
                 note.deck = deck_name
+
+
+def _fetch_cards_info(anki_url: str, card_ids: list[int]) -> list[dict]:
+    if not card_ids:
+        return []
+    try:
+        return _anki_request(anki_url, "cardsInfo", {"cards": card_ids}) or []
+    except ResponseTooLargeError:
+        if len(card_ids) == 1:
+            raise
+        midpoint = len(card_ids) // 2
+        return [
+            *_fetch_cards_info(anki_url, card_ids[:midpoint]),
+            *_fetch_cards_info(anki_url, card_ids[midpoint:]),
+        ]
 
 
 def _merge_words(notes: dict[str, RefreshNote], previous_words: dict, next_words: dict,
@@ -404,7 +420,7 @@ def _refresh_single_known_anki_word_from_anki(payload: dict) -> dict:
     status = "unknown"
     cards_checked = 0
     if card_ids:
-        cards_info = _anki_request(anki_url, "cardsInfo", {"cards": card_ids}) or []
+        cards_info = _fetch_cards_info(anki_url, card_ids)
         cards_checked = len(cards_info)
         for card in cards_info:
             status = _pick_better_status(status, _card_status(card))

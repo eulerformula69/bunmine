@@ -4,6 +4,10 @@ import json
 import urllib.request
 
 
+class ResponseTooLargeError(ValueError):
+    """The response exceeded the configured byte limit."""
+
+
 def _request(
     url, *, payload=None, headers=None, timeout=12, max_bytes=16 * 1024 * 1024, opener=None, content_type=None
 ):
@@ -23,7 +27,7 @@ def _request(
             raise ValueError("Response has an unsupported content type")
         data = response.read(max_bytes + 1)
     if len(data) > max_bytes:
-        raise ValueError("Response exceeds the size limit")
+        raise ResponseTooLargeError("Response exceeds the size limit")
     return data
 
 
