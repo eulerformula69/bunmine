@@ -1,3 +1,4 @@
+import logging
 import hashlib
 import os
 import shutil
@@ -137,29 +138,29 @@ def _write_typescript_build_stamp(project_dir: Path, fingerprint: str) -> None:
 
 def build_frontend_on_startup(project_dir: Path, timeout_seconds: int = 600) -> None:
     if os.getenv("BUNMINE_SKIP_FRONTEND_BUILD", "").strip().lower() in {"1", "true", "yes"}:
-        print("Frontend build skipped: BUNMINE_SKIP_FRONTEND_BUILD is set.")
+        logging.getLogger(__name__).info("Frontend build skipped: BUNMINE_SKIP_FRONTEND_BUILD is set.")
         return
 
     if not (project_dir / "package.json").exists():
-        print("Frontend build skipped: package.json was not found.")
+        logging.getLogger(__name__).info("Frontend build skipped: package.json was not found.")
         return
 
     if not _frontend_dependencies_installed(project_dir):
-        print("Installing frontend dependencies...")
+        logging.getLogger(__name__).info("Installing frontend dependencies...")
         _run_npm(project_dir, ["install"], timeout_seconds)
 
     fingerprint = _dependency_build_fingerprint(project_dir)
     if _dependency_assets_are_current(project_dir, fingerprint):
-        print("Frontend dependency assets are current; skipping their rebuild.")
+        logging.getLogger(__name__).info("Frontend dependency assets are current; skipping their rebuild.")
     else:
-        print("Building frontend dependency assets...")
+        logging.getLogger(__name__).info("Building frontend dependency assets...")
         _run_npm(project_dir, ["run", "build:libs"], timeout_seconds)
         _write_dependency_build_stamp(project_dir, fingerprint)
 
     typescript_fingerprint = _typescript_build_fingerprint(project_dir)
     if _typescript_build_is_current(project_dir, typescript_fingerprint):
-        print("TypeScript output is current; skipping compilation.")
+        logging.getLogger(__name__).info("TypeScript output is current; skipping compilation.")
     else:
-        print("Building changed TypeScript files...")
+        logging.getLogger(__name__).info("Building changed TypeScript files...")
         _run_npm(project_dir, ["run", "build:ts"], timeout_seconds)
         _write_typescript_build_stamp(project_dir, typescript_fingerprint)

@@ -1,3 +1,4 @@
+from backend.repositories.playback_repository import get_library_file_by_id
 """Library file routes."""
 
 from pathlib import Path
@@ -9,7 +10,6 @@ from flask import Blueprint, jsonify, request, send_from_directory
 from backend.library_scanner import scan_library
 from backend.repositories.library_repository import (
     get_library_db_status,
-    get_library_file_by_id,
     refresh_library_file_existence,
 )
 from backend.services.job_service import get_job, start_job

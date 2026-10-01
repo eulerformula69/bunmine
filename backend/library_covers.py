@@ -7,6 +7,7 @@ from pathlib import Path
 
 from backend.repositories.connection import get_db
 from backend.utils_validation import is_within
+from backend.http_client import get_bytes
 
 
 def _validate_cover_url(cover_url: str, allowed_hosts: frozenset[str]) -> str:
@@ -65,25 +66,20 @@ def download_cover_file(
     filename = f"series_{series_id}_{_safe_cover_name(source)}_{_safe_cover_name(str(external_id))}{_extension_from_url(cover_url)}"
     target_path = covers_dir / filename
 
-    request = urllib.request.Request(
+    opener = urllib.request.build_opener(_ValidatedRedirectHandler(allowed_hosts))
+    data = get_bytes(
         cover_url,
         headers={
             "User-Agent": "Bunmine/1.0",
             "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
         },
-        method="GET",
+        opener=opener,
+        timeout=20,
+        max_bytes=max_bytes,
+        content_type="image/",
     )
-    opener = urllib.request.build_opener(_ValidatedRedirectHandler(allowed_hosts))
-    with opener.open(request, timeout=20) as response:
-        content_type = response.headers.get("Content-Type", "")
-        data = response.read(max_bytes + 1)
-
-    if not content_type.startswith("image/"):
-        raise ValueError(f"Cover URL did not return an image: {content_type}")
     if not data:
         raise ValueError("Downloaded cover is empty")
-    if len(data) > max_bytes:
-        raise ValueError("Downloaded cover exceeds the size limit")
     target_path.write_bytes(data)
     return target_path.resolve()
 

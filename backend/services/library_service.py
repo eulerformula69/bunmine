@@ -4,6 +4,7 @@ This module contains business logic that operates on data from the repository la
 """
 
 from pathlib import Path
+import logging
 
 from backend.repositories.connection import get_db
 
@@ -94,7 +95,7 @@ def _path_candidates_for_relink(new_base: Path, stored_path: Path, relative_path
             for match in new_base.rglob(stored_path.name):
                 candidates.append(match)
         except OSError:
-            pass
+            logging.getLogger(__name__).exception("Could not search for relocated media")
 
     unique: list[Path] = []
     seen: set[str] = set()
@@ -108,8 +109,3 @@ def _path_candidates_for_relink(new_base: Path, stored_path: Path, relative_path
     return unique
 
 
-def delete_library_series(db_path: Path, series_id: int) -> dict:
-    """Remove a series from the library DB without deleting media on disk."""
-    from backend.library_deletion import delete_library_series as delete_series
-
-    return delete_series(db_path, series_id)

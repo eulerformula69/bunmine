@@ -8,10 +8,7 @@ from flask import Blueprint, jsonify, request
 
 from backend.library_subtitles import (
     build_episode_jimaku_subtitle_plan,
-    build_missing_jimaku_subtitle_plan,
     build_series_jimaku_subtitle_analysis,
-    bulk_download_missing_jimaku_subtitles,
-    get_missing_jimaku_subtitle_candidates,
     download_and_save_jimaku_subtitle,
     get_episode_subtitle_context,
     search_jimaku_subtitles,
@@ -70,23 +67,6 @@ def library_episode_subtitle_select(episode_id):
     return jsonify({"ok": True, **result})
 
 
-@library_subtitle_bp.route("/library/series/<int:series_id>/subtitles/missing", methods=["POST"])
-def library_series_missing_subtitles(series_id):
-    data = request.get_json(silent=True) or {}
-    limit = data.get("limit")
-
-    try:
-        result = get_missing_jimaku_subtitle_candidates(
-            db_path=current_settings().library_db_path,
-            series_id=series_id,
-            limit=limit,
-        )
-    except Exception as err:
-        return exception_response(err)
-
-    if not result.get("found"):
-        return jsonify({"error": "Series not found"}), 404
-    return jsonify({"ok": True, **result})
 
 
 @library_subtitle_bp.route("/library/series/<int:series_id>/subtitles/analyze", methods=["POST"])
@@ -141,45 +121,5 @@ def library_episode_subtitle_plan(episode_id):
     return jsonify({"ok": True, **result})
 
 
-@library_subtitle_bp.route("/library/series/<int:series_id>/subtitles/download-plan", methods=["POST"])
-def library_series_subtitles_download_plan(series_id):
-    data = request.get_json(silent=True) or {}
-    query = data.get("query")
-    limit = data.get("limit")
-
-    try:
-        result = build_missing_jimaku_subtitle_plan(
-            db_path=current_settings().library_db_path,
-            series_id=series_id,
-            query=query,
-            limit=limit,
-        )
-    except urllib.error.HTTPError as err:
-        return jsonify({"error": f"Jimaku request failed: HTTP {err.code}"}), 502
-    except Exception as err:
-        return exception_response(err)
-
-    if not result.get("found"):
-        return jsonify({"error": "Series not found"}), 404
-    return jsonify({"ok": True, **result})
 
 
-@library_subtitle_bp.route("/library/series/<int:series_id>/subtitles/download-missing", methods=["POST"])
-def library_series_subtitles_download_missing(series_id):
-    data = request.get_json(silent=True) or {}
-    query = data.get("query")
-    limit = data.get("limit")
-
-    try:
-        result = bulk_download_missing_jimaku_subtitles(
-            db_path=current_settings().library_db_path,
-            series_id=series_id,
-            query=query,
-            limit=limit,
-        )
-    except Exception as err:
-        return exception_response(err)
-
-    if not result.get("found"):
-        return jsonify({"error": "Series not found"}), 404
-    return jsonify({"ok": True, **result})

@@ -1,4 +1,5 @@
 import textwrap
+import logging
 
 from PIL import Image, ImageDraw, ImageFont
 
@@ -43,6 +44,7 @@ def create_screenshot(settings: Settings, data: dict) -> dict:
     try:
         font = ImageFont.truetype(str(font_path), font_size)
     except Exception:
+        logging.getLogger(__name__).exception("Could not load subtitle font")
         font = ImageFont.load_default()
 
     lines = textwrap.wrap(text, width=15)

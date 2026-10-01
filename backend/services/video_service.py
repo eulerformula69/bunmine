@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Optional
 
-from backend.repositories.library_repository import get_library_file_by_id
+from backend.repositories.playback_repository import get_library_file_by_id
 from backend.settings import Settings
 from backend.utils_validation import is_within, safe_media_name
 

@@ -1,10 +1,12 @@
 import hashlib
 import json
+import logging
 from pathlib import Path
 from typing import Optional
 
 from backend.app_state import dedupe_lock
 from backend.settings import Settings
+from backend.text_processing import strip_html
 
 
 def load_dedupe_index(settings: Settings) -> dict:
@@ -18,6 +20,7 @@ def load_dedupe_index(settings: Settings) -> dict:
         data.setdefault("audio", {})
         return data
     except Exception:
+        logging.getLogger(__name__).exception("Could not read media cache index")
         return {"screenshot": {}, "audio": {}}
 
 
@@ -61,12 +64,8 @@ def save_cached_media(settings: Settings, kind: str, dedupe_key: str, filename: 
 
 
 def clean_srt_text_file(path: Path) -> None:
-    import html
-    import re
-
     text = path.read_text(encoding="utf-8-sig", errors="replace")
-    text = re.sub(r"</?[^>\n]+>", "", text)
-    text = html.unescape(text)
+    text = strip_html(text, preserve_newlines=True)
     path.write_text(text, encoding="utf-8")
 
 

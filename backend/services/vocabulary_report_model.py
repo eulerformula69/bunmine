@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import html
 import re
 import unicodedata
 from collections import Counter
+from backend.text_processing import strip_html
 
 STATUSES = {"not_in_anki", "new", "learning", "young", "mature", "suspended", "known_basic"}
 PARTICLE_LIKE_FORMS = {
@@ -27,7 +27,7 @@ HONORIFIC_SUFFIX_FORMS = {
 def plain_anki_text(value: object) -> str:
     text = re.sub(r"\[sound:[^\]]+\]", "", str(value or ""), flags=re.I)
     text = re.sub(r"<\s*(br|div|p)\b[^>]*>", " ", text, flags=re.I)
-    return " ".join(html.unescape(re.sub(r"<[^>]+>", "", text)).split())
+    return " ".join(strip_html(text).split())
 
 
 def pick_sentence(fields: dict, names: list[str]) -> str:

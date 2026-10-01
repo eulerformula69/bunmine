@@ -1,4 +1,5 @@
 import json
+import logging
 
 from flask import Flask
 from flask_cors import CORS
@@ -21,6 +22,7 @@ from backend.api_response import register_error_handlers
 
 
 def create_app(settings: Settings | None = None, initialize: bool = True) -> Flask:
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     settings = settings or load_settings()
     if initialize:
         initialize_backend(settings)

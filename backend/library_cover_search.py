@@ -1,8 +1,8 @@
-import json
 import logging
 import urllib.error
 import urllib.parse
 import urllib.request
+from backend.http_client import get_json, post_json
 
 
 logger = logging.getLogger(__name__)
@@ -10,12 +10,10 @@ logger = logging.getLogger(__name__)
 
 def search_kitsu_covers(query: str) -> list[dict]:
     params = urllib.parse.urlencode({"filter[text]": query, "page[limit]": 8})
-    request = urllib.request.Request(
+    data = get_json(
         f"https://kitsu.io/api/edge/anime?{params}",
         headers={"Accept": "application/vnd.api+json", "User-Agent": "Bunmine/1.0"},
     )
-    with urllib.request.urlopen(request, timeout=12) as response:
-        data = json.load(response)
     if not isinstance(data.get("data"), list):
         raise ValueError("Kitsu returned an invalid search response")
     results = []
@@ -88,20 +86,7 @@ query ($search: String!) {
 
 
 def _http_json_post(url: str, payload: dict, timeout: int = 12) -> dict:
-    body = json.dumps(payload).encode("utf-8")
-    request = urllib.request.Request(
-        url,
-        data=body,
-        headers={
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-            "User-Agent": "Bunmine/1.0",
-        },
-        method="POST",
-    )
-    with urllib.request.urlopen(request, timeout=timeout) as response:
-        raw = response.read().decode("utf-8")
-    return json.loads(raw)
+    return post_json(url, payload, timeout=timeout)
 
 
 def search_anilist_covers(query: str) -> list[dict]:

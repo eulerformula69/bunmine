@@ -1,20 +1,16 @@
 import json
-import re
 import time
 import urllib.parse
-import urllib.request
+from backend.http_client import get_bytes, get_json
 from pathlib import Path
 
 from backend.repositories.connection import get_db
 from backend.repositories.episode_file_query import primary_file_id_sql
-from backend.repositories.library_repository import get_library_series_detail
 from backend.library_scanner import normalize_title
 from backend.subtitles.jimaku_release import (
-    compact_token as _compact_token,
     episode_numbers_equal as _episode_numbers_equal,
     infer_episode_number as _infer_episode_number_from_filename,
     release_info as _release_info_from_candidate,
-    release_tokens as _release_tokens_from_filename,
     score_candidate as _score_subtitle_candidate,
 )
 from backend.utils_validation import is_within
@@ -30,24 +26,9 @@ def _http_json_get(url: str, token: str | None = None, timeout: int = 12) -> obj
     headers = {"Accept": "application/json", "User-Agent": "Bunmine/1.0"}
     if token:
         headers["Authorization"] = token
-    request = urllib.request.Request(url, headers=headers, method="GET")
-    with urllib.request.urlopen(request, timeout=timeout) as response:
-        raw = response.read().decode("utf-8")
-    return json.loads(raw)
+    return get_json(url, headers=headers, timeout=timeout)
 
 
-def _init_jimaku_cache_table(db_path: Path) -> None:
-    with get_db(db_path) as conn:
-        conn.execute(
-            """
-            CREATE TABLE IF NOT EXISTS jimaku_cache (
-                cache_key TEXT PRIMARY KEY,
-                url TEXT NOT NULL,
-                response_json TEXT NOT NULL,
-                created_at INTEGER NOT NULL
-            )
-            """
-        )
 
 
 def _cached_http_json_get(db_path: Path, url: str, token: str | None = None, timeout: int = 12, ttl_seconds: int = JIMAKU_CACHE_TTL_SECONDS) -> object:
@@ -57,7 +38,6 @@ def _cached_http_json_get(db_path: Path, url: str, token: str | None = None, tim
     reuse recent search/file responses instead of re-querying the API whenever
     the user reopens the modal or tweaks a subtitle set.
     """
-    _init_jimaku_cache_table(db_path)
     now = int(time.time())
     cache_key = url
 
@@ -91,24 +71,11 @@ def _http_download(url: str, token: str | None = None, timeout: int = 30) -> byt
     headers = {"Accept": "text/plain,application/octet-stream,*/*", "User-Agent": "Bunmine/1.0"}
     if token:
         headers["Authorization"] = token
-    request = urllib.request.Request(url, headers=headers, method="GET")
-    with urllib.request.urlopen(request, timeout=timeout) as response:
-        return response.read()
+    return get_bytes(url, headers=headers, timeout=timeout)
 
 
-def _safe_subtitle_name(value: str) -> str:
-    value = str(value or "")
-    value = re.sub(r"[^a-zA-Z0-9_. -]+", "_", value).strip(" ._-")
-    return value or "subtitle"
 
 
-def _episode_label(value: float | int | None) -> str:
-    if value is None:
-        return "unknown"
-    value = float(value)
-    if value.is_integer():
-        return f"{int(value):02d}"
-    return f"{value:g}"
 
 
 
@@ -372,40 +339,6 @@ def download_and_save_jimaku_subtitle(db_path: Path, episode_id: int, payload: d
 
 
 
-def get_missing_jimaku_subtitle_candidates(db_path: Path, series_id: int, limit: int | None = None) -> dict:
-    """Return episodes that need subtitles without touching Jimaku.
-
-    This lets the frontend build a visible queue first and then query Jimaku
-    gradually, one episode at a time, instead of sending a burst of requests.
-    """
-    detail = get_library_series_detail(db_path, series_id)
-    if not detail.get("found"):
-        return {"found": False}
-
-    series = detail["series"]
-    episodes = detail.get("episodes") or []
-    candidates = [episode for episode in episodes if episode.get("hasVideo") and not episode.get("hasSubtitle")]
-    if limit is not None:
-        candidates = candidates[:max(0, int(limit))]
-
-    return {
-        "found": True,
-        "seriesId": series_id,
-        "seriesTitle": series.get("title"),
-        "checked": len(candidates),
-        "items": [
-            {
-                "episodeId": episode.get("id"),
-                "episodeNumber": episode.get("episodeNumber"),
-                "episodeTitle": episode.get("title"),
-                "status": "pending",
-                "message": "Waiting to search Jimaku",
-                "selected": None,
-                "alternativesCount": 0,
-            }
-            for episode in candidates
-        ],
-    }
 
 
 def build_episode_jimaku_subtitle_plan(db_path: Path, episode_id: int, query: str | None = None) -> dict:
@@ -552,127 +485,5 @@ def build_series_jimaku_subtitle_analysis(db_path: Path, series_id: int, query: 
     }
 
 
-def build_missing_jimaku_subtitle_plan(db_path: Path, series_id: int, query: str | None = None, limit: int | None = None) -> dict:
-    """Build a reviewable download plan without downloading any files.
-
-    The frontend shows this plan to the user and then downloads selected
-    items one-by-one through the existing single-subtitle select endpoint.
-    """
-    detail = get_library_series_detail(db_path, series_id)
-    if not detail.get("found"):
-        return {"found": False}
-
-    series = detail["series"]
-    episodes = detail.get("episodes") or []
-    candidates = [episode for episode in episodes if episode.get("hasVideo") and not episode.get("hasSubtitle")]
-    if limit is not None:
-        candidates = candidates[:max(0, int(limit))]
-
-    search_query = str(query or series.get("title") or "").strip()
-    plan_items: list[dict] = []
-    ready_count = 0
-    skipped_count = 0
-    failed_count = 0
-
-    for episode in candidates:
-        item = {
-            "episodeId": episode.get("id"),
-            "episodeNumber": episode.get("episodeNumber"),
-            "episodeTitle": episode.get("title"),
-            "status": "skipped",
-            "message": "",
-            "selected": None,
-            "alternativesCount": 0,
-        }
-
-        try:
-            results = search_jimaku_subtitles(search_query, episode.get("episodeNumber"))
-            item["alternativesCount"] = len(results)
-            if not results:
-                item["status"] = "skipped"
-                item["message"] = "No matching Jimaku subtitle found"
-                skipped_count += 1
-            else:
-                item["status"] = "ready"
-                item["message"] = "Ready to download"
-                item["selected"] = results[0]
-                ready_count += 1
-        except Exception as err:
-            item["status"] = "failed"
-            item["message"] = str(err)
-            failed_count += 1
-
-        plan_items.append(item)
-
-    return {
-        "found": True,
-        "seriesId": series_id,
-        "seriesTitle": series.get("title"),
-        "query": search_query,
-        "checked": len(candidates),
-        "ready": ready_count,
-        "skipped": skipped_count,
-        "failed": failed_count,
-        "items": plan_items,
-    }
 
 
-def bulk_download_missing_jimaku_subtitles(db_path: Path, series_id: int, query: str | None = None, limit: int | None = None) -> dict:
-    detail = get_library_series_detail(db_path, series_id)
-    if not detail.get("found"):
-        return {"found": False}
-
-    series = detail["series"]
-    episodes = detail.get("episodes") or []
-    candidates = [episode for episode in episodes if episode.get("hasVideo") and not episode.get("hasSubtitle")]
-    if limit is not None:
-        candidates = candidates[:max(0, int(limit))]
-
-    summary = {
-        "found": True,
-        "seriesId": series_id,
-        "seriesTitle": series.get("title"),
-        "checked": len(candidates),
-        "downloaded": 0,
-        "skipped": 0,
-        "failed": 0,
-        "items": [],
-    }
-
-    search_query = str(query or series.get("title") or "").strip()
-    for episode in candidates:
-        item = {
-            "episodeId": episode.get("id"),
-            "episodeNumber": episode.get("episodeNumber"),
-            "episodeTitle": episode.get("title"),
-            "status": "skipped",
-            "message": "",
-            "subtitleFileId": None,
-        }
-
-        try:
-            results = search_jimaku_subtitles(search_query, episode.get("episodeNumber"))
-            if not results:
-                item["status"] = "skipped"
-                item["message"] = "No matching Jimaku subtitle found"
-                summary["skipped"] += 1
-            else:
-                chosen = results[0]
-                saved = download_and_save_jimaku_subtitle(db_path, int(episode["id"]), chosen)
-                if saved.get("found"):
-                    item["status"] = "downloaded"
-                    item["message"] = chosen.get("filename") or "Downloaded"
-                    item["subtitleFileId"] = saved.get("subtitleFileId")
-                    summary["downloaded"] += 1
-                else:
-                    item["status"] = "failed"
-                    item["message"] = "Episode disappeared from DB"
-                    summary["failed"] += 1
-        except Exception as err:
-            item["status"] = "failed"
-            item["message"] = str(err)
-            summary["failed"] += 1
-
-        summary["items"].append(item)
-
-    return summary

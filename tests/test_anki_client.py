@@ -24,7 +24,7 @@ def test_request_uses_anki_connect_protocol(monkeypatch):
         def __exit__(self, *args):
             return None
 
-        def read(self):
+        def read(self, size=-1):
             return json.dumps({"error": None, "result": [1, 2]}).encode()
 
     def fake_urlopen(request, timeout):

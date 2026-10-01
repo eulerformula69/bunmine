@@ -359,16 +359,6 @@ def get_library_series_files_debug(db_path: Path, series_id: int) -> dict:
         return {"found": True, "series": dict(series), "files": [dict(row) for row in rows]}
 
 
-def get_library_file_by_id(db_path: Path, file_id: int) -> dict:
-    """Get a library file by its ID."""
-    with get_db(db_path) as conn:
-        row = conn.execute(
-            "SELECT id, series_id, episode_id, file_type, path, relative_path, file_exists, is_primary FROM library_files WHERE id = ?",
-            (file_id,),
-        ).fetchone()
-        if not row:
-            return {"found": False, "file": None}
-        return {"found": True, "file": dict(row)}
 
 
 def _episode_link_status(has_video: bool, has_subtitle: bool) -> str:

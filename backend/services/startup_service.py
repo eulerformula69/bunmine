@@ -1,13 +1,16 @@
 import os
 import shutil
 import threading
+import logging
 
 from backend.repositories.connection import get_db
 from backend.repositories.library_repository import init_library_db
-from backend.routes.misc_routes import ensure_anki_highlight_files, refresh_known_anki_words_if_stale_on_startup
+from backend.services.anki_highlight_store import ensure_anki_highlight_files
+from backend.services.anki_word_sync_service import refresh_known_anki_words_if_stale_on_startup
 from backend.settings import Settings
 
 _startup_stale_check_started = False
+logger = logging.getLogger(__name__)
 
 
 def start_anki_highlight_startup_stale_check(settings: Settings) -> None:
@@ -20,9 +23,9 @@ def start_anki_highlight_startup_stale_check(settings: Settings) -> None:
     def worker() -> None:
         try:
             result = refresh_known_anki_words_if_stale_on_startup(settings)
-            print(f"Anki highlight startup stale-check result: {result}")
-        except Exception as err:
-            print(f"Anki highlight startup stale-check skipped/failed: {err}")
+            logger.info("Anki highlight startup check: %s", result)
+        except Exception:
+            logger.exception("Anki highlight startup check failed")
 
     thread = threading.Thread(target=worker, daemon=True)
     thread.start()
@@ -57,14 +60,14 @@ def migrate_legacy_data_paths(settings: Settings) -> None:
 
 
 def cleanup_on_startup(settings: Settings) -> None:
-    print("--- Cleaning temporary files ---")
+    logger.info("Cleaning temporary files")
 
     if settings.dedupe_index_path.exists():
         try:
             settings.dedupe_index_path.unlink()
-            print(f"Deleted dedupe index: {settings.dedupe_index_path}")
-        except Exception as err:
-            print(f"Could not delete dedupe index: {err}")
+            logger.info("Deleted dedupe index: %s", settings.dedupe_index_path)
+        except Exception:
+            logger.exception("Could not delete dedupe index")
 
 def initialize_backend(settings: Settings) -> None:
     ensure_directories(settings)

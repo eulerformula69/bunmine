@@ -1,4 +1,5 @@
 import json
+import logging
 
 from backend.settings import Settings, current_settings
 
@@ -53,8 +54,7 @@ def known_basic_words_path(settings: Settings | None = None):
             words = read_words_file(legacy)
             write_words_file(target, words)
         except Exception:
-            # Let the route below surface the legacy parse error if needed.
-            pass
+            logging.getLogger(__name__).exception("Could not import legacy known words")
 
     return target
 

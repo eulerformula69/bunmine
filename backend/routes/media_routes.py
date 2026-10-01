@@ -1,4 +1,5 @@
 import os
+import logging
 
 from flask import Blueprint, current_app, jsonify, request, send_from_directory
 
@@ -202,9 +203,9 @@ def delete_video():
             subtitle_path.unlink()
 
     for item in os.listdir(settings.video_dir):
-        if item.startswith("temp_") and safe_filename in item:
+        if item.startswith("temp_") and item.endswith(f"_{safe_filename}"):
             try:
                 (settings.video_dir / item).unlink()
             except Exception:
-                pass
+                logging.getLogger(__name__).exception("Could not remove temporary media file")
     return ok_response({"success": True})[0]

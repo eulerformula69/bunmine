@@ -9,7 +9,6 @@ from backend.services.vocabulary_report_service import VocabularyReportError, ge
 from backend.settings import current_settings
 
 vocabulary_report_bp = Blueprint("vocabulary-report", __name__)
-_report_files = {}
 
 
 @vocabulary_report_bp.post("/library/series/<int:series_id>/vocabulary-report")
