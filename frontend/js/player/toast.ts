@@ -1,16 +1,18 @@
-interface ToastAction {
+import { ToastType } from "../types/runtime-types.js";
+import { showActionToast, showToast, t } from "./ui.js";
+export interface ToastAction {
     label: string;
     onClick: () => void | Promise<void>;
 }
 
-function formatToastMessage(template: string, params: Record<string, unknown> = {}): string {
+export function formatToastMessage(template: string, params: Record<string, unknown> = {}): string {
     return Object.entries(params).reduce(
         (message, [key, value]) => message.split(`{${key}}`).join(String(value)),
         template
     );
 }
 
-function showTranslatedToast(
+export function showTranslatedToast(
     key: string,
     params: Record<string, unknown> = {},
     type: ToastType = "info",
@@ -20,6 +22,6 @@ function showTranslatedToast(
 }
 
 // TODO: Move auto-attach action toast lifecycle here after the queue state leaves player/app.js.
-function showPersistentActionToast(message: string, actions: ToastAction[], type: ToastType = "info"): void {
+export function showPersistentActionToast(message: string, actions: ToastAction[], type: ToastType = "info"): void {
     showActionToast(message, actions, type, 0);
 }

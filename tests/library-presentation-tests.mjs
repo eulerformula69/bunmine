@@ -1,11 +1,6 @@
 import assert from "node:assert/strict";
-import fs from "node:fs";
-import vm from "node:vm";
 
-const source = fs.readFileSync("dist/js/library/library-presentation.js", "utf8")
-    .replace("const LibraryPresentation =", "globalThis.LibraryPresentation =");
-const context = vm.createContext({});
-vm.runInContext(source, context);
+const context = await import("../dist/esm/library/library-presentation.js");
 const presentation = context.LibraryPresentation;
 const translate = (key) => key;
 

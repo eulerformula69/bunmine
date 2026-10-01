@@ -1,4 +1,8 @@
-interface MediaCaptionsLibraryCue {
+import { SubtitleParseError, SubtitleParseInput, SubtitleParseResult, SubtitleParser } from "../parser-types.js";
+import { SubtitleFormat } from "../model.js";
+import { MediaCaptionsAssCueMetadata, extractMediaCaptionsAssMetadata, extractMediaCaptionsAssText, matchMediaCaptionsAssMetadata, normalizeMediaCaptionsAssSource } from "./media-captions-ass-metadata.js";
+import { SubtitleCueDraft, normalizeSubtitleCues } from "../normalization.js";
+export interface MediaCaptionsLibraryCue {
     id: string;
     startTime: number;
     endTime: number;
@@ -15,19 +19,19 @@ interface MediaCaptionsLibraryCue {
     style?: Record<string, string>;
 }
 
-interface MediaCaptionsLibraryError {
+export interface MediaCaptionsLibraryError {
     code: number;
     message: string;
     line: number;
 }
 
-interface MediaCaptionsLibraryResult {
+export interface MediaCaptionsLibraryResult {
     metadata: Readonly<Record<string, unknown>>;
     cues: MediaCaptionsLibraryCue[];
     errors: MediaCaptionsLibraryError[];
 }
 
-interface MediaCaptionsBrowserApi {
+export interface MediaCaptionsBrowserApi {
     parseText(source: string, options: {
         type: "srt" | "vtt" | "ass" | "ssa";
         strict: boolean;
@@ -35,9 +39,9 @@ interface MediaCaptionsBrowserApi {
     }): Promise<MediaCaptionsLibraryResult>;
 }
 
-declare const MediaCaptions: MediaCaptionsBrowserApi;
+export declare const MediaCaptions: MediaCaptionsBrowserApi;
 
-class MediaCaptionsSubtitleParser implements SubtitleParser {
+export class MediaCaptionsSubtitleParser implements SubtitleParser {
     readonly id = "media-captions";
 
     supports(format: SubtitleFormat): boolean {
@@ -93,7 +97,7 @@ class MediaCaptionsSubtitleParser implements SubtitleParser {
     }
 }
 
-function mapMediaCaptionsCue(
+export function mapMediaCaptionsCue(
     cue: MediaCaptionsLibraryCue,
     format: SubtitleFormat,
     assCue?: MediaCaptionsAssCueMetadata
@@ -145,7 +149,7 @@ function mapMediaCaptionsCue(
     };
 }
 
-function cleanMediaCaptionsText(text: string): string {
+export function cleanMediaCaptionsText(text: string): string {
     return text
         .replace(/<br\s*\/?>/gi, "\n")
         .replace(/<[^>]+>/g, "")
@@ -153,17 +157,17 @@ function cleanMediaCaptionsText(text: string): string {
         .trim();
 }
 
-function cleanMediaCaptionsAssFallbackText(text: string): string {
+export function cleanMediaCaptionsAssFallbackText(text: string): string {
     return text
         .replace(/\{[^{}\r\n]*\\[^{}\r\n]*}/g, "")
         .replace(/\\i?clip\([^)]*\)/gi, "");
 }
 
-function readMediaCaptionsFontName(style?: Readonly<Record<string, string>>): string | undefined {
+export function readMediaCaptionsFontName(style?: Readonly<Record<string, string>>): string | undefined {
     return style?.["font-family"] || undefined;
 }
 
-function readMediaCaptionsFontSize(style?: Readonly<Record<string, string>>): number | undefined {
+export function readMediaCaptionsFontSize(style?: Readonly<Record<string, string>>): number | undefined {
     const match = style?.["font-size"]?.match(/calc\(\s*([\d.]+)\s*\//i);
     if (!match) return undefined;
     const size = Number(match[1]);

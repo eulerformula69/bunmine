@@ -7,7 +7,8 @@
     "build:captions": "node tools/build-media-captions.mjs",
     "build:kuromoji": "node tools/build-kuromoji.mjs",
     "build:libs": "npm run build:captions && npm run build:kuromoji",
-    "build:ts": "tsc -p tsconfig.json",
+    "build:ts": "node tools/build-frontend.mjs --compile",
+    "build:bundle": "node tools/build-frontend.mjs",
     "build": "npm run build:libs && npm run build:ts",
     "test:highlighter": "npm run build && node tests/highlighter-match-tests.mjs",
     "test:subtitles": "npm run build && node tests/subtitle-model-tests.mjs && node tests/subtitle-provider-tests.mjs && node tests/subtitle-overlay-tests.mjs && node tests/subtitle-sidebar-tests.mjs",
@@ -20,6 +21,7 @@
   },
   "devDependencies": {
     "esbuild": "0.25.6",
+    "jsdom": "^29.1.1",
     "typescript": "^5.5.4"
   },
   "dependencies": {

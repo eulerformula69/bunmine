@@ -1,9 +1,10 @@
-type I18nCatalog = Record<string, {
+
+export type I18nCatalog = Record<string, {
     name: string;
     dict: Record<string, string>;
 }>;
 
-const i18n = {
+export const i18n = {
     ru: {
         name: "Русский",
         dict: {
@@ -38,7 +39,7 @@ const i18n = {
 			lastAdded: "🕘",
             lastAddedTitle: "Последняя добавленная (авто)",
             fullscreen: "Полный экран",
-			globalSubDelay: "Смещение субтитров (с):",   
+			globalSubDelay: "Смещение субтитров (с):",
             exitFullscreen: "Выйти из полного экрана",
 			sentenceField: "Поле предложения",
 			sentenceFuriganaField: "Поле предложения с фуриганой:",
@@ -131,8 +132,8 @@ const i18n = {
             ankiHighlightRefreshStatusFailed: "Ошибка обновления: {message}",
             ankiHighlightRefreshStatusDone: "Готово: {count} слов в known-anki-words.json; проверено карточек: {cardsChecked}; импортировано/обновлено: {importedWords}; locked сохранено: {preservedLockedWords}.",
             ankiHighlightRefreshToastDone: "Индекс подсветки Anki обновлён: {count} слов",
-            ankiHighlightRefreshStatusRepaintFailed: "Индекс обновлён, но перерисовка субтитров упала: {message}"			
-			
+            ankiHighlightRefreshStatusRepaintFailed: "Индекс обновлён, но перерисовка субтитров упала: {message}"
+
         }
     },
     en: {
@@ -169,7 +170,7 @@ const i18n = {
 			lastAdded: "🕘",
             lastAddedTitle: "Last added (auto)",
             fullscreen: "Fullscreen",
-			globalSubDelay: "Global Sub Delay (s):",       
+			globalSubDelay: "Global Sub Delay (s):",
             exitFullscreen: "Exit Fullscreen",
 			sentenceField: "Sentence Field:",
 			sentenceFuriganaField: "Sentence Furigana Field:",
@@ -264,7 +265,7 @@ const i18n = {
             ankiHighlightRefreshStatusDone: "Done: {count} words in known-anki-words.json; checked {cardsChecked} cards; imported/updated {importedWords}; preserved locked {preservedLockedWords}.",
             ankiHighlightRefreshToastDone: "Anki highlight index refreshed: {count} words",
             ankiHighlightRefreshStatusRepaintFailed: "Index refreshed, but subtitle repaint failed: {message}"
-			
+
         }
     },
     ja: {
@@ -307,7 +308,7 @@ const i18n = {
 			sentenceFuriganaField: "ふりがな付き例文フィールド:",
 			pictureField: "画像フィールド:",
 			audioField: "音声文フィールド:",
-			ssWebp: "アニメーションWebP",	
+			ssWebp: "アニメーションWebP",
 			closeSettings: "閉じる",
 			subtitleHighlightEnabled: "字幕の単語をハイライト",
 			highlightColors: "ハイライト色:",
@@ -336,7 +337,7 @@ const i18n = {
 			subtitleSearchTime: "時間",
 			subtitleSearchPrev: "前の結果",
 			subtitleSearchNext: "次の結果",
-			subtitleSearchCommit: "移動",			
+			subtitleSearchCommit: "移動",
             autoAttachNextCard: "単語選択後、次のAnkiカードにメディアを自動追加",
 
 			toastVideoNotUploaded: "動画がアップロードされていません",
@@ -394,9 +395,8 @@ const i18n = {
             ankiHighlightRefreshStatusFailed: "更新失敗: {message}",
             ankiHighlightRefreshStatusDone: "完了: known-anki-words.json に {count} 語; 確認カード: {cardsChecked}; 取り込み/更新: {importedWords}; locked保持: {preservedLockedWords}.",
             ankiHighlightRefreshToastDone: "Ankiハイライト索引を更新しました: {count} 語",
-            ankiHighlightRefreshStatusRepaintFailed: "索引は更新されましたが、字幕の再描画に失敗しました: {message}"			
-			
+            ankiHighlightRefreshStatusRepaintFailed: "索引は更新されましたが、字幕の再描画に失敗しました: {message}"
+
         }
     }
 } satisfies I18nCatalog;
-

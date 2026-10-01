@@ -1,4 +1,12 @@
-function getValidatedVolume(): number {
+import { getCurrentVideoPayload } from "./media-payload.js";
+import { showToast } from "../player/ui.js";
+import { video } from "../core/dom.js";
+import { state } from "../core/state.js";
+import { getSubtitleContextSelection } from "../subtitles/subtitles-sidebar.js";
+import { apiJson, buildApiUrl, getApiErrorMessage } from "../core/api.js";
+import { MediaExportResponse } from "../types/api.js";
+import { playMedia } from "./media-playback.js";
+export function getValidatedVolume(): number {
     const input = document.getElementById("audioVol") as HTMLInputElement;
     let value = parseFloat(input.value);
     if (value < 0) value = 0;
@@ -16,13 +24,13 @@ document.getElementById("previewAudioBtn")?.addEventListener("click", async () =
     const offsetStart = parseFloat((document.getElementById("subOffsetStart") as HTMLInputElement).value) || 0;
     const offsetEnd = parseFloat((document.getElementById("subOffsetEnd") as HTMLInputElement).value) || 0;
     const volumeLevel = parseFloat((document.getElementById("audioVol") as HTMLInputElement).value) || 1;
-    const adjustedTime = video.currentTime - globalSubDelay;
-    const currentIdx = subtitles.findIndex((cue) => adjustedTime >= cue.start && adjustedTime <= cue.end);
+    const adjustedTime = video.currentTime - state.globalSubDelay;
+    const currentIdx = state.subtitles.findIndex((cue) => adjustedTime >= cue.start && adjustedTime <= cue.end);
     if (currentIdx === -1) return showToast("No active subtitle", "error", 6000);
 
     const contextSelection = getSubtitleContextSelection(currentIdx);
-    const start = Math.max(0, contextSelection.startTime + globalSubDelay + offsetStart);
-    let end = contextSelection.endTime + globalSubDelay + offsetEnd;
+    const start = Math.max(0, contextSelection.startTime + state.globalSubDelay + offsetStart);
+    let end = contextSelection.endTime + state.globalSubDelay + offsetEnd;
     if (end <= start) end = start + 0.5;
 
     try {

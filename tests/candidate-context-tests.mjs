@@ -1,43 +1,21 @@
 import assert from "node:assert/strict";
-import fs from "node:fs";
-import vm from "node:vm";
-
-class Element {
-    children = [];
-    handlers = {};
-    attrs = {};
-    style = {};
-    dataset = {};
-    classes = new Set();
-    scrollTop = 0;
-    disabled = false;
-    classList = {
-        toggle: (key, on) => on ? this.classes.add(key) : this.classes.delete(key),
-        add: (key) => this.classes.add(key), remove: (key) => this.classes.delete(key),
-    };
-    append(...items) { for (const item of items) { item.parent = this; this.children.push(item); } }
-    appendChild(item) { this.append(item); }
-    replaceChildren(...items) { this.children = []; this.append(...items); }
-    setAttribute(key, value) { this.attrs[key] = value; }
-    addEventListener(key, handler) { this.handlers[key] = handler; }
-    setPointerCapture(id) { this.pointerId = id; }
-    hasPointerCapture(id) { return this.pointerId === id; }
-    releasePointerCapture() { this.pointerId = null; }
-    get offsetTop() { return Math.max(0, this.parent?.children.indexOf(this) || 0) * 100; }
-    get offsetHeight() { return 100; }
-    getBoundingClientRect() { return { top: 100, bottom: 500 }; }
-    fire(key, data = {}) { this.handlers[key]?.({ preventDefault() {}, stopPropagation() {}, button: 0, pointerId: 1, ...data }); }
-}
-const document = new Element();
-document.createElement = () => new Element();
+import { installDom } from "./dom-environment.mjs";
+const dom = installDom();
+const context = Object.assign({}, ...await Promise.all(["candidate-context-model", "candidate-context-editor"].map(name => import('../dist/esm/player/' + name + '.js'))));
 let nextFrame;
-const context = vm.createContext({ document, t: (key) => key, formatTime: String,
-    requestAnimationFrame: (callback) => { nextFrame = callback; return 1; }, cancelAnimationFrame() {}, ResizeObserver: class { observe() {} } });
-for (const name of ["context-selection", "sidebar-render"]) {
-    vm.runInContext(fs.readFileSync(`dist/js/subtitles/${name}.js`, "utf8"), context);
-}
-for (const name of ["candidate-context-model", "candidate-context-editor"]) {
-    vm.runInContext(fs.readFileSync(`dist/js/player/${name}.js`, "utf8"), context);
+globalThis.requestAnimationFrame = callback => {nextFrame = callback; return 1;};
+globalThis.cancelAnimationFrame = () => {};
+const proto = dom.window.HTMLElement.prototype;
+Object.defineProperty(proto,"offsetTop",{get(){return Math.max(0,Array.from(this.parentElement?.children || []).indexOf(this))*100;}});
+Object.defineProperty(proto,"offsetHeight",{get(){return 100;}});
+proto.getBoundingClientRect = () => ({top:100,bottom:500});
+proto.setPointerCapture = function(id){this.pointerId=id;};
+proto.hasPointerCapture = function(id){return this.pointerId===id;};
+proto.releasePointerCapture = function(){this.pointerId=null;};
+function fire(element, key, data={}) {
+    const event = new Event(key,{bubbles:true,cancelable:true});
+    Object.assign(event,{button:0,pointerId:1,...data});
+    element.dispatchEvent(event);
 }
 const cues = [
     { start: 1, end: 4, text: "before" },
@@ -87,40 +65,43 @@ const viewport = editor.element.children[1];
 // Legacy context arrives after selection; focus waits until the hidden editor has layout.
 editor.set({ ...value, id: 2 }, null, false);
 editor.set({ ...value, id: 2 }, captured, false);
-viewport.clientHeight = 0;
+let height = 0;
+Object.defineProperty(viewport,"clientHeight",{get:()=>height});
 nextFrame();
-viewport.clientHeight = 200;
+height = 200;
 nextFrame();
 assert.equal(viewport.scrollTop, 50);
 viewport.scrollTop = 0;
-let top = viewport.children.at(-2);
-let bottom = viewport.children.at(-1);
+let top = Array.from(viewport.children).at(-2);
+let bottom = Array.from(viewport.children).at(-1);
 const settle = () => new Promise((resolve) => setImmediate(resolve));
-bottom.fire("pointerdown", { clientY: 300 });
+fire(bottom, "pointerdown", { clientY: 300 });
 assert.equal(editing, true);
-viewport.fire("pointermove", { clientY: 400 });
+fire(viewport, "pointermove", { clientY: 400 });
 assert.equal(changes.length, 0);
-viewport.fire("pointerup", { clientY: 400 });
+fire(viewport, "pointerup", { clientY: 400 });
 await settle();
 assert.deepEqual(changes[0], [1, 2]);
 assert.equal(editing, false);
 assert.equal(value.snapshot.combinedText, "word after");
 assert.equal(value.snapshot.audioEnd, 14.3);
-bottom.fire("pointerdown", { clientY: 400 });
-viewport.fire("pointermove", { clientY: 500 });
-viewport.fire("pointercancel");
+fire(bottom, "pointerdown", { clientY: 400 });
+fire(viewport, "pointermove", { clientY: 500 });
+fire(viewport, "pointercancel");
 await settle();
 assert.equal(changes.length, 1);
 assert.equal(value.snapshot.context.end, 2);
-top.fire("keydown", { key: "ArrowUp" });
+fire(top, "keydown", { key: "ArrowUp" });
 await settle();
 assert.equal(value.snapshot.context.start, 0);
 fail = true;
-bottom.fire("keydown", { key: "ArrowDown" });
+fire(bottom, "keydown", { key: "ArrowDown" });
 await settle();
 assert.equal(errors.length, 1);
 assert.equal(value.snapshot.context.end, 2);
 editor.set(value, value.snapshot.context, true);
-bottom.fire("keydown", { key: "ArrowDown" });
+fire(bottom, "keydown", { key: "ArrowDown" });
 assert.equal(changes.length, 3);
 console.log("Candidate context model, drag, keyboard, cancellation, and save recovery tests passed");
+
+dom.window.close();

@@ -1,44 +1,42 @@
-let japaneseTokenizerPromise = null;
-let japaneseTokenizerInstance = null;
 
-function getJapaneseTokenizer() {
-    if (japaneseTokenizerPromise) {
-        return japaneseTokenizerPromise;
+import type { JapaneseTokenizer } from "../types/runtime-types.js";
+export const japaneseTokenizerPromiseState = { value: null as Promise<JapaneseTokenizer> | null };
+export const japaneseTokenizerInstanceState = { value: null as JapaneseTokenizer | null };
+
+export function getJapaneseTokenizer() {
+    if (japaneseTokenizerPromiseState.value) {
+        return japaneseTokenizerPromiseState.value;
     }
 
-    japaneseTokenizerPromise = new Promise((resolve, reject) => {
-        if (typeof kuromoji === "undefined") {
+    japaneseTokenizerPromiseState.value = new Promise<JapaneseTokenizer>((resolve, reject) => {
+        if (!window.kuromoji) {
             reject(new Error("kuromoji.js is not loaded"));
             return;
         }
 
-        kuromoji.builder({
-            dicPath: "libs/kuromoji/dict/"
+        window.kuromoji.builder({
+            dicPath: "/libs/kuromoji/dict/"
         }).build((err, tokenizer) => {
             if (err) {
                 reject(err);
                 return;
             }
 
-            japaneseTokenizerInstance = tokenizer;
+            japaneseTokenizerInstanceState.value = tokenizer;
             console.log("Japanese tokenizer loaded");
             resolve(tokenizer);
         });
     });
 
-    return japaneseTokenizerPromise;
+    return japaneseTokenizerPromiseState.value;
 }
 
-async function tokenizeJapaneseText(text) {
+export async function tokenizeJapaneseText(text) {
     const tokenizer = await getJapaneseTokenizer();
     return tokenizer.tokenize(String(text || ""));
 }
 
-function tokenizeJapaneseTextSync(text) {
-    if (!japaneseTokenizerInstance) return null;
-    return japaneseTokenizerInstance.tokenize(String(text || ""));
+export function tokenizeJapaneseTextSync(text) {
+    if (!japaneseTokenizerInstanceState.value) return null;
+    return japaneseTokenizerInstanceState.value.tokenize(String(text || ""));
 }
-
-
-
-

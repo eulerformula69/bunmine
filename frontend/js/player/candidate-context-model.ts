@@ -1,5 +1,7 @@
-interface CandidateCue { start: number; end: number; text: string; }
-interface CandidateContext {
+import { AnkiMediaSnapshot } from "./anki-actions.js";
+import { buildSubtitleContextSelection } from "../subtitles/context-selection.js";
+export interface CandidateCue { start: number; end: number; text: string; }
+export interface CandidateContext {
     cues: CandidateCue[];
     anchor: number;
     start: number;
@@ -8,7 +10,7 @@ interface CandidateContext {
     endOffset: number;
 }
 
-function captureCandidateContext(snapshot: AnkiMediaSnapshot, cues: CandidateCue[], start: number, end: number): CandidateContext {
+export function captureCandidateContext(snapshot: AnkiMediaSnapshot, cues: CandidateCue[], start: number, end: number): CandidateContext {
     return {
         cues: cues.map(({ start, end, text }) => ({ start, end, text })),
         anchor: snapshot.currentIdx, start, end,
@@ -17,7 +19,7 @@ function captureCandidateContext(snapshot: AnkiMediaSnapshot, cues: CandidateCue
     };
 }
 
-function restoreCandidateContext(snapshot: AnkiMediaSnapshot, cues: CandidateCue[]): CandidateContext | null {
+export function restoreCandidateContext(snapshot: AnkiMediaSnapshot, cues: CandidateCue[]): CandidateContext | null {
     if (snapshot.context) return snapshot.context;
     const anchor = snapshot.currentIdx;
     if (!cues[anchor]) return null;
@@ -36,7 +38,7 @@ function restoreCandidateContext(snapshot: AnkiMediaSnapshot, cues: CandidateCue
     return null;
 }
 
-function candidateContextSnapshot(snapshot: AnkiMediaSnapshot, context: CandidateContext, start: number, end: number): AnkiMediaSnapshot {
+export function candidateContextSnapshot(snapshot: AnkiMediaSnapshot, context: CandidateContext, start: number, end: number): AnkiMediaSnapshot {
     if (!Number.isInteger(start) || !Number.isInteger(end) || start < 0 || start > context.anchor || end < context.anchor || end >= context.cues.length) {
         throw new Error("Invalid candidate context range");
     }

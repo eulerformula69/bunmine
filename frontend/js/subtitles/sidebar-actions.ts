@@ -1,49 +1,58 @@
-function getCurrentSubtitleIndexForNavigation(): number {
+import { getPrimarySubtitleIndex } from "./timing.js";
+import { overlay, sidebar, toggleBtn, video } from "../core/dom.js";
+import { state } from "../core/state.js";
+import { findSubtitleIndexForOffset } from "./navigation.js";
+import { clearSearchMatches, syncSubtitleStyle, updateSubtitleSidebarLabels } from "./subtitles-sidebar.js";
+import { renderSubtitleOverlay } from "./subtitles.js";
+import { ankiSubtitleHighlighter } from "../highlighter/anki-highlighter.js";
+import { playMedia } from "../video/media-playback.js";
+import { updateSubtitleSearchPanelLabels } from "./search-panel.js";
+export function getCurrentSubtitleIndexForNavigation(): number {
     const primaryIndex = getPrimarySubtitleIndex();
     if (primaryIndex !== -1) return primaryIndex;
-    const adjustedTime = video.currentTime - globalSubDelay;
+    const adjustedTime = video.currentTime - state.globalSubDelay;
 
-    const nextIndex = subtitles.findIndex((cue) => cue.start > adjustedTime);
+    const nextIndex = state.subtitles.findIndex((cue) => cue.start > adjustedTime);
     if (nextIndex !== -1) return nextIndex;
 
-    return subtitles.length - 1;
+    return state.subtitles.length - 1;
 }
 
-function goToPreviousSubtitle(): void {
-    if (!subtitles.length) return;
+export function goToPreviousSubtitle(): void {
+    if (!state.subtitles.length) return;
 
     const currentIndex = getCurrentSubtitleIndexForNavigation();
-    const referenceTime = subtitles[currentIndex]?.start ?? (video.currentTime - globalSubDelay);
-    const targetIndex = findSubtitleIndexForOffset(subtitles, referenceTime, -1);
+    const referenceTime = state.subtitles[currentIndex]?.start ?? (video.currentTime - state.globalSubDelay);
+    const targetIndex = findSubtitleIndexForOffset(state.subtitles, referenceTime, -1);
 
-    video.currentTime = Math.max(0, subtitles[targetIndex].start + globalSubDelay + 0.01);
+    video.currentTime = Math.max(0, state.subtitles[targetIndex].start + state.globalSubDelay + 0.01);
     syncSubtitleStyle(targetIndex);
 }
 
-function goToNextSubtitle(): void {
-    if (!subtitles.length) return;
+export function goToNextSubtitle(): void {
+    if (!state.subtitles.length) return;
 
     const currentIndex = getCurrentSubtitleIndexForNavigation();
-    const referenceTime = subtitles[currentIndex]?.start ?? (video.currentTime - globalSubDelay);
-    const targetIndex = findSubtitleIndexForOffset(subtitles, referenceTime, 1);
+    const referenceTime = state.subtitles[currentIndex]?.start ?? (video.currentTime - state.globalSubDelay);
+    const targetIndex = findSubtitleIndexForOffset(state.subtitles, referenceTime, 1);
 
-    video.currentTime = Math.max(0, subtitles[targetIndex].start + globalSubDelay + 0.01);
+    video.currentTime = Math.max(0, state.subtitles[targetIndex].start + state.globalSubDelay + 0.01);
     syncSubtitleStyle(targetIndex);
 }
 
-function replayCurrentSubtitle(): void {
-    if (!subtitles.length) return;
+export function replayCurrentSubtitle(): void {
+    if (!state.subtitles.length) return;
 
     clearSearchMatches();
 
     const currentIndex = getPrimarySubtitleIndex() !== -1
         ? getPrimarySubtitleIndex()
         : getCurrentSubtitleIndexForNavigation();
-    const targetSub = subtitles[currentIndex];
+    const targetSub = state.subtitles[currentIndex];
 
     if (!targetSub) return;
 
-    video.currentTime = Math.max(0, targetSub.start + globalSubDelay + 0.01);
+    video.currentTime = Math.max(0, targetSub.start + state.globalSubDelay + 0.01);
 
     renderSubtitleOverlay({
         overlay,
@@ -55,7 +64,7 @@ function replayCurrentSubtitle(): void {
     void playMedia(video);
 }
 
-function focusSubtitleWordSearch(): void {
+export function focusSubtitleWordSearch(): void {
     if (sidebar?.classList.contains("hidden")) {
         toggleBtn?.click();
     }
@@ -68,7 +77,7 @@ function focusSubtitleWordSearch(): void {
     });
 }
 
-function updateSubtitleSearchPanelLanguage(): void {
+export function updateSubtitleSearchPanelLanguage(): void {
     updateSubtitleSearchPanelLabels();
     updateSubtitleSidebarLabels();
 }

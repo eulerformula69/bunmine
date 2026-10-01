@@ -1,18 +1,10 @@
+import { installDom } from "./dom-environment.mjs";
 import assert from "node:assert/strict";
-import fs from "node:fs";
-import vm from "node:vm";
 
-const element = () => ({
-    classList: { values: new Set(), add(value) { this.values.add(value); }, remove(value) { this.values.delete(value); } },
-    textContent: "", innerHTML: "", value: "", disabled: false, children: [],
-    appendChild(child) { this.children.push(child); }, addEventListener(_name, callback) { this.callback = callback; },
-    focus() {}, select() {}, querySelector() { return null; },
-});
-const body = element();
-const context = vm.createContext({ document: { body, createElement: element }, console });
-const source = fs.readFileSync("dist/js/library/library-subtitle-controller.js", "utf8")
-    .replace("function createLibrarySubtitleController", "globalThis.createLibrarySubtitleController = function");
-vm.runInContext(source, context);
+const dom = installDom("library");
+const element = () => document.createElement("input");
+const body = document.body;
+const context = await import("../dist/esm/library/library-subtitle-controller.js");
 
 const modal = element(), title = element(), subtitle = element(), input = element(), button = element(), results = element();
 let queryUsed = "";
@@ -34,6 +26,8 @@ await controller.search();
 assert.equal(queryUsed, "Anime");
 assert.equal(results.children.length, 1);
 controller.close();
-assert.ok(modal.classList.values.has("hidden"));
+assert.ok(modal.classList.contains("hidden"));
 
 console.log("Library subtitle controller tests passed");
+
+dom.window.close();

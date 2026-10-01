@@ -1,3 +1,8 @@
+import { addAnimeBtn, addAnimeFromPath, applyLibraryLanguage, bulkSubtitleList, bulkSubtitleModal, bulkSubtitleSearchBtn, bulkSubtitleSearchInput, bulkSubtitleSets, cancelBulkSubtitleDownloadBtn, changeSeriesCoverBtn, closeBulkSubtitleModalBtn, closeCoverModal, closeCoverModalBtn, closeSeriesPanelBtn, closeSeriesView, closeSubtitleModal, closeSubtitleModalBtn, confirmBulkSubtitleDownloadBtn, coverModal, coverSearchBtn, coverSearchInput, currentBulkSubtitlePlanState, currentOpenedSeriesState, deleteSeriesBtn, deleteSeriesFromLibrary, downloadMissingSubtitlesBtn, filterState, libraryFilters, librarySearchInput, librarySummary, loadLibrarySeries, openCoverSearchModal, openSeriesFromHash, relinkCurrentSeriesFiles, relinkSeriesFilesBtn, renderCatalog, saveLibraryViewState, scanLibraryBtn, searchCoversForCurrentSeries, searchSubtitlesForCurrentEpisode, seriesTabs, showError, startAndPollLibraryJob, subtitleModal, subtitleSearchBtn, subtitleSearchInput } from "./library.js";
+import { lt } from "./library-i18n.js";
+import { LibrarySeriesFilter, LibrarySeriesSort } from "./library-types.js";
+import { analyzeMissingSubtitlesForCurrentSeries, applyBulkSubtitleSet, candidateKey, closeBulkSubtitleModal, downloadSelectedBulkSubtitles, prepareMissingSubtitlesForCurrentSeries, renderBulkSubtitlePlan, updateBulkSubtitleConfirmState } from "./library-bulk-workflow.js";
+import { bindVocabularyReportController } from "./vocabulary-report-controller.js";
 scanLibraryBtn.addEventListener("click", async () => {
     scanLibraryBtn.disabled = true;
     scanLibraryBtn.textContent = lt("scanning");
@@ -28,10 +33,10 @@ seriesTabs.addEventListener("click", (event) => {
     document.getElementById(`${button.dataset.tab}Tab`)?.classList.remove("hidden");
 });
 
-changeSeriesCoverBtn.addEventListener("click", () => { if (currentOpenedSeries) openCoverSearchModal(currentOpenedSeries); });
+changeSeriesCoverBtn.addEventListener("click", () => { if (currentOpenedSeriesState.value) openCoverSearchModal(currentOpenedSeriesState.value); });
 relinkSeriesFilesBtn.addEventListener("click", () => relinkCurrentSeriesFiles().catch(showError));
 downloadMissingSubtitlesBtn.addEventListener("click", () => prepareMissingSubtitlesForCurrentSeries());
-deleteSeriesBtn.addEventListener("click", () => { if (currentOpenedSeries) deleteSeriesFromLibrary(currentOpenedSeries.id, currentOpenedSeries.title).catch(showError); });
+deleteSeriesBtn.addEventListener("click", () => { if (currentOpenedSeriesState.value) deleteSeriesFromLibrary(currentOpenedSeriesState.value.id, currentOpenedSeriesState.value.title).catch(showError); });
 
 closeCoverModalBtn.addEventListener("click", closeCoverModal);
 coverSearchBtn.addEventListener("click", searchCoversForCurrentSeries);
@@ -52,13 +57,13 @@ bulkSubtitleList.addEventListener("change", (event) => {
     const target = event.target as HTMLInputElement | HTMLSelectElement;
     if (target.classList.contains("bulk-subtitle-checkbox")) return updateBulkSubtitleConfirmState();
     if (!target.classList.contains("bulk-subtitle-select")) return;
-    const item = (currentBulkSubtitlePlan?.items || []).find((value) => String(value.episodeId) === String(target.dataset.episodeId));
+    const item = (currentBulkSubtitlePlanState.value?.items || []).find((value) => String(value.episodeId) === String(target.dataset.episodeId));
     if (!item) return;
     const candidate = (item.candidates || []).find((value) => candidateKey(value) === target.value);
     item.selected = candidate || null;
     item.status = candidate ? "ready" : item.candidates?.length ? "needs-review" : "skipped";
     item.message = candidate ? lt("selectedManually") : lt("noSubtitleSelected");
-    renderBulkSubtitlePlan(currentBulkSubtitlePlan);
+    renderBulkSubtitlePlan(currentBulkSubtitlePlanState.value);
 });
 
 for (const modal of [coverModal, subtitleModal, bulkSubtitleModal]) {

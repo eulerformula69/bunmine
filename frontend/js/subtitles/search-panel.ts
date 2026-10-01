@@ -1,4 +1,7 @@
-interface SubtitleSearchPanelCallbacks {
+import { i18n } from "../core/i18n.js";
+import { state } from "../core/state.js";
+import { formatTime } from "./parsing.js";
+export interface SubtitleSearchPanelCallbacks {
     onWordFocus(wordInput: HTMLInputElement, timeInput: HTMLInputElement | null): void;
     onTimeFocus(wordInput: HTMLInputElement | null, timeInput: HTMLInputElement): void;
     onWordInput(value: string, timeInput: HTMLInputElement | null): void;
@@ -10,16 +13,16 @@ interface SubtitleSearchPanelCallbacks {
     onCommit(): void;
 }
 
-interface SubtitleSearchPanelState {
+export interface SubtitleSearchPanelState {
     query: string;
     timeSeconds: number | null;
 }
 
-function getSubtitleSearchDict(): Record<string, string> {
-    return i18n?.[currentLang]?.dict || i18n?.en?.dict || {};
+export function getSubtitleSearchDict(): Record<string, string> {
+    return i18n?.[state.currentLang]?.dict || i18n?.en?.dict || {};
 }
 
-function ensureSubtitleSearchPanel(
+export function ensureSubtitleSearchPanel(
     sidebarEl: HTMLElement | null,
     state: SubtitleSearchPanelState,
     callbacks: SubtitleSearchPanelCallbacks
@@ -84,7 +87,7 @@ function ensureSubtitleSearchPanel(
     commitBtn?.addEventListener("click", callbacks.onCommit);
 }
 
-function updateSubtitleSearchPanelLabels(): void {
+export function updateSubtitleSearchPanelLabels(): void {
     const dict = getSubtitleSearchDict();
 
     const wordInput = document.getElementById("subtitleWordSearchInput");

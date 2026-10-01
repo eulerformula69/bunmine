@@ -47,6 +47,7 @@ def test_missing_dependency_output_invalidates_stamp(tmp_path):
 def _write_typescript_project(project_dir: Path) -> None:
     for relative_path in frontend_build_service._TYPESCRIPT_BUILD_CONFIG_INPUTS:
         path = project_dir / relative_path
+        path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(f"contents of {relative_path}", encoding="utf-8")
 
     source_path = project_dir / "frontend/js/player/app.ts"
@@ -54,9 +55,13 @@ def _write_typescript_project(project_dir: Path) -> None:
     source_path.write_text("const app = true;", encoding="utf-8")
     (source_path.parent / "globals.d.ts").write_text("declare const version: string;", encoding="utf-8")
 
-    output_path = project_dir / "dist/js/player/app.js"
+    output_path = project_dir / "dist/esm/player/app.js"
     output_path.parent.mkdir(parents=True)
     output_path.write_text("var app = true;", encoding="utf-8")
+    for name in ("player", "library"):
+        bundle = project_dir / f"dist/js/{name}.js"
+        bundle.parent.mkdir(parents=True, exist_ok=True)
+        bundle.write_text("built", encoding="utf-8")
 
 
 def test_typescript_output_is_reused_until_source_changes(tmp_path):
@@ -76,6 +81,6 @@ def test_missing_typescript_output_invalidates_stamp(tmp_path):
     _write_typescript_project(tmp_path)
     fingerprint = frontend_build_service._typescript_build_fingerprint(tmp_path)
     frontend_build_service._write_typescript_build_stamp(tmp_path, fingerprint)
-    (tmp_path / "dist/js/player/app.js").unlink()
+    (tmp_path / "dist/esm/player/app.js").unlink()
 
     assert not frontend_build_service._typescript_build_is_current(tmp_path, fingerprint)

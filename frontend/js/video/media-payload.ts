@@ -1,13 +1,14 @@
-﻿function getCurrentVideoPayload() {
-    if (currentLibraryVideoFileId) {
+import { state } from "../core/state.js";
+export function getCurrentVideoPayload() {
+    if (state.currentLibraryVideoFileId) {
         return {
-            videoFileId: currentLibraryVideoFileId
+            videoFileId: state.currentLibraryVideoFileId
         };
     }
 
-    if (currentVideoFile) {
+    if (state.currentVideoFile) {
         return {
-            filename: currentVideoFile
+            filename: state.currentVideoFile
         };
     }
 

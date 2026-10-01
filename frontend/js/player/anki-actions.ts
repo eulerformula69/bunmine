@@ -1,4 +1,9 @@
-interface AnkiMediaSnapshotDraft {
+import { CurrentVideoPayload } from "../types/runtime-types.js";
+import { buildApiUrl, fetchWithRetry } from "../core/api.js";
+import { tokenizeJapaneseText } from "../japanese/japanese-tokenizer.js";
+import { CandidateContext, CandidateCue } from "./candidate-context-model.js";
+import { t } from "./ui.js";
+export interface AnkiMediaSnapshotDraft {
     videoPayload: CurrentVideoPayload;
     subtitleIndex: number;
     selectedWord: string;
@@ -8,23 +13,23 @@ interface AnkiMediaSnapshotDraft {
     volume: number;
 }
 
-function hasRequiredAnkiMediaFields(fields: {
+export function hasRequiredAnkiMediaFields(fields: {
     pictureField?: string;
     audioField?: string;
 }): boolean {
     return Boolean(fields.pictureField?.trim() && fields.audioField?.trim());
 }
 
-function normalizeSelectedAnkiWord(word: string): string {
+export function normalizeSelectedAnkiWord(word: string): string {
     return String(word || "").trim();
 }
 
-interface AnkiConnectResponse<T> {
+export interface AnkiConnectResponse<T> {
     error?: string;
     result?: T;
 }
 
-async function fetchDeckNoteIds(ankiUrl: string, deckName: string): Promise<number[]> {
+export async function fetchDeckNoteIds(ankiUrl: string, deckName: string): Promise<number[]> {
     const findRes = await fetchWithRetry(ankiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -48,7 +53,7 @@ async function fetchDeckNoteIds(ankiUrl: string, deckName: string): Promise<numb
     return Array.isArray(findData.result) ? findData.result : [];
 }
 
-async function fetchNoteIdsByQuery(
+export async function fetchNoteIdsByQuery(
     ankiUrl: string,
     query: string,
     label = "AnkiConnect findNotes"
@@ -74,7 +79,7 @@ async function fetchNoteIdsByQuery(
     return Array.isArray(findData.result) ? findData.result : [];
 }
 
-async function fetchNotesInfo(
+export async function fetchNotesInfo(
     ankiUrl: string,
     noteIds: Array<string | number>
 ): Promise<Array<{ noteId?: string | number; fields?: Record<string, { value?: unknown }> }>> {
@@ -101,39 +106,39 @@ async function fetchNotesInfo(
     return Array.isArray(data.result) ? data.result : [];
 }
 
-function stripHtml(input: unknown): string {
+export function stripHtml(input: unknown): string {
     return String(input || "")
         .replace(/<[^>]*>/g, " ")
         .replace(/\s+/g, " ")
         .trim();
 }
 
-function isKanaOnly(text: string): boolean {
+export function isKanaOnly(text: string): boolean {
     return /^[\u3040-\u309f\u30a0-\u30ffー]+$/.test(String(text || ""));
 }
 
-function hasKanji(text: string): boolean {
+export function hasKanji(text: string): boolean {
     return /[\u3400-\u9fff]/.test(String(text || ""));
 }
 
-function normalizeAnkiFuriganaWhitespace(text: string): string {
+export function normalizeAnkiFuriganaWhitespace(text: string): string {
     return String(text || "").replace(
         /[\u00a0\u1680\u2000-\u200a\u202f\u205f\u3000]/g,
         " "
     );
 }
 
-function encodeAnkiFuriganaSpaces(text: string): string {
+export function encodeAnkiFuriganaSpaces(text: string): string {
     return String(text || "").replace(/ /g, "&nbsp;");
 }
 
-function escapeAnkiFieldText(text: string): string {
+export function escapeAnkiFieldText(text: string): string {
     return String(text || "")
         .replace(/\\/g, "\\\\")
         .replace(/"/g, '\\"');
 }
 
-function splitKanjiStemAndKanaTail(surface: string, readingHiragana: string): {
+export function splitKanjiStemAndKanaTail(surface: string, readingHiragana: string): {
     stem: string;
     tail: string;
     stemReading: string;
@@ -174,11 +179,11 @@ function splitKanjiStemAndKanaTail(surface: string, readingHiragana: string): {
     };
 }
 
-function escapeRegExp(text: string): string {
+export function escapeRegExp(text: string): string {
     return String(text || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-function boldWordInText(text: string, word: string): string {
+export function boldWordInText(text: string, word: string): string {
     const source = String(text || "");
     const target = stripHtml(word);
 
@@ -189,7 +194,7 @@ function boldWordInText(text: string, word: string): string {
     return source.replace(pattern, (match) => `<b>${match}</b>`);
 }
 
-function getNoteWord(noteInfo: { fields?: Record<string, { value?: unknown }> } | null | undefined): string {
+export function getNoteWord(noteInfo: { fields?: Record<string, { value?: unknown }> } | null | undefined): string {
     const fields = noteInfo?.fields || {};
     const wordFieldNames = (
         (document.getElementById("highlightWordField") as HTMLInputElement | null)?.value || "Word"
@@ -206,7 +211,7 @@ function getNoteWord(noteInfo: { fields?: Record<string, { value?: unknown }> } 
     return "";
 }
 
-async function buildSentenceFurigana(text: string): Promise<string> {
+export async function buildSentenceFurigana(text: string): Promise<string> {
     // Anki's bracket-furigana parser only treats an ASCII space as a reliable
     // reading-group separator. Subtitle formats commonly contain visually
     // identical full-width or non-breaking spaces, so normalize them before
@@ -214,11 +219,6 @@ async function buildSentenceFurigana(text: string): Promise<string> {
     const source = normalizeAnkiFuriganaWhitespace(text);
 
     if (!source) return "";
-
-    if (typeof tokenizeJapaneseText !== "function") {
-        console.warn("tokenizeJapaneseText is not available");
-        return encodeAnkiFuriganaSpaces(source);
-    }
 
     const tokens = await tokenizeJapaneseText(source);
     let result = "";
@@ -278,13 +278,13 @@ async function buildSentenceFurigana(text: string): Promise<string> {
     return encodeAnkiFuriganaSpaces(result);
 }
 
-function katakanaToHiragana(text: string): string {
+export function katakanaToHiragana(text: string): string {
     return String(text || "").replace(/[\u30a1-\u30f6]/g, (char) => {
         return String.fromCharCode(char.charCodeAt(0) - 0x60);
     });
 }
 
-function pickNotePreviewText(noteInfo: { fields?: Record<string, { value?: unknown }> } | null | undefined): string {
+export function pickNotePreviewText(noteInfo: { fields?: Record<string, { value?: unknown }> } | null | undefined): string {
     const fields = noteInfo?.fields || {};
     const preferredFieldOrder = [
         "Word", "Key", "Expression", "Sentence", "Front", "Back", "Meaning", "Definition"
@@ -303,7 +303,7 @@ function pickNotePreviewText(noteInfo: { fields?: Record<string, { value?: unkno
     return "";
 }
 
-interface AnkiMediaSnapshot {
+export interface AnkiMediaSnapshot {
     candidateId?: number;
     candidateRevision?: number;
     context?: CandidateContext;
@@ -329,7 +329,7 @@ interface AnkiMediaSnapshot {
     selectedWord?: string;
 }
 
-function buildImageSubtitleExport(snapshot: AnkiMediaSnapshot) {
+export function buildImageSubtitleExport(snapshot: AnkiMediaSnapshot) {
     const mode = (document.getElementById("imageSubtitleMode") as HTMLButtonElement | null)?.value === "timed"
         ? "timed" : "all";
     const enabled = (document.getElementById("includeImageSubtitle") as HTMLInputElement | null)?.checked !== false;
@@ -351,7 +351,9 @@ function buildImageSubtitleExport(snapshot: AnkiMediaSnapshot) {
     };
 }
 
-interface AnkiMediaControllerOptions {
+export interface AnkiMediaControllerOptions {
+    fetchNotesInfo?: typeof fetchNotesInfo;
+    fetchDeckNoteIds?: typeof fetchDeckNoteIds;
     resolveExportSnapshot?(): Promise<AnkiMediaSnapshot>;
     validateExportSnapshot?(snapshot: AnkiMediaSnapshot): Promise<void>;
     translate(key: string, params?: Record<string, unknown>): string;
@@ -374,13 +376,13 @@ interface AnkiMediaControllerOptions {
     showToast(message: string, type?: string, duration?: number): unknown;
 }
 
-interface AnkiMediaController {
+export interface AnkiMediaController {
     buildSnapshot(options?: { subtitleIndex?: number | null; validateAnki?: boolean }): AnkiMediaSnapshot;
     updateNote(targetNoteId: number, snapshot: AnkiMediaSnapshot): Promise<{ targetWord: string }>;
     updateCurrentOrSelected(): Promise<void>;
 }
 
-function createAnkiMediaController(options: AnkiMediaControllerOptions): AnkiMediaController {
+export function createAnkiMediaController(options: AnkiMediaControllerOptions): AnkiMediaController {
     const inputValue = (id: string): string =>
         (document.getElementById(id) as HTMLInputElement | null)?.value || "";
 
@@ -493,7 +495,7 @@ function createAnkiMediaController(options: AnkiMediaControllerOptions): AnkiMed
             throw new Error(pictureData.error || audioData.error || "Media server error");
         }
 
-        const [targetNoteInfo] = await fetchNotesInfo(snapshot.ankiUrl, [targetNoteId]);
+        const [targetNoteInfo] = await (options.fetchNotesInfo || fetchNotesInfo)(snapshot.ankiUrl, [targetNoteId]);
         const targetWord = getNoteWord(targetNoteInfo);
         const sentence = targetWord
             ? boldWordInText(snapshot.combinedText, targetWord)
@@ -570,7 +572,7 @@ function createAnkiMediaController(options: AnkiMediaControllerOptions): AnkiMed
 
     async function updateCurrentOrSelected(): Promise<void> {
         const snapshot = options.resolveExportSnapshot ? await options.resolveExportSnapshot() : buildSnapshot();
-        const noteIds = await fetchDeckNoteIds(snapshot.ankiUrl, snapshot.deckName);
+        const noteIds = await (options.fetchDeckNoteIds || fetchDeckNoteIds)(snapshot.ankiUrl, snapshot.deckName);
         if (!noteIds.length) {
             throw new Error(`Error: There are no cards in "${snapshot.deckName}"!`);
         }

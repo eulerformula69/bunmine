@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import vm from "node:vm";
+import { installDom } from "./dom-environment.mjs";
+const dom = installDom();
 
 class TestVTTCue extends EventTarget {
     constructor(startTime, endTime, text) {
@@ -23,37 +24,39 @@ const context = {
     lastClickedSubtitleIdx: null,
     subtitles: []
 };
-context.window = context;
+context.window = window;
 context.window.VTTCue = TestVTTCue;
-vm.createContext(context);
+globalThis.VTTCue = TestVTTCue;
+Object.defineProperty(globalThis, "EventTarget", { configurable: true, value: window.EventTarget });
+const { ParseErrorCode, parseText } = await import("media-captions");
+globalThis.MediaCaptions = { ParseErrorCode, parseText };
 
-for (const file of [
-    "dist/js/subtitles/model.js",
-    "dist/js/subtitles/parser-types.js",
-    "dist/js/subtitles/format-detection.js",
-    "dist/js/subtitles/normalization.js",
-    "dist/js/subtitles/parsing.js",
-    "dist/js/subtitles/parsers/legacy-parser.js",
-    "dist/js/subtitles/parsers/external-parser.js",
-    "frontend/libs/media-captions/media-captions.js",
-    "dist/js/subtitles/parsers/media-captions-ass-metadata.js",
-    "dist/js/subtitles/parsers/media-captions-parser.js",
-    "dist/js/subtitles/parser-registry.js",
-    "dist/js/subtitles/parse-subtitle-source.js",
-    "dist/js/subtitles/timing.js",
-    "dist/js/subtitles/navigation.js"
-]) {
-    vm.runInContext(fs.readFileSync(file, "utf8"), context, { filename: file });
-}
+Object.assign(context,
+    await import("../dist/esm/subtitles/model.js"),
+    await import("../dist/esm/subtitles/parser-types.js"),
+    await import("../dist/esm/subtitles/format-detection.js"),
+    await import("../dist/esm/subtitles/normalization.js"),
+    await import("../dist/esm/subtitles/parsing.js"),
+    await import("../dist/esm/subtitles/parsers/legacy-parser.js"),
+    await import("../dist/esm/subtitles/parsers/external-parser.js"),
+    await import("../dist/esm/subtitles/parsers/media-captions-ass-metadata.js"),
+    await import("../dist/esm/subtitles/parsers/media-captions-parser.js"),
+    await import("../dist/esm/subtitles/parser-registry.js"),
+    await import("../dist/esm/subtitles/parse-subtitle-source.js"),
+    await import("../dist/esm/subtitles/timing.js"),
+    await import("../dist/esm/subtitles/navigation.js")
+);
 
-const evaluate = (source) => vm.runInContext(source, context);
 
-assert.equal(evaluate('detectSubtitleFormat({ filename: "episode.srt" })'), "srt");
-assert.equal(evaluate('detectSubtitleFormat({ filename: "episode.VTT" })'), "vtt");
-assert.equal(evaluate('detectSubtitleFormat({ filename: "episode.ass" })'), "ass");
-assert.equal(evaluate('detectSubtitleFormat({ filename: "episode.ssa" })'), "ssa");
-assert.equal(evaluate('detectSubtitleFormat({ source: "ordinary text" })'), "unknown");
-assert.equal(evaluate('subtitleParserRegistry.resolve("srt").id'), "media-captions");
+const { state } = await import("../dist/esm/core/state.js");
+document.getElementById("video").currentTime = 5;
+
+assert.equal((context.detectSubtitleFormat({ filename: "episode.srt" })), "srt");
+assert.equal((context.detectSubtitleFormat({ filename: "episode.VTT" })), "vtt");
+assert.equal((context.detectSubtitleFormat({ filename: "episode.ass" })), "ass");
+assert.equal((context.detectSubtitleFormat({ filename: "episode.ssa" })), "ssa");
+assert.equal((context.detectSubtitleFormat({ source: "ordinary text" })), "unknown");
+assert.equal((context.subtitleParserRegistry.resolve("srt").id), "media-captions");
 
 const srt = `1\r
 00:00:01,000 --> 00:00:02,000\r
@@ -64,14 +67,14 @@ const srt = `1\r
 00:00:01,000 --> 00:00:02,000\r
 overlap`;
 context.srt = srt;
-const srtResult = await evaluate('parseSubtitleSource({ source: srt, format: "srt" })');
+const srtResult = await (context.parseSubtitleSource({ source: context.srt, format: "srt" }));
 assert.equal(srtResult.cues.length, 2, "overlapping cues with identical timecodes must be preserved");
 assert.equal(srtResult.cues[0].startTime, 1);
 assert.equal(srtResult.cues[0].endTime, 2);
 assert.equal(srtResult.cues[0].text, "日本語\n二行目", "CRLF must normalize without losing Japanese text");
-assert.equal(srtResult.cues[0].id, (await evaluate('parseSubtitleSource({ source: srt, format: "srt" })')).cues[0].id);
+assert.equal(srtResult.cues[0].id, (await (context.parseSubtitleSource({ source: context.srt, format: "srt" }))).cues[0].id);
 
-const legacySrt = evaluate("parseSRT(srt)");
+const legacySrt = (context.parseSRT(context.srt));
 assert.equal(legacySrt[0].start, srtResult.cues[0].startTime, "legacy SRT timing must remain compatible");
 assert.equal(legacySrt[0].text, srtResult.cues[0].text);
 
@@ -80,7 +83,7 @@ context.invalidDrafts = [
     { startTime: Number.POSITIVE_INFINITY, endTime: 2, text: "Infinity" },
     { startTime: -2, endTime: -1, text: "negative" }
 ];
-const normalized = evaluate('normalizeSubtitleCues(invalidDrafts, "srt")');
+const normalized = (context.normalizeSubtitleCues(context.invalidDrafts, "srt"));
 assert.equal(normalized.cues.length, 1);
 assert.equal(normalized.warnings.length, 2);
 assert.equal(normalized.cues[0].startTime, 0);
@@ -97,7 +100,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 Dialogue: 1,0:00:01.00,0:00:08.00,Dialogue,,0,0,0,,{\\an8\\pos(960,100)}看板
 Dialogue: 0,0:00:04.00,0:00:06.00,Dialogue,,0,0,0,,会話`;
 context.ass = ass;
-const assResult = await evaluate('parseSubtitleSource({ source: ass, format: "ass" })');
+const assResult = await (context.parseSubtitleSource({ source: context.ass, format: "ass" }));
 assert.equal(assResult.cues.length, 2);
 assert.equal(assResult.cues[0].alignment, 8);
 assert.equal(assResult.cues[0].positionX, 960);
@@ -106,41 +109,41 @@ assert.equal(assResult.cues[0].playResX, 1920);
 assert.equal(assResult.cues[0].fontName, "Arial");
 assert.equal(assResult.cues[0].primaryColor, "#FFFFFF");
 
-context.subtitles = evaluate("toRuntimeSubtitleCues")(assResult.cues);
-assert.equal(evaluate("getPrimarySubtitleIndex()"), 1, "bottom dialogue should beat a positioned sign");
-context.lastClickedSubtitleIdx = 0;
-assert.equal(evaluate("getPrimarySubtitleIndex()"), 0, "an explicit active selection should win");
+state.subtitles = (context.toRuntimeSubtitleCues)(assResult.cues);
+assert.equal((context.getPrimarySubtitleIndex()), 1, "bottom dialogue should beat a positioned sign");
+state.lastClickedSubtitleIdx = 0;
+assert.equal((context.getPrimarySubtitleIndex()), 0, "an explicit active selection should win");
 
-await evaluate(`(async () => {
-    const external = new ExternalSubtitleParser("fake-external", ["vtt"], async () => [{
+await ((async () => {
+    const external = new context.ExternalSubtitleParser("fake-external", ["vtt"], async () => [{
         startTime: 2,
         endTime: 4,
         text: "external",
         attributes: { region: "speaker" }
     }]);
-    subtitleParserRegistry.register(external);
-})()`);
-assert.equal(evaluate('subtitleParserRegistry.resolve("vtt").id'), "fake-external");
-const externalResult = await evaluate('parseSubtitleSource({ source: "WEBVTT", format: "vtt" })');
+    context.subtitleParserRegistry.register(external);
+})());
+assert.equal((context.subtitleParserRegistry.resolve("vtt").id), "fake-external");
+const externalResult = await (context.parseSubtitleSource({ source: "WEBVTT", format: "vtt" }));
 assert.equal(externalResult.cues[0].startTime, 2);
 assert.equal(externalResult.cues[0].metadata.region, "speaker");
-evaluate('subtitleParserRegistry.unregister("fake-external")');
+(context.subtitleParserRegistry.unregister("fake-external"));
 
 await assert.rejects(
-    evaluate('parseSubtitleSource({ source: "plain text", format: "unknown" })'),
+    (context.parseSubtitleSource({ source: "plain text", format: "unknown" })),
     (error) => error.code === "unsupported-format" && error.format === "unknown"
 );
 
-await evaluate(`(async () => {
-    subtitleParserRegistry.register(new ExternalSubtitleParser("broken", ["vtt"], async () => {
+await ((async () => {
+    context.subtitleParserRegistry.register(new context.ExternalSubtitleParser("broken", ["vtt"], async () => {
         throw new Error("third-party details");
     }));
-})()`);
+})());
 await assert.rejects(
-    evaluate('parseSubtitleSource({ source: "WEBVTT", format: "vtt" })'),
+    (context.parseSubtitleSource({ source: "WEBVTT", format: "vtt" })),
     (error) => error.code === "provider-failed" && error.cause?.message === "third-party details"
 );
-evaluate('subtitleParserRegistry.unregister("broken")');
+(context.subtitleParserRegistry.unregister("broken"));
 
 context.grouped = [
     { start: 1, end: 2, text: "one" },
@@ -148,7 +151,9 @@ context.grouped = [
     { start: 3.01, end: 4, text: "two-b" },
     { start: 7, end: 8, text: "three" }
 ];
-assert.equal(evaluate("findSubtitleIndexForOffset(grouped, 3, 1)"), 3);
-assert.equal(evaluate("findSubtitleIndexForOffset(grouped, 3, -1)"), 0);
+assert.equal((context.findSubtitleIndexForOffset(context.grouped, 3, 1)), 3);
+assert.equal((context.findSubtitleIndexForOffset(context.grouped, 3, -1)), 0);
 
 console.log("Subtitle parser infrastructure tests passed");
+
+dom.window.close();

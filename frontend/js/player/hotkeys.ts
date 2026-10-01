@@ -1,4 +1,5 @@
-function isEditableHotkeyTarget(target: EventTarget | null): boolean {
+
+export function isEditableHotkeyTarget(target: EventTarget | null): boolean {
     if (!(target instanceof HTMLElement)) return false;
 
     const tagName = target.tagName.toLowerCase();
@@ -10,11 +11,11 @@ function isEditableHotkeyTarget(target: EventTarget | null): boolean {
     );
 }
 
-function shouldHandlePlayerHotkey(event: KeyboardEvent): boolean {
+export function shouldHandlePlayerHotkey(event: KeyboardEvent): boolean {
     return !event.defaultPrevented && !isEditableHotkeyTarget(event.target);
 }
 
-interface PlayerHotkeyActions {
+export interface PlayerHotkeyActions {
     seekBySeconds: (seconds: number) => void;
     seekBySubtitle: (direction: number) => void;
     toggleFullscreen: () => void;
@@ -25,7 +26,7 @@ interface PlayerHotkeyActions {
     toggleSubtitles: () => void;
 }
 
-function bindPlayerHotkeys(actions: PlayerHotkeyActions): void {
+export function bindPlayerHotkeys(actions: PlayerHotkeyActions): void {
     document.addEventListener("keydown", (event) => {
         if (!shouldHandlePlayerHotkey(event)) return;
 

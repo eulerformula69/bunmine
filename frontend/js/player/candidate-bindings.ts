@@ -1,4 +1,24 @@
-async function verifyCandidateAnkiNote(noteId: number, snapshot: AnkiMediaSnapshot): Promise<void> {
+import { AnkiMediaSnapshot, fetchNoteIdsByQuery, fetchNotesInfo, stripHtml } from "./anki-actions.js";
+import { getCleanSelectedText, showToast, t } from "./ui.js";
+import { getSubtitleIndexFromSelection } from "./selection-model.js";
+import { createCandidateExportService } from "./candidate-export.js";
+import { candidateApi } from "./candidate-api.js";
+import { createCandidateReviewController } from "./review-controller.js";
+import { ankiMediaController, refreshTargetNoteList, updateAnkiNoteWithSnapshot } from "./app.js";
+import { sleep } from "../core/api.js";
+import { createCandidateLoop } from "./candidate-loop.js";
+import { sidebar, video } from "../core/dom.js";
+import { createCandidatePanel } from "./candidate-panel.js";
+import { ankiAcquireRunningState, runExclusiveAnkiAcquire } from "./anki-acquire-lock.js";
+import { getCurrentVideoPayload } from "../video/media-payload.js";
+import { resetLibraryProgressTracking } from "../video/progress.js";
+import { playCandidateSource } from "./candidate-playback.js";
+import { captureCandidateContext, restoreCandidateContext } from "./candidate-context-model.js";
+import { state } from "../core/state.js";
+import { createCandidateCaptureController } from "./capture-controller.js";
+import { getSubtitleContextRange } from "../subtitles/subtitles-sidebar.js";
+import { autoAttachController } from "./auto-attach-bindings.js";
+export async function verifyCandidateAnkiNote(noteId: number, snapshot: AnkiMediaSnapshot): Promise<void> {
     const [note] = await fetchNotesInfo(snapshot.ankiUrl, [noteId]);
     const word = stripHtml(snapshot.selectedWord).toLowerCase();
     if (!note || !Object.values(note.fields || {}).some((field) =>
@@ -7,7 +27,7 @@ async function verifyCandidateAnkiNote(noteId: number, snapshot: AnkiMediaSnapsh
     }
 }
 
-const candidateExports = createCandidateExportService({
+export const candidateExports = createCandidateExportService({
     source: candidateApi.source,
     configure: (snapshot) => {
         for (const key of ["ankiUrl", "deckName", "pictureField", "audioField"] as const) {
@@ -17,7 +37,7 @@ const candidateExports = createCandidateExportService({
     },
 });
 
-const candidateReview = createCandidateReviewController({
+export const candidateReview = createCandidateReviewController({
     action: candidateApi.action,
     noteIds: (snapshot) => fetchNoteIdsByQuery(snapshot.ankiUrl, "", "AnkiConnect candidate baseline"),
     copy: (word) => navigator.clipboard.writeText(word),
@@ -32,10 +52,10 @@ const candidateReview = createCandidateReviewController({
     now: () => Date.now(),
 });
 
-const candidateLoop = createCandidateLoop(video);
-const candidatePanel = createCandidatePanel({
+export const candidateLoop = createCandidateLoop(video);
+export const candidatePanel = createCandidatePanel({
     sidebar,
-    busy: () => candidateReview.isBusy() || ankiAcquireRunning,
+    busy: () => candidateReview.isBusy() || ankiAcquireRunningState.value,
     playback: (candidate, restart) => {
         if (candidate && JSON.stringify(candidate.snapshot.videoPayload) !== JSON.stringify(getCurrentVideoPayload())) candidate = undefined;
         candidateLoop.set(candidate?.snapshot || null, restart);
@@ -43,7 +63,7 @@ const candidatePanel = createCandidatePanel({
     },
     select: async (candidate) => {
         Object.assign(candidate, await playCandidateSource(candidate));
-        return restoreCandidateContext(candidate.snapshot, subtitles);
+        return restoreCandidateContext(candidate.snapshot, state.subtitles);
     },
     saveContext: (candidate, context, start, end) => candidateExports.trackSave(candidate.id,
         runExclusiveAnkiAcquire(() => candidateApi.context(candidate, context, start, end))),
@@ -59,11 +79,11 @@ const candidatePanel = createCandidatePanel({
     },
 });
 
-const captureCandidate = createCandidateCaptureController({
+export const captureCandidate = createCandidateCaptureController({
     buildSnapshot: (index) => {
         const snapshot = ankiMediaController.buildSnapshot({ subtitleIndex: index, validateAnki: false });
         const range = getSubtitleContextRange(index);
-        snapshot.context = captureCandidateContext(snapshot, subtitles, range.startIdx, range.endIdx);
+        snapshot.context = captureCandidateContext(snapshot, state.subtitles, range.startIdx, range.endIdx);
         return snapshot;
     },
     save: candidateApi.capture,
@@ -73,7 +93,7 @@ const captureCandidate = createCandidateCaptureController({
     },
 });
 
-async function captureSelectedCandidate(): Promise<void> {
+export async function captureSelectedCandidate(): Promise<void> {
     try {
         autoAttachController.cancel();
         await captureCandidate(getCleanSelectedText(), getSubtitleIndexFromSelection());

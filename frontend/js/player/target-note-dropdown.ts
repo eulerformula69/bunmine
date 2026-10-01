@@ -1,4 +1,5 @@
-interface TargetNoteDropdownControllerOptions {
+
+export interface TargetNoteDropdownControllerOptions {
     select: HTMLSelectElement;
     getAnkiUrl(): string;
     getDeckName(): string;
@@ -9,19 +10,19 @@ interface TargetNoteDropdownControllerOptions {
     pickNotePreviewText(note: any): string;
 }
 
-interface TargetNoteDropdownElements {
+export interface TargetNoteDropdownElements {
     dropdown: HTMLElement | null;
     button: HTMLButtonElement | null;
     buttonText: HTMLElement | null;
     menu: HTMLElement | null;
 }
 
-interface TargetNoteDropdownController {
+export interface TargetNoteDropdownController {
     refresh(options?: { preserveSelection?: boolean }): Promise<void>;
     init(): void;
 }
 
-function createTargetNoteDropdownController(
+export function createTargetNoteDropdownController(
     options: TargetNoteDropdownControllerOptions
 ): TargetNoteDropdownController {
     const { select } = options;

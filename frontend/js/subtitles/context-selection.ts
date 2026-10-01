@@ -1,4 +1,5 @@
-interface SubtitleContextSelection {
+
+export interface SubtitleContextSelection {
     startIndex: number;
     endIndex: number;
     startTime: number;
@@ -6,7 +7,7 @@ interface SubtitleContextSelection {
     text: string;
 }
 
-function buildSubtitleContextSelection(
+export function buildSubtitleContextSelection(
     cues: { start: number; end: number; text: string }[],
     currentIndex: number,
     backDepth: number,

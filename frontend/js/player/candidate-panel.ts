@@ -1,4 +1,13 @@
-function createCandidatePanel(options: {
+import { MiningCandidate } from "./candidate-model.js";
+import { CandidateContext } from "./candidate-context-model.js";
+import { t } from "./ui.js";
+import { createCandidateContextEditor } from "./candidate-context-editor.js";
+import { VideoFilePayload } from "../types/runtime-types.js";
+import { formatTime } from "../subtitles/parsing.js";
+import { candidateApi } from "./candidate-api.js";
+export function createCandidatePanel(options: {
+    list?: typeof candidateApi.list;
+    createEditor?: typeof createCandidateContextEditor;
     sidebar: HTMLElement;
     busy(): boolean;
     select(candidate: MiningCandidate): Promise<CandidateContext | null | void>;
@@ -20,7 +29,7 @@ function createCandidatePanel(options: {
     panel.setAttribute("aria-label", t("candidateTitle"));
     const list = document.createElement("div");
     list.className = "candidate-list";
-    const editor = createCandidateContextEditor({
+    const editor = (options.createEditor || createCandidateContextEditor)({
         editing: (value) => { editing = value; render(); },
         error: options.error,
         change: async (start, end) => {
@@ -143,7 +152,7 @@ function createCandidatePanel(options: {
         status: (message: string) => { status.textContent = message; },
         async refresh(): Promise<void> {
             if (editing) return;
-            const loaded = await candidateApi.list();
+            const loaded = await (options.list || candidateApi.list)();
             if (editing) return;
             candidates = loaded;
             const previous = active?.id;

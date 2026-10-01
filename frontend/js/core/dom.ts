@@ -1,59 +1,95 @@
-interface PlayerDom {
-    video: HTMLVideoElement | null;
-    sidebar: HTMLElement | null;
-    multiInput: HTMLInputElement | null;
-    fullscreenBtn: HTMLButtonElement | null;
-    settingsBtn: HTMLButtonElement | null;
-    settingsModal: HTMLElement | null;
-    closeSettingsBtn: HTMLButtonElement | null;
-    dropzone: HTMLElement | null;
-    toggleBtn: HTMLButtonElement | null;
-    overlay: HTMLElement | null;
-    deleteVideoBtn: HTMLButtonElement | null;
-    playPause: HTMLButtonElement | null;
-    progress: HTMLInputElement | null;
-    timeLabel: HTMLElement | null;
-    videoContainer: HTMLElement | null;
-    controls: HTMLElement | null;
-    ankiAllBtn: HTMLButtonElement | null;
-    targetNoteSelect: HTMLSelectElement | null;
-    fontSizeRange: HTMLInputElement | null;
-    subtitleOverlay: HTMLElement | null;
-    resizer: HTMLElement | null;
-    videoPickerModal: HTMLElement | null;
-    videoPickerList: HTMLElement | null;
-    videoPickerCancelBtn: HTMLButtonElement | null;
-    addKnownBasicBtn: HTMLButtonElement | null;
-    addCardToDeck: HTMLButtonElement | null;
-    volume: HTMLInputElement | null;
+
+function requiredElement<T>(element: T | null): T {
+    if (element === null) throw new Error("Required player element is missing");
+    return element;
 }
 
-const dom: PlayerDom = {
-    video: document.getElementById("video") as HTMLVideoElement | null,
-    sidebar: document.getElementById("sidebar"),
-    multiInput: document.getElementById("multiInput") as HTMLInputElement | null,
-    fullscreenBtn: document.getElementById("fullscreenBtn") as HTMLButtonElement | null,
-    settingsBtn: document.getElementById("settingsBtn") as HTMLButtonElement | null,
-    settingsModal: document.getElementById("settingsModal"),
-    closeSettingsBtn: document.getElementById("closeSettingsBtn") as HTMLButtonElement | null,
-    dropzone: document.getElementById("dropzone"),
-    toggleBtn: document.getElementById("toggleSubs") as HTMLButtonElement | null,
-    overlay: document.getElementById("subtitleOverlay"),
-    deleteVideoBtn: document.getElementById("deleteVideoBtn") as HTMLButtonElement | null,
-    playPause: document.getElementById("playPause") as HTMLButtonElement | null,
-    progress: document.getElementById("progress") as HTMLInputElement | null,
-    timeLabel: document.getElementById("time"),
-    videoContainer: document.getElementById("videoContainer"),
-    controls: document.getElementById("controls"),
-    ankiAllBtn: document.getElementById("ankiAllBtn") as HTMLButtonElement | null,
-    targetNoteSelect: document.getElementById("targetNoteSelect") as HTMLSelectElement | null,
-    fontSizeRange: document.getElementById("fontSizeRange") as HTMLInputElement | null,
-    subtitleOverlay: document.getElementById("subtitleOverlay"),
-    resizer: document.getElementById("resizer"),
-    videoPickerModal: document.getElementById("videoPickerModal"),
-    videoPickerList: document.getElementById("videoPickerList"),
-    videoPickerCancelBtn: document.getElementById("videoPickerCancelBtn") as HTMLButtonElement | null,
-    addKnownBasicBtn: document.getElementById("addKnownBasicBtn") as HTMLButtonElement | null,
-    addCardToDeck: document.getElementById("addCardToDeck") as HTMLButtonElement | null,
-    volume: document.getElementById("volume") as HTMLInputElement | null
+export interface PlayerDom {
+    video: HTMLVideoElement;
+    sidebar: HTMLElement;
+    multiInput: HTMLInputElement;
+    fullscreenBtn: HTMLButtonElement;
+    settingsBtn: HTMLButtonElement;
+    settingsModal: HTMLElement;
+    closeSettingsBtn: HTMLButtonElement;
+    dropzone: HTMLElement;
+    toggleBtn: HTMLButtonElement;
+    overlay: HTMLElement;
+    deleteVideoBtn: HTMLButtonElement;
+    playPause: HTMLButtonElement;
+    progress: HTMLInputElement;
+    timeLabel: HTMLElement;
+    videoContainer: HTMLElement;
+    controls: HTMLElement;
+    ankiAllBtn: HTMLButtonElement;
+    targetNoteSelect: HTMLSelectElement;
+    fontSizeRange: HTMLInputElement;
+    subtitleOverlay: HTMLElement;
+    resizer: HTMLElement;
+    videoPickerModal: HTMLElement;
+    videoPickerList: HTMLElement;
+    videoPickerCancelBtn: HTMLButtonElement;
+    addKnownBasicBtn: HTMLButtonElement;
+    addCardToDeck: HTMLButtonElement;
+    volume: HTMLInputElement;
+}
+
+export const dom: PlayerDom = {
+    video: requiredElement(document.getElementById("video") as HTMLVideoElement | null),
+    sidebar: requiredElement(document.getElementById("sidebar")),
+    multiInput: requiredElement(document.getElementById("multiInput") as HTMLInputElement | null),
+    fullscreenBtn: requiredElement(document.getElementById("fullscreenBtn") as HTMLButtonElement | null),
+    settingsBtn: requiredElement(document.getElementById("settingsBtn") as HTMLButtonElement | null),
+    settingsModal: requiredElement(document.getElementById("settingsModal")),
+    closeSettingsBtn: requiredElement(document.getElementById("closeSettingsBtn") as HTMLButtonElement | null),
+    dropzone: requiredElement(document.getElementById("dropzone")),
+    toggleBtn: requiredElement(document.getElementById("toggleSubs") as HTMLButtonElement | null),
+    overlay: requiredElement(document.getElementById("subtitleOverlay")),
+    deleteVideoBtn: requiredElement(document.getElementById("deleteVideoBtn") as HTMLButtonElement | null),
+    playPause: requiredElement(document.getElementById("playPause") as HTMLButtonElement | null),
+    progress: requiredElement(document.getElementById("progress") as HTMLInputElement | null),
+    timeLabel: requiredElement(document.getElementById("time")),
+    videoContainer: requiredElement(document.getElementById("videoContainer")),
+    controls: requiredElement(document.getElementById("controls")),
+    ankiAllBtn: requiredElement(document.getElementById("ankiAllBtn") as HTMLButtonElement | null),
+    targetNoteSelect: requiredElement(document.getElementById("targetNoteSelect") as HTMLSelectElement | null),
+    fontSizeRange: requiredElement(document.getElementById("fontSizeRange") as HTMLInputElement | null),
+    subtitleOverlay: requiredElement(document.getElementById("subtitleOverlay")),
+    resizer: requiredElement(document.getElementById("resizer")),
+    videoPickerModal: requiredElement(document.getElementById("videoPickerModal")),
+    videoPickerList: requiredElement(document.getElementById("videoPickerList")),
+    videoPickerCancelBtn: requiredElement(document.getElementById("videoPickerCancelBtn") as HTMLButtonElement | null),
+    addKnownBasicBtn: requiredElement(document.getElementById("addKnownBasicBtn") as HTMLButtonElement | null),
+    addCardToDeck: requiredElement(document.getElementById("addCardToDeck") as HTMLButtonElement | null),
+    volume: requiredElement(document.getElementById("volume") as HTMLInputElement | null)
 };
+
+﻿export const {
+    video,
+    sidebar,
+    multiInput,
+    fullscreenBtn,
+    settingsBtn,
+    settingsModal,
+    closeSettingsBtn,
+    dropzone,
+    toggleBtn,
+    overlay,
+    deleteVideoBtn,
+    playPause,
+    progress,
+    timeLabel,
+    videoContainer,
+    controls,
+    ankiAllBtn,
+    targetNoteSelect,
+    fontSizeRange,
+    subtitleOverlay,
+    resizer,
+    videoPickerModal,
+    videoPickerList,
+    videoPickerCancelBtn,
+    addKnownBasicBtn,
+    addCardToDeck,
+    volume
+} = dom;

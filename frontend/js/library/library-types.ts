@@ -1,26 +1,27 @@
-interface LibrarySeriesView extends LibrarySeries {
+import { ApiPayload, LibraryEpisode, LibrarySeries } from "../types/api.js";
+export interface LibrarySeriesView extends LibrarySeries {
     cardsCount?: number;
     episodesWithVideo?: number;
     episodesWithSubtitle?: number;
     coverUrl?: string | null;
 }
 
-type LibrarySeriesStatus = "not-started" | "watching" | "completed";
-type LibrarySeriesFilter = "all" | LibrarySeriesStatus | "missing-video" | "missing-subtitles" | "file-problems";
-type LibrarySeriesSort = "last-watched" | "progress" | "title" | "recently-added";
+export type LibrarySeriesStatus = "not-started" | "watching" | "completed";
+export type LibrarySeriesFilter = "all" | LibrarySeriesStatus | "missing-video" | "missing-subtitles" | "file-problems";
+export type LibrarySeriesSort = "last-watched" | "progress" | "title" | "recently-added";
 
-interface LibraryFilterState {
+export interface LibraryFilterState {
     filter: LibrarySeriesFilter;
     sort: LibrarySeriesSort;
     query: string;
 }
 
-interface LibraryPrimaryAction {
+export interface LibraryPrimaryAction {
     kind: "start" | "continue" | "open";
     episodeId: number | null;
 }
 
-interface LibraryEpisodeView extends LibraryEpisode {
+export interface LibraryEpisodeView extends LibraryEpisode {
     hasVideo?: boolean;
     hasSubtitle?: boolean;
     linkStatus?: string;
@@ -28,12 +29,12 @@ interface LibraryEpisodeView extends LibraryEpisode {
     subtitleFilename?: string | null;
 }
 
-interface SubtitleEpisodeSelection {
+export interface SubtitleEpisodeSelection {
     episode: LibraryEpisodeView;
     row: HTMLElement;
 }
 
-interface LibraryJobData extends ApiPayload {
+export interface LibraryJobData extends ApiPayload {
     job?: {
         id?: string;
         status?: string;
@@ -46,7 +47,7 @@ interface LibraryJobData extends ApiPayload {
     };
 }
 
-interface SubtitleCandidate {
+export interface SubtitleCandidate {
     source?: string;
     entryId?: string | number;
     entryTitle?: string;
@@ -57,7 +58,7 @@ interface SubtitleCandidate {
     [key: string]: unknown;
 }
 
-interface BulkSubtitlePlanItem {
+export interface BulkSubtitlePlanItem {
     episodeId: string | number;
     episodeNumber?: string | number | null;
     episodeTitle?: string | null;
@@ -69,13 +70,13 @@ interface BulkSubtitlePlanItem {
     [key: string]: unknown;
 }
 
-interface BulkSubtitlePlan {
+export interface BulkSubtitlePlan {
     items?: BulkSubtitlePlanItem[];
     entriesChecked?: number;
     [key: string]: unknown;
 }
 
-interface CoverSearchResult {
+export interface CoverSearchResult {
     source?: string;
     externalId?: string | number;
     coverUrl?: string;

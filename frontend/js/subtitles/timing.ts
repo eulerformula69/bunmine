@@ -1,26 +1,30 @@
-﻿// state helpers
+import { state } from "../core/state.js";
+import { RuntimeSubtitleCue } from "./model.js";
+import { video } from "../core/dom.js";
+import { syncSubtitleStyle } from "./subtitles-sidebar.js";
+// state helpers
 
-function getCurrentSubtitle() {
+export function getCurrentSubtitle() {
 	const index = getPrimarySubtitleIndex();
-	return index >= 0 ? subtitles[index] : undefined;
+	return index >= 0 ? state.subtitles[index] : undefined;
 }
 
-function getActiveSubtitles(): RuntimeSubtitleCue[] {
+export function getActiveSubtitles(): RuntimeSubtitleCue[] {
 	return getActiveSubtitleEntries().map((entry) => entry.cue);
 }
 
-function getActiveSubtitleEntries(): Array<{ index: number; cue: RuntimeSubtitleCue }> {
-	const time = video.currentTime - globalSubDelay;
-	return subtitles
+export function getActiveSubtitleEntries(): Array<{ index: number; cue: RuntimeSubtitleCue }> {
+	const time = video.currentTime - state.globalSubDelay;
+	return state.subtitles
 		.map((cue, index) => ({ cue, index }))
 		.filter(({ cue }) => time >= cue.start && time <= cue.end)
 		.sort((left, right) => Number(left.cue.layer || 0) - Number(right.cue.layer || 0));
 }
 
-function getPrimarySubtitleIndex(): number {
+export function getPrimarySubtitleIndex(): number {
 	const active = getActiveSubtitleEntries();
 	if (!active.length) return -1;
-	const selected = active.find(({ index }) => index === lastClickedSubtitleIdx);
+	const selected = active.find(({ index }) => index === state.lastClickedSubtitleIdx);
 	if (selected) return selected.index;
 	const dialogue = active.find(({ cue }) => {
 		const alignment = Number(cue.alignment || 2);
@@ -29,8 +33,8 @@ function getPrimarySubtitleIndex(): number {
 	return (dialogue || active[0]).index;
 }
 
-function selectPrimarySubtitle(index: number): void {
-	if (!Number.isInteger(index) || !subtitles[index]) return;
-	lastClickedSubtitleIdx = index;
+export function selectPrimarySubtitle(index: number): void {
+	if (!Number.isInteger(index) || !state.subtitles[index]) return;
+	state.lastClickedSubtitleIdx = index;
 	syncSubtitleStyle(index);
 }

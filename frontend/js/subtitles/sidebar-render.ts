@@ -1,12 +1,22 @@
-type SubtitleDepthKind = "back" | "forward";
+import { SubtitleSearchResult } from "./search.js";
+import { formatTime } from "./parsing.js";
+import { RuntimeSubtitleCue } from "./model.js";
+import { clearSearchMatches, getCurrentSearchMatch, getSubtitleContextRange, initSubtitleSearchPanel, syncSubtitleStyle } from "./subtitles-sidebar.js";
+import { state } from "../core/state.js";
+import { startSubtitleContextDrag } from "./context-drag.js";
+import { overlay, video } from "../core/dom.js";
+import { renderSubtitleOverlay } from "./subtitles.js";
+import { ankiSubtitleHighlighter } from "../highlighter/anki-highlighter.js";
+import { updatePlayButton } from "../player/ui.js";
+export type SubtitleDepthKind = "back" | "forward";
 
-interface SubtitleContextRangeLike {
+export interface SubtitleContextRangeLike {
     currentIdx: number;
     startIdx: number;
     endIdx: number;
 }
 
-function applySubtitleRowState(
+export function applySubtitleRowState(
     row: HTMLElement,
     subtitleIndex: number,
     context: SubtitleContextRangeLike,
@@ -18,7 +28,7 @@ function applySubtitleRowState(
     row.classList.toggle("active", context.currentIdx >= 0 && subtitleIndex === context.currentIdx);
 }
 
-function createSubtitleTimeContainer(startSeconds: number, endSeconds: number): HTMLElement {
+export function createSubtitleTimeContainer(startSeconds: number, endSeconds: number): HTMLElement {
     const timeContainer = document.createElement("div");
     timeContainer.className = "time-container";
     timeContainer.style.display = "flex";
@@ -39,7 +49,7 @@ function createSubtitleTimeContainer(startSeconds: number, endSeconds: number): 
     return timeContainer;
 }
 
-function appendSubtitleTextWithSearchHighlight(
+export function appendSubtitleTextWithSearchHighlight(
     container: HTMLElement,
     text: string,
     currentMatch: SubtitleSearchResult | null,
@@ -68,7 +78,7 @@ function appendSubtitleTextWithSearchHighlight(
     container.appendChild(document.createTextNode(after));
 }
 
-function createSubtitleDepthHandleElement(
+export function createSubtitleDepthHandleElement(
     kind: SubtitleDepthKind,
     onStartDrag: (kind: SubtitleDepthKind, event: PointerEvent) => void
 ): HTMLElement {
@@ -88,29 +98,29 @@ function createSubtitleDepthHandleElement(
     return row;
 }
 
-let renderedSubtitleSource: RuntimeSubtitleCue[] | null = null;
-let renderedSubtitleDelay = NaN;
-let renderedSubtitleList: HTMLElement | null = null;
-let renderedSubtitleContext: SubtitleContextRangeLike | null = null;
-let renderedSubtitleSearch: SubtitleSearchResult | null = null;
+export const renderedSubtitleSourceState = { value: null as RuntimeSubtitleCue[] | null };
+export const renderedSubtitleDelayState = { value: NaN };
+export const renderedSubtitleListState = { value: null as HTMLElement | null };
+export const renderedSubtitleContextState = { value: null as SubtitleContextRangeLike | null };
+export const renderedSubtitleSearchState = { value: null as SubtitleSearchResult | null };
 
-function refreshSubtitleRows(): void {
+export function refreshSubtitleRows(): void {
     const context = getSubtitleContextRange();
     const match = getCurrentSearchMatch();
     const changed = new Set<number>();
-    for (const range of [renderedSubtitleContext, context]) {
+    for (const range of [renderedSubtitleContextState.value, context]) {
         if (!range || range.currentIdx < 0) continue;
         changed.add(range.currentIdx);
         for (let index = range.startIdx; index <= range.endIdx; index++) changed.add(index);
     }
-    if (renderedSubtitleSearch) changed.add(renderedSubtitleSearch.subtitleIndex);
+    if (renderedSubtitleSearchState.value) changed.add(renderedSubtitleSearchState.value.subtitleIndex);
     if (match) changed.add(match.subtitleIndex);
     for (const index of changed) {
-        const row = subtitleElements[index];
+        const row = state.subtitleElements[index];
         if (!row) continue;
         applySubtitleRowState(row.div, index, context, match);
-        if (renderedSubtitleSearch !== match &&
-            (index === renderedSubtitleSearch?.subtitleIndex || index === match?.subtitleIndex)) {
+        if (renderedSubtitleSearchState.value !== match &&
+            (index === renderedSubtitleSearchState.value?.subtitleIndex || index === match?.subtitleIndex)) {
             const text = row.div.querySelector<HTMLElement>(".text-content");
             if (text) {
                 text.replaceChildren();
@@ -125,33 +135,33 @@ function refreshSubtitleRows(): void {
             if (!needed) handle?.remove();
         }
     }
-    renderedSubtitleContext = context;
-    renderedSubtitleSearch = match;
+    renderedSubtitleContextState.value = context;
+    renderedSubtitleSearchState.value = match;
 }
 
 // rendering
 
-function renderSubtitles() {
+export function renderSubtitles() {
     initSubtitleSearchPanel();
 
     const list = document.getElementById("subtitleList");
     if (!list) return;
 
-    if (renderedSubtitleSource === subtitles && renderedSubtitleDelay === globalSubDelay &&
-        renderedSubtitleList === list && subtitleElements.length === subtitles.length) {
+    if (renderedSubtitleSourceState.value === state.subtitles && renderedSubtitleDelayState.value === state.globalSubDelay &&
+        renderedSubtitleListState.value === list && state.subtitleElements.length === state.subtitles.length) {
         refreshSubtitleRows();
         return;
     }
-    renderedSubtitleSource = subtitles;
-    renderedSubtitleDelay = globalSubDelay;
-    renderedSubtitleList = list;
-    subtitleElements = [];
+    renderedSubtitleSourceState.value = state.subtitles;
+    renderedSubtitleDelayState.value = state.globalSubDelay;
+    renderedSubtitleListState.value = list;
+    state.subtitleElements = [];
     const fragment = document.createDocumentFragment();
 
     const context = getSubtitleContextRange();
     const currentSearchMatch = getCurrentSearchMatch();
 
-    subtitles.forEach((sub, idx) => {
+    state.subtitles.forEach((sub, idx) => {
         const div = document.createElement("div");
 
         div.className = "subtitle";
@@ -160,8 +170,8 @@ function renderSubtitles() {
         applySubtitleRowState(div, idx, context, currentSearchMatch);
 
         const timeContainer = createSubtitleTimeContainer(
-            sub.start + globalSubDelay,
-            sub.end + globalSubDelay
+            sub.start + state.globalSubDelay,
+            sub.end + state.globalSubDelay
         );
 
         const textContent = document.createElement("div");
@@ -175,10 +185,10 @@ function renderSubtitles() {
             if ((event.target as Element).closest(".subtitle-context-controls")) return;
 
             clearSearchMatches();
-            lastClickedSubtitleIdx = idx;
+            state.lastClickedSubtitleIdx = idx;
 
             video.pause();
-            video.currentTime = sub.start + globalSubDelay + 0.05;
+            video.currentTime = sub.start + state.globalSubDelay + 0.05;
             syncSubtitleStyle(idx);
 
             renderSubtitleOverlay({
@@ -199,9 +209,9 @@ function renderSubtitles() {
         }
 
         fragment.appendChild(div);
-        subtitleElements.push({ index: idx, div, sub });
+        state.subtitleElements.push({ index: idx, div, sub });
     });
     list.replaceChildren(fragment);
-    renderedSubtitleContext = context;
-    renderedSubtitleSearch = currentSearchMatch;
+    renderedSubtitleContextState.value = context;
+    renderedSubtitleSearchState.value = currentSearchMatch;
 }

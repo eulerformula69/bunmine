@@ -1,4 +1,6 @@
-interface BulkSubtitleSet {
+import { BulkSubtitlePlan, SubtitleCandidate } from "./library-types.js";
+import { LibraryTranslate } from "./library-presentation.js";
+export interface BulkSubtitleSet {
     key: string;
     label: string;
     count: number;
@@ -7,7 +9,7 @@ interface BulkSubtitleSet {
     candidatesByEpisodeId: Map<string, SubtitleCandidate>;
 }
 
-const LibraryBulkModel = {
+export const LibraryBulkModel = {
     candidateKey(candidate: SubtitleCandidate | null | undefined): string {
         return String(candidate?.downloadUrl || `${candidate?.entryId || ""}:${candidate?.filename || ""}`);
     },

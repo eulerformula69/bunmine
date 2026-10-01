@@ -1,7 +1,8 @@
-type LibraryDict = Record<string, string>;
-type LibraryLanguageCatalog = Record<string, { name: string; dict: LibraryDict }>;
 
-const LIBRARY_I18N: LibraryLanguageCatalog = {
+export type LibraryDict = Record<string, string>;
+export type LibraryLanguageCatalog = Record<string, { name: string; dict: LibraryDict }>;
+
+export const LIBRARY_I18N: LibraryLanguageCatalog = {
     en: {
         name: "English",
         dict: {
@@ -187,9 +188,9 @@ Object.assign(LIBRARY_I18N.ja.dict, {
     deleteSeriesHint: "ディスク上のファイルは削除せず、ライブラリ情報のみ削除します。"
 });
 
-let libraryCurrentLang = loadLibraryLanguage();
+export const libraryCurrentLangState = { value: loadLibraryLanguage() };
 
-function loadLibraryLanguage() {
+export function loadLibraryLanguage() {
     try {
         const settings = JSON.parse(localStorage.getItem("subtitlePlayerSettings") || "{}");
         return LIBRARY_I18N[settings.language] ? settings.language : "en";
@@ -198,9 +199,9 @@ function loadLibraryLanguage() {
     }
 }
 
-function lt(key, params = {}) {
+export function lt(key, params = {}) {
     const fallback = LIBRARY_I18N.en.dict;
-    const dict = LIBRARY_I18N[libraryCurrentLang]?.dict || fallback;
+    const dict = LIBRARY_I18N[libraryCurrentLangState.value]?.dict || fallback;
     let text = dict[key] || fallback[key] || key;
     for (const [name, value] of Object.entries(params)) text = text.replaceAll(`{${name}}`, String(value));
     return text;

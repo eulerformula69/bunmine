@@ -1,28 +1,34 @@
-function openBulkSubtitleModal() {
+import { JIMAKU_429_DEFAULT_WAIT_MS, JIMAKU_429_MAX_RETRIES, JIMAKU_DOWNLOAD_CONCURRENCY, JIMAKU_PLAN_REQUEST_DELAY_MS, bulkSubtitleList, bulkSubtitleModal, bulkSubtitleModalSubtitle, bulkSubtitleModalTitle, bulkSubtitleSearchBtn, bulkSubtitleSearchInput, bulkSubtitleSets, bulkSubtitleStatus, cancelBulkSubtitleDownloadBtn, closeBulkSubtitleModalBtn, confirmBulkSubtitleDownloadBtn, currentBulkSubtitlePlanState, currentBulkSubtitleSetKeyState, currentOpenedSeriesState, downloadMissingSubtitlesBtn, escapeHtml, formatBytes, isBulkSubtitleDownloadingState, isBulkSubtitlePreparingState, loadLibrarySeries, openSeries, statusKeyLabel } from "./library.js";
+import { lt } from "./library-i18n.js";
+import { BulkSubtitlePlan } from "./library-types.js";
+import { libraryAnalyzeSeriesSubtitles, libraryPlanEpisodeSubtitle, librarySelectEpisodeSubtitle } from "./library-api.js";
+import { sleep } from "../core/api.js";
+import { LibraryBulkModel } from "./library-bulk-model.js";
+export function openBulkSubtitleModal() {
     bulkSubtitleModal.classList.remove("hidden");
     document.body.classList.add("modal-open");
 }
 
-function closeBulkSubtitleModal() {
-    if (isBulkSubtitleDownloading || isBulkSubtitlePreparing) return;
+export function closeBulkSubtitleModal() {
+    if (isBulkSubtitleDownloadingState.value || isBulkSubtitlePreparingState.value) return;
     bulkSubtitleModal.classList.add("hidden");
     document.body.classList.remove("modal-open");
-    currentBulkSubtitlePlan = null;
-    currentBulkSubtitleSetKey = null;
+    currentBulkSubtitlePlanState.value = null;
+    currentBulkSubtitleSetKeyState.value = null;
     if (bulkSubtitleSets) bulkSubtitleSets.innerHTML = "";
     bulkSubtitleList.innerHTML = "";
     bulkSubtitleStatus.textContent = "";
     confirmBulkSubtitleDownloadBtn.disabled = true;
 }
 
-async function prepareMissingSubtitlesForCurrentSeries() {
-    if (!currentOpenedSeries) return;
+export async function prepareMissingSubtitlesForCurrentSeries() {
+    if (!currentOpenedSeriesState.value) return;
 
-    currentBulkSubtitlePlan = null;
-    currentBulkSubtitleSetKey = null;
+    currentBulkSubtitlePlanState.value = null;
+    currentBulkSubtitleSetKeyState.value = null;
     bulkSubtitleModalTitle.textContent = lt("downloadMissingJapaneseSubtitles");
-    bulkSubtitleModalSubtitle.textContent = currentOpenedSeries.title;
-    bulkSubtitleSearchInput.value = currentOpenedSeries.title;
+    bulkSubtitleModalSubtitle.textContent = currentOpenedSeriesState.value.title;
+    bulkSubtitleSearchInput.value = currentOpenedSeriesState.value.title;
     bulkSubtitleStatus.classList.remove("error");
     bulkSubtitleStatus.textContent = lt("subtitleQueryHint");
     if (bulkSubtitleSets) bulkSubtitleSets.innerHTML = "";
@@ -33,12 +39,12 @@ async function prepareMissingSubtitlesForCurrentSeries() {
     bulkSubtitleSearchInput.select();
 }
 
-async function analyzeMissingSubtitlesForCurrentSeries() {
-    if (!currentOpenedSeries || isBulkSubtitlePreparing || isBulkSubtitleDownloading) return;
+export async function analyzeMissingSubtitlesForCurrentSeries() {
+    if (!currentOpenedSeriesState.value || isBulkSubtitlePreparingState.value || isBulkSubtitleDownloadingState.value) return;
 
-    const query = bulkSubtitleSearchInput.value.trim() || currentOpenedSeries.title;
-    currentBulkSubtitlePlan = null;
-    currentBulkSubtitleSetKey = null;
+    const query = bulkSubtitleSearchInput.value.trim() || currentOpenedSeriesState.value.title;
+    currentBulkSubtitlePlanState.value = null;
+    currentBulkSubtitleSetKeyState.value = null;
     bulkSubtitleStatus.classList.remove("error");
     bulkSubtitleStatus.textContent = lt("analyzingJimakuEntries");
     if (bulkSubtitleSets) bulkSubtitleSets.innerHTML = "";
@@ -51,13 +57,13 @@ async function analyzeMissingSubtitlesForCurrentSeries() {
     bulkSubtitleSearchBtn.disabled = true;
     bulkSubtitleSearchBtn.textContent = lt("searching");
     downloadMissingSubtitlesBtn.textContent = lt("analyzing");
-    isBulkSubtitlePreparing = true;
+    isBulkSubtitlePreparingState.value = true;
     cancelBulkSubtitleDownloadBtn.disabled = true;
     closeBulkSubtitleModalBtn.disabled = true;
 
     try {
-        const data = await requestSeriesSubtitleAnalysisWithBackoff(currentOpenedSeries.id, query);
-        currentBulkSubtitlePlan = data;
+        const data = await requestSeriesSubtitleAnalysisWithBackoff(currentOpenedSeriesState.value.id, query);
+        currentBulkSubtitlePlanState.value = data;
         renderBulkSubtitlePlan(data);
 
         const selectable = (data.items || []).filter((item) => Array.isArray(item.candidates) && item.candidates.length).length;
@@ -69,19 +75,19 @@ async function analyzeMissingSubtitlesForCurrentSeries() {
         bulkSubtitleStatus.classList.add("error");
         bulkSubtitleStatus.textContent = err.message;
     } finally {
-        isBulkSubtitlePreparing = false;
+        isBulkSubtitlePreparingState.value = false;
         cancelBulkSubtitleDownloadBtn.disabled = false;
         closeBulkSubtitleModalBtn.disabled = false;
         downloadMissingSubtitlesBtn.disabled = false;
         bulkSubtitleSearchBtn.disabled = false;
         bulkSubtitleSearchBtn.textContent = previousSearchText;
         downloadMissingSubtitlesBtn.textContent = previousText;
-        renderBulkSubtitlePlan(currentBulkSubtitlePlan || { items: [] });
+        renderBulkSubtitlePlan(currentBulkSubtitlePlanState.value || { items: [] });
         updateBulkSubtitleConfirmState();
     }
 }
 
-async function requestSeriesSubtitleAnalysisWithBackoff(seriesId, query): Promise<BulkSubtitlePlan> {
+export async function requestSeriesSubtitleAnalysisWithBackoff(seriesId, query): Promise<BulkSubtitlePlan> {
     for (let attempt = 0; attempt <= JIMAKU_429_MAX_RETRIES; attempt += 1) {
         const { response, data } = await libraryAnalyzeSeriesSubtitles(seriesId, query);
 
@@ -100,7 +106,7 @@ async function requestSeriesSubtitleAnalysisWithBackoff(seriesId, query): Promis
     throw new Error(lt("jimakuRetryReached"));
 }
 
-function retryAfterToMs(value) {
+export function retryAfterToMs(value) {
     const raw = String(value || "").trim();
     if (!raw) return JIMAKU_429_DEFAULT_WAIT_MS;
 
@@ -117,27 +123,27 @@ function retryAfterToMs(value) {
     return JIMAKU_429_DEFAULT_WAIT_MS;
 }
 
-function updateBulkSubtitleConfirmState() {
-    if (isBulkSubtitlePreparing || isBulkSubtitleDownloading || !currentBulkSubtitlePlan) {
+export function updateBulkSubtitleConfirmState() {
+    if (isBulkSubtitlePreparingState.value || isBulkSubtitleDownloadingState.value || !currentBulkSubtitlePlanState.value) {
         confirmBulkSubtitleDownloadBtn.disabled = true;
         return;
     }
     confirmBulkSubtitleDownloadBtn.disabled = getSelectedBulkSubtitleItems().length === 0;
 }
 
-function candidateKey(candidate) {
+export function candidateKey(candidate) {
     return LibraryBulkModel.candidateKey(candidate);
 }
 
-function formatSubtitleCandidate(candidate) {
+export function formatSubtitleCandidate(candidate) {
     return LibraryBulkModel.formatCandidate(candidate, formatBytes);
 }
 
-function getBulkSubtitleSets(plan) {
+export function getBulkSubtitleSets(plan) {
     return LibraryBulkModel.getSets(plan, lt);
 }
 
-function renderBulkSubtitleSets(plan) {
+export function renderBulkSubtitleSets(plan) {
     if (!bulkSubtitleSets) return;
 
     const items = Array.isArray(plan?.items) ? plan.items : [];
@@ -169,8 +175,8 @@ function renderBulkSubtitleSets(plan) {
     for (const set of sets.slice(0, 8)) {
         const button = document.createElement("button");
         button.type = "button";
-        button.className = `bulk-subtitle-set-btn ${currentBulkSubtitleSetKey === set.key ? "selected" : ""}`;
-        button.disabled = isBulkSubtitleDownloading;
+        button.className = `bulk-subtitle-set-btn ${currentBulkSubtitleSetKeyState.value === set.key ? "selected" : ""}`;
+        button.disabled = isBulkSubtitleDownloadingState.value;
         button.dataset.releaseKey = set.key;
         button.innerHTML = `
             <div class="bulk-subtitle-set-name">${escapeHtml(set.label)}</div>
@@ -184,16 +190,16 @@ function renderBulkSubtitleSets(plan) {
     bulkSubtitleSets.appendChild(wrapper);
 }
 
-function applyBulkSubtitleSet(releaseKey) {
-    if (!currentBulkSubtitlePlan) return;
-    currentBulkSubtitleSetKey = releaseKey;
-    LibraryBulkModel.applySet(currentBulkSubtitlePlan, releaseKey, lt);
-    renderBulkSubtitlePlan(currentBulkSubtitlePlan);
+export function applyBulkSubtitleSet(releaseKey) {
+    if (!currentBulkSubtitlePlanState.value) return;
+    currentBulkSubtitleSetKeyState.value = releaseKey;
+    LibraryBulkModel.applySet(currentBulkSubtitlePlanState.value, releaseKey, lt);
+    renderBulkSubtitlePlan(currentBulkSubtitlePlanState.value);
 }
 
-async function requestEpisodeSubtitlePlanWithBackoff(item) {
+export async function requestEpisodeSubtitlePlanWithBackoff(item) {
     for (let attempt = 0; attempt <= JIMAKU_429_MAX_RETRIES; attempt += 1) {
-        const { response, data } = await libraryPlanEpisodeSubtitle(item.episodeId, currentOpenedSeries.title);
+        const { response, data } = await libraryPlanEpisodeSubtitle(item.episodeId, currentOpenedSeriesState.value.title);
 
         if (response.status !== 429) {
             if (!response.ok || data.error) {
@@ -205,14 +211,14 @@ async function requestEpisodeSubtitlePlanWithBackoff(item) {
         const waitMs = retryAfterToMs(data.retryAfter);
         item.status = "rate-limited";
         item.message = lt("jimakuRateLimitWait", { seconds: Math.ceil(waitMs / 1000) });
-        renderBulkSubtitlePlan(currentBulkSubtitlePlan);
+        renderBulkSubtitlePlan(currentBulkSubtitlePlanState.value);
         await sleep(waitMs);
     }
 
     throw new Error(lt("jimakuRetryReached"));
 }
 
-async function prepareBulkSubtitlePlanGradually(plan) {
+export async function prepareBulkSubtitlePlanGradually(plan) {
     const items = Array.isArray(plan.items) ? plan.items : [];
     if (!items.length) {
         bulkSubtitleStatus.textContent = lt("noMissingSubtitleEpisodes");
@@ -229,9 +235,9 @@ async function prepareBulkSubtitlePlanGradually(plan) {
         try {
             const plannedItem = await requestEpisodeSubtitlePlanWithBackoff(item);
             Object.assign(item, plannedItem);
-            if (currentBulkSubtitleSetKey) {
+            if (currentBulkSubtitleSetKeyState.value) {
                 const candidates = Array.isArray(item.candidates) ? item.candidates : [];
-                const candidate = candidates.find((candidate) => String(candidate.releaseKey || candidate.entryTitle || "other") === String(currentBulkSubtitleSetKey));
+                const candidate = candidates.find((candidate) => String(candidate.releaseKey || candidate.entryTitle || "other") === String(currentBulkSubtitleSetKeyState.value));
                 if (candidate) {
                     item.selected = candidate;
                     item.status = "ready";
@@ -263,7 +269,7 @@ async function prepareBulkSubtitlePlanGradually(plan) {
     updateBulkSubtitleConfirmState();
 }
 
-function renderBulkSubtitlePlan(plan) {
+export function renderBulkSubtitlePlan(plan) {
     const items = Array.isArray(plan.items) ? plan.items : [];
     const readyItems = items.filter((item) => item.status === "ready" && item.selected);
     const reviewItems = items.filter((item) => item.status === "needs-review" || (Array.isArray(item.candidates) && item.candidates.length && !item.selected));
@@ -272,7 +278,7 @@ function renderBulkSubtitlePlan(plan) {
     const pendingItems = items.filter((item) => ["pending", "searching", "rate-limited"].includes(item.status));
 
     bulkSubtitleStatus.classList.remove("error");
-    if (!isBulkSubtitlePreparing && !isBulkSubtitleDownloading) {
+    if (!isBulkSubtitlePreparingState.value && !isBulkSubtitleDownloadingState.value) {
         bulkSubtitleStatus.textContent =
             lt("bulkStatusReady", { selected: readyItems.length, review: reviewItems.length, skipped: skippedItems.length, failed: failedItems.length });
     } else if (pendingItems.length) {
@@ -294,7 +300,7 @@ function renderBulkSubtitlePlan(plan) {
         const candidates = Array.isArray(item.candidates) ? item.candidates : [];
         const selected = item.selected || null;
         const canDownload = item.status === "ready" && selected?.downloadUrl;
-        const hasManualChoices = candidates.length > 0 && !isBulkSubtitlePreparing && !isBulkSubtitleDownloading;
+        const hasManualChoices = candidates.length > 0 && !isBulkSubtitlePreparingState.value && !isBulkSubtitleDownloadingState.value;
         const meta = canDownload
             ? formatSubtitleCandidate(selected)
             : candidates.length
@@ -307,7 +313,7 @@ function renderBulkSubtitlePlan(plan) {
                 class="bulk-subtitle-checkbox"
                 type="checkbox"
                 ${canDownload ? "checked" : "disabled"}
-                ${isBulkSubtitlePreparing || isBulkSubtitleDownloading ? "disabled" : ""}
+                ${isBulkSubtitlePreparingState.value || isBulkSubtitleDownloadingState.value ? "disabled" : ""}
                 data-episode-id="${escapeHtml(item.episodeId)}"
             >
             <div class="bulk-subtitle-info">
@@ -337,20 +343,20 @@ function renderBulkSubtitlePlan(plan) {
     updateBulkSubtitleConfirmState();
 }
 
-function getSelectedBulkSubtitleItems() {
-    if (!currentBulkSubtitlePlan) return [];
+export function getSelectedBulkSubtitleItems() {
+    if (!currentBulkSubtitlePlanState.value) return [];
 
     const selectedIds = new Set(
         Array.from(bulkSubtitleList.querySelectorAll<HTMLInputElement>(".bulk-subtitle-checkbox:checked"))
             .map((checkbox) => String(checkbox.dataset.episodeId))
     );
 
-    return (currentBulkSubtitlePlan.items || []).filter((item) => {
+    return (currentBulkSubtitlePlanState.value.items || []).filter((item) => {
         return item.status === "ready" && item.selected && selectedIds.has(String(item.episodeId));
     });
 }
 
-async function postSubtitleDownloadWithBackoff(item) {
+export async function postSubtitleDownloadWithBackoff(item) {
     const selected = item.selected;
 
     for (let attempt = 0; attempt <= JIMAKU_429_MAX_RETRIES; attempt += 1) {
@@ -377,11 +383,11 @@ async function postSubtitleDownloadWithBackoff(item) {
     throw new Error(lt("jimakuRetryReached"));
 }
 
-async function downloadSelectedBulkSubtitles() {
+export async function downloadSelectedBulkSubtitles() {
     const items = getSelectedBulkSubtitleItems();
     if (!items.length) return;
 
-    isBulkSubtitleDownloading = true;
+    isBulkSubtitleDownloadingState.value = true;
     confirmBulkSubtitleDownloadBtn.disabled = true;
     cancelBulkSubtitleDownloadBtn.disabled = true;
     closeBulkSubtitleModalBtn.disabled = true;
@@ -420,17 +426,12 @@ async function downloadSelectedBulkSubtitles() {
         const workerCount = Math.min(JIMAKU_DOWNLOAD_CONCURRENCY, items.length);
         await Promise.all(Array.from({ length: workerCount }, (_, index) => worker(index)));
         bulkSubtitleStatus.textContent = lt("finishedDownloads", { downloaded, failed });
-        await openSeries(currentOpenedSeries.id);
+        await openSeries(currentOpenedSeriesState.value.id);
         await loadLibrarySeries();
     } finally {
-        isBulkSubtitleDownloading = false;
+        isBulkSubtitleDownloadingState.value = false;
         cancelBulkSubtitleDownloadBtn.disabled = false;
         closeBulkSubtitleModalBtn.disabled = false;
         confirmBulkSubtitleDownloadBtn.disabled = true;
     }
 }
-
-
-
-
-

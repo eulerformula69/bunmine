@@ -1,4 +1,8 @@
-async function parseSubtitleSource(input: SubtitleParseInput): Promise<SubtitleParseResult> {
+import { SubtitleParseError, SubtitleParseInput, SubtitleParseResult, SubtitleParseWarning, isSubtitleProviderCompatibilityError } from "./parser-types.js";
+import { detectSubtitleFormat } from "./format-detection.js";
+import { subtitleParserRegistry } from "./parser-registry.js";
+import { normalizeSubtitleCues } from "./normalization.js";
+export async function parseSubtitleSource(input: SubtitleParseInput): Promise<SubtitleParseResult> {
     const format = detectSubtitleFormat({
         format: input.format,
         filename: input.filename,

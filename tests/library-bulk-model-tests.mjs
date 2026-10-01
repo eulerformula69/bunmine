@@ -1,11 +1,6 @@
 import assert from "node:assert/strict";
-import fs from "node:fs";
-import vm from "node:vm";
 
-const source = fs.readFileSync("dist/js/library/library-bulk-model.js", "utf8")
-    .replace("const LibraryBulkModel =", "globalThis.LibraryBulkModel =");
-const context = vm.createContext({});
-vm.runInContext(source, context);
+const context = await import("../dist/esm/library/library-bulk-model.js");
 const model = context.LibraryBulkModel;
 const translate = (key) => key;
 

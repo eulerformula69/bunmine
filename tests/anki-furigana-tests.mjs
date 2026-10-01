@@ -1,18 +1,8 @@
+import { installDom } from "./dom-environment.mjs";
+const dom = installDom();
 import assert from "node:assert/strict";
-import fs from "node:fs";
-import vm from "node:vm";
 
-const source = fs.readFileSync("dist/js/player/anki-actions.js", "utf8")
-    .replace(
-        "function normalizeAnkiFuriganaWhitespace",
-        "globalThis.normalizeAnkiFuriganaWhitespace = function"
-    )
-    .replace(
-        "function encodeAnkiFuriganaSpaces",
-        "globalThis.encodeAnkiFuriganaSpaces = function"
-    );
-const context = vm.createContext({ console });
-vm.runInContext(source, context);
+const context = await import("../dist/esm/player/anki-actions.js");
 
 const normalize = context.normalizeAnkiFuriganaWhitespace;
 const encode = context.encodeAnkiFuriganaSpaces;
@@ -26,3 +16,5 @@ assert.equal(encode("猫[ねこ] を 見[み]る"), "猫[ねこ]&nbsp;を&nbsp;�
 assert.equal(encode("猫[ねこ]\nを見る"), "猫[ねこ]\nを見る");
 
 console.log("Anki furigana whitespace tests passed");
+
+dom.window.close();

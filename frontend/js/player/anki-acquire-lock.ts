@@ -1,8 +1,9 @@
-let ankiAcquireRunning = false;
+import { t } from "./ui.js";
+export const ankiAcquireRunningState = { value: false };
 
-async function runExclusiveAnkiAcquire<T>(work: () => Promise<T>): Promise<T> {
-    if (ankiAcquireRunning) throw new Error(t("ankiAcquireBusy"));
-    ankiAcquireRunning = true;
+export async function runExclusiveAnkiAcquire<T>(work: () => Promise<T>): Promise<T> {
+    if (ankiAcquireRunningState.value) throw new Error(t("ankiAcquireBusy"));
+    ankiAcquireRunningState.value = true;
     try {
         if (navigator.locks) {
             return await navigator.locks.request("bunmine-anki-acquire", { ifAvailable: true }, async (lock) => {
@@ -12,6 +13,6 @@ async function runExclusiveAnkiAcquire<T>(work: () => Promise<T>): Promise<T> {
         }
         return await work();
     } finally {
-        ankiAcquireRunning = false;
+        ankiAcquireRunningState.value = false;
     }
 }

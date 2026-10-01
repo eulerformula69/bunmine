@@ -1,16 +1,17 @@
-type SubtitleHighlightStatus = "new" | "learning" | "young" | "mature" | "suspended" | "unknown";
 
-interface SubtitleHighlightStatusSetting {
+export type SubtitleHighlightStatus = "new" | "learning" | "young" | "mature" | "suspended" | "unknown";
+
+export interface SubtitleHighlightStatusSetting {
     enabled: boolean;
     color: string;
 }
 
-interface SubtitleHighlightSettings {
+export interface SubtitleHighlightSettings {
     enabled: boolean;
     statusSettings: Record<SubtitleHighlightStatus, SubtitleHighlightStatusSetting>;
 }
 
-function getSubtitleHighlightSettings(): SubtitleHighlightSettings {
+export function getSubtitleHighlightSettings(): SubtitleHighlightSettings {
     return {
         enabled: (document.getElementById("subtitleHighlightEnabled") as HTMLInputElement | null)?.checked === true,
 

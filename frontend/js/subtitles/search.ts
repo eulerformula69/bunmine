@@ -1,25 +1,28 @@
-type SubtitleTokenizer = (text: string) => JapaneseToken[] | null;
+import { JapaneseToken } from "../types/runtime-types.js";
+import { SubtitleSearchMatch } from "../core/state.js";
+import { RuntimeSubtitleCue } from "./model.js";
+export type SubtitleTokenizer = (text: string) => JapaneseToken[] | null;
 
-interface SubtitleWordSearchMatch extends SubtitleSearchMatch {
+export interface SubtitleWordSearchMatch extends SubtitleSearchMatch {
     type: "word";
     query: string;
 }
 
-interface SubtitleTimeSearchMatch extends SubtitleSearchMatch {
+export interface SubtitleTimeSearchMatch extends SubtitleSearchMatch {
     type: "time";
     query: "";
     seconds: number;
 }
 
-type SubtitleSearchResult = SubtitleWordSearchMatch | SubtitleTimeSearchMatch;
+export type SubtitleSearchResult = SubtitleWordSearchMatch | SubtitleTimeSearchMatch;
 
-function katakanaToHiraganaSearchText(text: string): string {
+export function katakanaToHiraganaSearchText(text: string): string {
     return String(text || "").replace(/[\u30a1-\u30f6]/g, (ch) =>
         String.fromCharCode(ch.charCodeAt(0) - 0x60)
     );
 }
 
-const subtitleKanaRomajiMap: Record<string, string> = {
+export const subtitleKanaRomajiMap: Record<string, string> = {
     "きゃ": "kya", "きゅ": "kyu", "きょ": "kyo",
     "しゃ": "sha", "しゅ": "shu", "しょ": "sho",
     "ちゃ": "cha", "ちゅ": "chu", "ちょ": "cho",
@@ -48,7 +51,7 @@ const subtitleKanaRomajiMap: Record<string, string> = {
     "ぱ": "pa", "ぴ": "pi", "ぷ": "pu", "ぺ": "pe", "ぽ": "po"
 };
 
-function kanaToRomajiSearchText(text: string): string {
+export function kanaToRomajiSearchText(text: string): string {
     const hira = katakanaToHiraganaSearchText(text);
     let out = "";
 
@@ -73,19 +76,19 @@ function kanaToRomajiSearchText(text: string): string {
     return out;
 }
 
-function normalizeSubtitleSearchText(value: string): string {
+export function normalizeSubtitleSearchText(value: string): string {
     return kanaToRomajiSearchText(katakanaToHiraganaSearchText(String(value || "").toLowerCase()));
 }
 
-function getSubtitleTokenSurface(token: JapaneseToken): string {
+export function getSubtitleTokenSurface(token: JapaneseToken): string {
     return String(token.surface_form || token.surface || token.word || "");
 }
 
-function getSubtitleTokenReading(token: JapaneseToken): string {
+export function getSubtitleTokenReading(token: JapaneseToken): string {
     return String(token.reading || token.pronunciation || "");
 }
 
-function findSubtitleTextMatchesInCues(
+export function findSubtitleTextMatchesInCues(
     cues: RuntimeSubtitleCue[],
     query: string,
     tokenize: SubtitleTokenizer
@@ -138,7 +141,7 @@ function findSubtitleTextMatchesInCues(
     return matches;
 }
 
-function getSubtitleSearchHaystackForText(text: string, tokenize: SubtitleTokenizer): string {
+export function getSubtitleSearchHaystackForText(text: string, tokenize: SubtitleTokenizer): string {
     const raw = String(text || "").toLowerCase();
     const tokens = tokenize(raw) || [];
     const readings = tokens
@@ -151,7 +154,7 @@ function getSubtitleSearchHaystackForText(text: string, tokenize: SubtitleTokeni
     return `${raw} ${kana} ${romaji}`.toLowerCase();
 }
 
-function parseSubtitleSearchTime(value: string): number | null {
+export function parseSubtitleSearchTime(value: string): number | null {
     const raw = String(value || "").trim();
 
     if (!raw) return null;
@@ -175,7 +178,7 @@ function parseSubtitleSearchTime(value: string): number | null {
     return null;
 }
 
-function findSubtitleIndexByTime(cues: RuntimeSubtitleCue[], seconds: number, delaySeconds: number): number {
+export function findSubtitleIndexByTime(cues: RuntimeSubtitleCue[], seconds: number, delaySeconds: number): number {
     if (!Number.isFinite(seconds)) return -1;
 
     const exactIndex = cues.findIndex((sub) => {
@@ -199,7 +202,7 @@ function findSubtitleIndexByTime(cues: RuntimeSubtitleCue[], seconds: number, de
     return bestIndex;
 }
 
-function buildSubtitleTimeSearchMatches(
+export function buildSubtitleTimeSearchMatches(
     cues: RuntimeSubtitleCue[],
     seconds: number,
     delaySeconds: number

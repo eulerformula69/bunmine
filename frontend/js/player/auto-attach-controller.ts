@@ -1,4 +1,7 @@
-interface AutoAttachOptions {
+import { AnkiMediaSnapshot } from "./anki-actions.js";
+import { findCandidateNote } from "./candidate-model.js";
+import { t } from "./ui.js";
+export interface AutoAttachOptions {
     enabled(): boolean;
     snapshot(index: number): AnkiMediaSnapshot | Promise<AnkiMediaSnapshot>;
     noteIds(snapshot: AnkiMediaSnapshot): Promise<number[]>;
@@ -12,7 +15,7 @@ interface AutoAttachOptions {
     error(error: unknown): void;
 }
 
-function createAutoAttachController(options: AutoAttachOptions) {
+export function createAutoAttachController(options: AutoAttachOptions) {
     let timer: ReturnType<typeof setTimeout> | undefined;
     let busy = false;
     let cancelled = false;

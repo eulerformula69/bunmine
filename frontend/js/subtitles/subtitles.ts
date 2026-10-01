@@ -1,11 +1,13 @@
-﻿// overlay rendering
+import { getActiveSubtitleEntries, getActiveSubtitles, getPrimarySubtitleIndex, selectPrimarySubtitle } from "./timing.js";
+import { getSubtitleComprehensionLevel, shouldShowSubtitleForComprehensionLevel } from "./comprehension-level.js";
+// overlay rendering
 
-function clearSubtitleOverlay(overlayEl) {
+export function clearSubtitleOverlay(overlayEl) {
     if (!overlayEl) return;
     overlayEl.textContent = "";
 }
 
-function updateSubtitleComprehensionBadge(level) {
+export function updateSubtitleComprehensionBadge(level) {
     const badge = document.getElementById("comprehensionLevelBadge");
 
     if (!badge) return;
@@ -20,16 +22,16 @@ function updateSubtitleComprehensionBadge(level) {
     badge.classList.remove("hidden");
 }
 
-function getSubtitleStatusSettings(highlighter, status) {
+export function getSubtitleStatusSettings(highlighter, status) {
     if (!highlighter || !highlighter.statusSettings) return null;
     return highlighter.statusSettings[status] || null;
 }
 
-function appendPlainSubtitleText(overlayEl, text) {
+export function appendPlainSubtitleText(overlayEl, text) {
     overlayEl.textContent = text || "";
 }
 
-function appendHighlightedToken(overlayEl, token, status, settings) {
+export function appendHighlightedToken(overlayEl, token, status, settings) {
     const span = document.createElement("span");
     span.className = `subtitle-word subtitle-word-${status || "unknown"}`;
     span.textContent = token;
@@ -41,11 +43,11 @@ function appendHighlightedToken(overlayEl, token, status, settings) {
     overlayEl.appendChild(span);
 }
 
-function tokenizeSubtitleForHighlighting(text) {
+export function tokenizeSubtitleForHighlighting(text) {
     return String(text || "").match(/(\s+|[^\s]+)/g) || [];
 }
 
-function renderHighlightedSubtitleOverlay(overlayEl, text, highlighter) {
+export function renderHighlightedSubtitleOverlay(overlayEl, text, highlighter) {
     if (typeof highlighter.findMatchesInText === "function") {
         renderMatchedSubtitleOverlay(overlayEl, text, highlighter);
         return;
@@ -73,7 +75,7 @@ function renderHighlightedSubtitleOverlay(overlayEl, text, highlighter) {
     }
 }
 
-function renderMatchedSubtitleOverlay(overlayEl, text, highlighter) {
+export function renderMatchedSubtitleOverlay(overlayEl, text, highlighter) {
     const matches = highlighter.findMatchesInText(text) || [];
 
     if (!matches.length) {
@@ -114,7 +116,12 @@ function renderMatchedSubtitleOverlay(overlayEl, text, highlighter) {
     }
 }
 
-function renderSubtitleOverlay(options) {
+export function renderSubtitleOverlay(options, dependencies = {
+    getPrimarySubtitleIndex, selectPrimarySubtitle, getActiveSubtitles,
+    getActiveSubtitleEntries, getSubtitleComprehensionLevel, shouldShowSubtitleForComprehensionLevel
+}) {
+    const { getPrimarySubtitleIndex, selectPrimarySubtitle, getActiveSubtitles,
+        getActiveSubtitleEntries, getSubtitleComprehensionLevel, shouldShowSubtitleForComprehensionLevel } = dependencies;
     const overlay = options.overlay;
     const cueEntries = Array.isArray(options.cues)
         ? options.cues.map((cue, position) => ({
@@ -135,7 +142,7 @@ function renderSubtitleOverlay(options) {
     if (!texts.length) return;
 
     const regions = new Map<string, HTMLElement>();
-    const primaryIndex = typeof getPrimarySubtitleIndex === "function" ? getPrimarySubtitleIndex() : -1;
+    const primaryIndex = getPrimarySubtitleIndex();
 
     for (let position = 0; position < texts.length; position += 1) {
         const text = texts[position];
@@ -149,15 +156,12 @@ function renderSubtitleOverlay(options) {
         if (cueIndex >= 0) line.dataset.subtitleIndex = String(cueIndex);
         if (cueIndex === primaryIndex) line.classList.add("primary");
         applySubtitleCueStyle(line, cue);
-        const comprehensionLevel = typeof getSubtitleComprehensionLevel === "function"
-            ? getSubtitleComprehensionLevel(text, highlighter)
-            : null;
+        const comprehensionLevel = getSubtitleComprehensionLevel(text, highlighter);
         if (cueIndex === primaryIndex || (primaryIndex < 0 && position === 0)) {
             updateSubtitleComprehensionBadge(comprehensionLevel);
         }
         if (
             comprehensionLevel &&
-            typeof shouldShowSubtitleForComprehensionLevel === "function" &&
             !shouldShowSubtitleForComprehensionLevel(comprehensionLevel)
         ) continue;
         renderSubtitleOverlayLine(line, text, highlighter);
@@ -175,7 +179,7 @@ function renderSubtitleOverlay(options) {
                     cues: getActiveSubtitles(),
                     cueIndices: getActiveSubtitleEntries().map(({ index }) => index),
                     highlighter
-                });
+                }, dependencies);
             });
         }
 
@@ -192,7 +196,7 @@ function renderSubtitleOverlay(options) {
     }
 }
 
-function applySubtitleCueStyle(line, cue) {
+export function applySubtitleCueStyle(line, cue) {
     if (!cue) return;
     if (cue.fontName) line.style.fontFamily = `"${cue.fontName}", "NotoSansJP", sans-serif`;
     if (cue.fontSize) line.style.fontSize = `${Math.max(0.6, Math.min(2.5, cue.fontSize / 40))}em`;
@@ -201,7 +205,7 @@ function applySubtitleCueStyle(line, cue) {
     if (cue.italic) line.style.fontStyle = "italic";
 }
 
-function getSubtitleRegionKey(cue) {
+export function getSubtitleRegionKey(cue) {
     if (cue?.positionX !== undefined && cue?.positionY !== undefined) return `positioned-${cue.positionX}-${cue.positionY}`;
     const alignment = Number(cue?.alignment || 2);
     if (alignment >= 7) return "top";
@@ -209,7 +213,7 @@ function getSubtitleRegionKey(cue) {
     return "bottom";
 }
 
-function applyPositionedSubtitleRegion(region, cue) {
+export function applyPositionedSubtitleRegion(region, cue) {
     if (cue?.positionX === undefined || cue?.positionY === undefined) return;
     const x = Math.max(0, Math.min(100, cue.positionX / Number(cue.playResX || 384) * 100));
     const y = Math.max(0, Math.min(100, cue.positionY / Number(cue.playResY || 288) * 100));
@@ -222,7 +226,7 @@ function applyPositionedSubtitleRegion(region, cue) {
     region.style.transform = `translate(${translateX}, ${translateY})`;
 }
 
-function renderSubtitleOverlayLine(overlayEl, text, highlighter) {
+export function renderSubtitleOverlayLine(overlayEl, text, highlighter) {
     if (!highlighter || highlighter.enabled !== true) {
         appendPlainSubtitleText(overlayEl, text);
         return;

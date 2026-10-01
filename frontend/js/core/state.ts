@@ -1,24 +1,26 @@
-interface SubtitleElementRef {
+import { RuntimeSubtitleCue } from "../subtitles/model.js";
+import { SubtitleSearchResult } from "../subtitles/search.js";
+export interface SubtitleElementRef {
     index: number;
     div: HTMLElement;
     sub: RuntimeSubtitleCue;
 }
 
-interface SubtitleSearchMatch {
+export interface SubtitleSearchMatch {
     subtitleIndex: number;
     start: number;
     end: number;
     [key: string]: unknown;
 }
 
-interface SubtitleContextDragState {
+export interface SubtitleContextDragState {
     kind: "back" | "forward";
     startY: number;
     currentIdx: number;
     activated: boolean;
 }
 
-interface BunmineState {
+export interface BunmineState {
     currentLang: string;
     isResizing: boolean;
     subtitles: RuntimeSubtitleCue[];
@@ -35,7 +37,7 @@ interface BunmineState {
     runtimePrefetchAllInProgress: boolean;
     selectedKnownBasicWord: string;
     subtitleSearchQuery: string;
-    subtitleSearchMatches: SubtitleSearchMatch[];
+    subtitleSearchMatches: SubtitleSearchResult[];
     subtitleSearchIndex: number;
     subtitleSearchMode: "word" | "time";
     subtitleSearchTimeSeconds: number | null;
@@ -50,11 +52,7 @@ interface BunmineState {
     lastPrefetchSubtitleIndex: number;
 }
 
-interface Window {
-    BunmineState: BunmineState;
-}
-
-window.BunmineState = {
+export const state: BunmineState = {
     currentLang: "en",
     isResizing: false,
     subtitles: [],
@@ -85,16 +83,3 @@ window.BunmineState = {
     runtimeNextPrefetchStart: 0,
     lastPrefetchSubtitleIndex: -1
 } satisfies BunmineState;
-
-for (const key of Object.keys(window.BunmineState) as Array<keyof BunmineState>) {
-    Object.defineProperty(window, key, {
-        configurable: true,
-        get() {
-            return window.BunmineState[key];
-        },
-        set(value: BunmineState[keyof BunmineState]) {
-            const state = window.BunmineState as Record<keyof BunmineState, BunmineState[keyof BunmineState]>;
-            state[key] = value;
-        }
-    });
-}

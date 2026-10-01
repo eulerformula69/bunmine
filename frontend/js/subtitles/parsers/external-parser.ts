@@ -1,4 +1,7 @@
-interface ExternalSubtitleCue {
+import { SubtitleParseInput, SubtitleParseResult, SubtitleParser } from "../parser-types.js";
+import { SubtitleFormat } from "../model.js";
+import { SubtitleCueDraft, normalizeSubtitleCues } from "../normalization.js";
+export interface ExternalSubtitleCue {
     id?: string;
     startTime: number;
     endTime: number;
@@ -7,11 +10,11 @@ interface ExternalSubtitleCue {
     attributes?: Readonly<Record<string, unknown>>;
 }
 
-type ExternalSubtitleLoader = (
+export type ExternalSubtitleLoader = (
     input: SubtitleParseInput
 ) => Promise<readonly ExternalSubtitleCue[]>;
 
-function mapExternalSubtitleCues(
+export function mapExternalSubtitleCues(
     cues: readonly ExternalSubtitleCue[],
     format: SubtitleFormat
 ): SubtitleCueDraft[] {
@@ -26,7 +29,7 @@ function mapExternalSubtitleCues(
     }));
 }
 
-class ExternalSubtitleParser implements SubtitleParser {
+export class ExternalSubtitleParser implements SubtitleParser {
     readonly id: string;
     private readonly formats: ReadonlySet<SubtitleFormat>;
     private readonly load: ExternalSubtitleLoader;

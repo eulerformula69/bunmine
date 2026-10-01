@@ -1,5 +1,13 @@
-let autoAttachToast: HTMLElement | null = null;
-const autoAttachController = createAutoAttachController({
+import { createAutoAttachController } from "./auto-attach-controller.js";
+import { resolveAnkiExportSnapshot } from "./candidate-export.js";
+import { fetchNoteIdsByQuery } from "./anki-actions.js";
+import { candidatePanel, verifyCandidateAnkiNote } from "./candidate-bindings.js";
+import { refreshTargetNoteList, updateAnkiNoteWithSnapshot } from "./app.js";
+import { runExclusiveAnkiAcquire } from "./anki-acquire-lock.js";
+import { sleep } from "../core/api.js";
+import { showActionToast, showToast, t } from "./ui.js";
+export const autoAttachToastState = { value: null as HTMLElement | null };
+export const autoAttachController = createAutoAttachController({
     enabled: () => (document.getElementById("autoAttachNextCardEnabled") as HTMLInputElement)?.checked === true,
     snapshot: resolveAnkiExportSnapshot,
     noteIds: (snapshot) => fetchNoteIdsByQuery(snapshot.ankiUrl, "", "AnkiConnect automatic attachment"),
@@ -13,19 +21,19 @@ const autoAttachController = createAutoAttachController({
     now: () => Date.now(),
     status: (key, word) => {
         candidatePanel.render();
-        autoAttachToast?.remove();
+        autoAttachToastState.value?.remove();
         if (key === "toastAutoAttachDone") {
             showToast(t(key), "success");
-            autoAttachToast = null;
+            autoAttachToastState.value = null;
         } else {
-            autoAttachToast = showActionToast(t(key, { word }), [
+            autoAttachToastState.value = showActionToast(t(key, { word }), [
                 { label: t("toastAutoAttachCancel"), onClick: () => autoAttachController.cancel() },
             ]);
         }
     },
     done: () => {
-        autoAttachToast?.remove();
-        autoAttachToast = null;
+        autoAttachToastState.value?.remove();
+        autoAttachToastState.value = null;
         candidatePanel.render();
     },
     error: (error) => showToast(t("toastAutoAttachFailed", {

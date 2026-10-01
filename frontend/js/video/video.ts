@@ -1,4 +1,16 @@
-﻿async function handleFiles(files) {
+import { parseSubtitleSource } from "../subtitles/parse-subtitle-source.js";
+import { detectSubtitleFormat } from "../subtitles/format-detection.js";
+import { state } from "../core/state.js";
+import { toRuntimeSubtitleCues } from "../subtitles/model.js";
+import { saveLibraryWatchProgress } from "./progress.js";
+import { resetEpisodeNavigation } from "../player/episode-navigation.js";
+import { renderSubtitleOverlay } from "../subtitles/subtitles.js";
+import { dropzone, overlay, video } from "../core/dom.js";
+import { uploadVideoInBackground } from "./upload.js";
+import { clearRuntimeWordStatuses } from "../highlighter/anki-highlighter.js";
+import { renderSubtitles } from "../subtitles/sidebar-render.js";
+import { prefetchRuntimeStatusesForAllSubtitles } from "../player/app.js";
+export async function handleFiles(files) {
     let videoFile = null;
     let subtitleFile = null;
     let hasSubtitles = false;
@@ -18,7 +30,7 @@
 				format: detectSubtitleFormat({ filename: file.name }),
 				filename: file.name
 			});
-			subtitles = toRuntimeSubtitleCues(parsed.cues);
+			state.subtitles = toRuntimeSubtitleCues(parsed.cues);
 			hasSubtitles = true;
 		} else if (file.type.startsWith("video")) {
 			videoFile = file;
@@ -26,15 +38,15 @@
     }
 
     if (videoFile) {
-        currentVideoFile = null;
+        state.currentVideoFile = null;
         await saveLibraryWatchProgress({ force: true, skipAutoCompletePrompt: true });
-        currentLibraryEpisodeId = null;
-        currentLibraryVideoFileId = null;
-        currentLibrarySubtitleFileId = null;
+        state.currentLibraryEpisodeId = null;
+        state.currentLibraryVideoFileId = null;
+        state.currentLibrarySubtitleFileId = null;
         resetEpisodeNavigation();
         if (!hasSubtitles) {
-            subtitles = [];
-            lastRuntimeSubtitleText = "";
+            state.subtitles = [];
+            state.lastRuntimeSubtitleText = "";
 
             renderSubtitleOverlay({
                 overlay,
@@ -48,9 +60,9 @@
         uploadVideoInBackground(videoFile, subtitleFile);
     }
 
-    lastRuntimeSubtitleText = "";
-    runtimePrefetchAllRunId += 1;
-	runtimeHighlightPrefetchReady = false;
+    state.lastRuntimeSubtitleText = "";
+    state.runtimePrefetchAllRunId += 1;
+	state.runtimeHighlightPrefetchReady = false;
 
     clearRuntimeWordStatuses?.();
 

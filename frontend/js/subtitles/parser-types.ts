@@ -1,28 +1,29 @@
-interface SubtitleParseInput {
+import { SubtitleCue, SubtitleFormat } from "./model.js";
+export interface SubtitleParseInput {
     source: string;
     format: SubtitleFormat;
     filename?: string;
 }
 
-interface SubtitleParseWarning {
+export interface SubtitleParseWarning {
     code: string;
     message: string;
     cueIndex?: number;
 }
 
-interface SubtitleParseResult {
+export interface SubtitleParseResult {
     cues: SubtitleCue[];
     format: SubtitleFormat;
     warnings: SubtitleParseWarning[];
 }
 
-interface SubtitleParser {
+export interface SubtitleParser {
     readonly id: string;
     supports(format: SubtitleFormat): boolean;
     parse(input: SubtitleParseInput): Promise<SubtitleParseResult>;
 }
 
-class SubtitleParseError extends Error {
+export class SubtitleParseError extends Error {
     readonly code: string;
     readonly format?: SubtitleFormat;
     readonly cause?: unknown;
@@ -40,6 +41,6 @@ class SubtitleParseError extends Error {
     }
 }
 
-function isSubtitleProviderCompatibilityError(error: SubtitleParseError): boolean {
+export function isSubtitleProviderCompatibilityError(error: SubtitleParseError): boolean {
     return error.code === "external-format-incompatible" || error.code === "external-empty-result";
 }

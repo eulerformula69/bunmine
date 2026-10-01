@@ -1,6 +1,16 @@
-type AnkiWordStatus = "mature" | "young" | "learning" | "new" | "suspended" | "unknown";
+import { ApiPayload } from "../types/api.js";
+import { apiJson, fetchWithRetry } from "../core/api.js";
+import { JapaneseToken } from "../types/runtime-types.js";
+import { buildJapaneseHighlightSpans, getTokenEnd, getTokenStart, resolveOverlappingAnkiMatches } from "./anki-match-model.js";
+import { tokenizeJapaneseTextSync } from "../japanese/japanese-tokenizer.js";
+import { getActiveSubtitleEntries, getActiveSubtitles, getCurrentSubtitle } from "../subtitles/timing.js";
+import { renderSubtitleOverlay } from "../subtitles/subtitles.js";
+import { overlay } from "../core/dom.js";
+import { isKanjiContainingToken } from "../subtitles/comprehension-level.js";
+import { getSubtitleHighlightSettings } from "./subtitles-highlighter.js";
+export type AnkiWordStatus = "mature" | "young" | "learning" | "new" | "suspended" | "unknown";
 
-interface AnkiRuntimeWordInfo {
+export interface AnkiRuntimeWordInfo {
     status?: AnkiWordStatus;
     source?: "known-basic" | "known-anki";
     noteId?: string | number;
@@ -9,60 +19,57 @@ interface AnkiRuntimeWordInfo {
     [key: string]: unknown;
 }
 
-interface AnkiCardInfo {
+export interface AnkiCardInfo {
     queue?: number;
     type?: number;
     interval?: number;
     ivl?: number;
 }
 
-interface KnownAnkiWordsPayload extends ApiPayload {
+export interface KnownAnkiWordsPayload extends ApiPayload {
     data?: {
         words?: Record<string, AnkiRuntimeWordInfo>;
     };
 }
 
-interface KnownWordsPayload extends ApiPayload {
+export interface KnownWordsPayload extends ApiPayload {
     words?: unknown[];
 }
 
-interface KnownAnkiRefreshNotePayload extends ApiPayload {
+export interface KnownAnkiRefreshNotePayload extends ApiPayload {
     words?: unknown[];
     status?: AnkiWordStatus;
     noteId?: string | number;
     updatedAt?: string;
 }
 
-interface HighlightSpan {
+export interface HighlightSpan {
     start: number;
     end: number;
     surface: string;
     candidates: string[];
 }
 
-interface AnkiTextMatch {
+export interface AnkiTextMatch {
     start: number;
     end: number;
     status: AnkiWordStatus;
 }
 
-declare function getSubtitleHighlightSettings(): {
-    enabled: boolean;
-    statusSettings: unknown;
-};
 
-const ankiRuntimeWordStatusMap = new Map<string, AnkiRuntimeWordInfo>();
 
-let knownBasicWordsLoaded = false;
-let knownAnkiWordsLoaded = false;
+export const ankiRuntimeWordStatusMap = new Map<string, AnkiRuntimeWordInfo>();
 
-function clearRuntimeWordStatuses() {
+export const knownBasicWordsLoadedState = { value: false };
+export const knownAnkiWordsLoadedState = { value: false };
+
+export function clearRuntimeWordStatuses() {
     ankiRuntimeWordStatusMap.clear();
-    knownBasicWordsLoaded = false;
-    knownAnkiWordsLoaded = false;
+    knownBasicWordsLoadedState.value = false;
+    knownAnkiWordsLoadedState.value = false;
 }
 
-function getCardStatus(card: AnkiCardInfo): AnkiWordStatus {
+export function getCardStatus(card: AnkiCardInfo): AnkiWordStatus {
     if (card.queue === -1) return "suspended";
     if (card.type === 0) return "new";
     if (card.type === 1 || card.queue === 1 || card.queue === 3) return "learning";
@@ -73,7 +80,7 @@ function getCardStatus(card: AnkiCardInfo): AnkiWordStatus {
     return "young";
 }
 
-function pickBetterStatus(oldStatus: AnkiWordStatus | undefined, newStatus: AnkiWordStatus): AnkiWordStatus {
+export function pickBetterStatus(oldStatus: AnkiWordStatus | undefined, newStatus: AnkiWordStatus): AnkiWordStatus {
     const priority = {
         mature: 5,
         young: 4,
@@ -87,7 +94,7 @@ function pickBetterStatus(oldStatus: AnkiWordStatus | undefined, newStatus: Anki
     return priority[newStatus] > priority[oldStatus] ? newStatus : oldStatus;
 }
 
-function updateRuntimeKnownAnkiWords(words: unknown[], status: AnkiWordStatus | undefined, extraInfo: Partial<AnkiRuntimeWordInfo> = {}) {
+export function updateRuntimeKnownAnkiWords(words: unknown[], status: AnkiWordStatus | undefined, extraInfo: Partial<AnkiRuntimeWordInfo> = {}) {
     const normalizedStatus = status || "unknown";
 
     for (const rawWord of words || []) {
@@ -106,7 +113,7 @@ function updateRuntimeKnownAnkiWords(words: unknown[], status: AnkiWordStatus | 
     }
 }
 
-async function ankiRequest(ankiUrl: string, action: string, params: Record<string, unknown> = {}) {
+export async function ankiRequest(ankiUrl: string, action: string, params: Record<string, unknown> = {}) {
     const res = await fetchWithRetry(ankiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -130,14 +137,14 @@ async function ankiRequest(ankiUrl: string, action: string, params: Record<strin
     return data.result;
 }
 
-function normalizeHighlightWord(value: unknown): string {
+export function normalizeHighlightWord(value: unknown): string {
     return String(value || "")
         .replace(/<[^>]*>/g, " ")
         .replace(/\s+/g, " ")
         .trim();
 }
 
-function getHighlightWordFieldNames() {
+export function getHighlightWordFieldNames() {
     const raw = (document.getElementById("highlightWordField") as HTMLInputElement | null)?.value || "Word";
 
     return raw
@@ -146,7 +153,7 @@ function getHighlightWordFieldNames() {
         .filter(Boolean);
 }
 
-function getHighlightDeckNames() {
+export function getHighlightDeckNames() {
     const raw = (document.getElementById("highlightDeckNames") as HTMLInputElement | null)?.value
         || (document.getElementById("deckName") as HTMLInputElement | null)?.value
         || "";
@@ -157,13 +164,13 @@ function getHighlightDeckNames() {
         .filter(Boolean);
 }
 
-function escapeAnkiSearchValue(value: unknown): string {
+export function escapeAnkiSearchValue(value: unknown): string {
     return String(value || "")
         .replace(/\\/g, "\\\\")
         .replace(/"/g, '\\"');
 }
 
-function buildCurrentDeckQuery() {
+export function buildCurrentDeckQuery() {
     const deckNames = getHighlightDeckNames();
 
     return deckNames
@@ -171,8 +178,8 @@ function buildCurrentDeckQuery() {
         .join(" OR ");
 }
 
-async function loadKnownBasicWords({ force = false } = {}) {
-    if (knownBasicWordsLoaded && !force) return;
+export async function loadKnownBasicWords({ force = false } = {}) {
+    if (knownBasicWordsLoadedState.value && !force) return;
 
     try {
         const { response, data } = await apiJson<KnownWordsPayload>("/known-basic-words");
@@ -196,15 +203,15 @@ async function loadKnownBasicWords({ force = false } = {}) {
             });
         }
 
-        knownBasicWordsLoaded = true;
+        knownBasicWordsLoadedState.value = true;
         console.log(`Known basic words loaded: ${words.length}`);
     } catch (err) {
         console.warn("Known basic words load failed:", err);
     }
 }
 
-async function loadKnownAnkiWords({ force = false } = {}) {
-    if (knownAnkiWordsLoaded && !force) return;
+export async function loadKnownAnkiWords({ force = false } = {}) {
+    if (knownAnkiWordsLoadedState.value && !force) return;
 
     try {
         const { response, data } = await apiJson<KnownAnkiWordsPayload>("/known-anki-words");
@@ -237,20 +244,19 @@ async function loadKnownAnkiWords({ force = false } = {}) {
             loadedCount += 1;
         }
 
-        knownAnkiWordsLoaded = true;
+        knownAnkiWordsLoadedState.value = true;
         console.log(`Known Anki words loaded: ${loadedCount}`);
     } catch (err) {
         console.warn("Known Anki words load failed:", err);
     }
 }
 
-async function loadHighlightWordIndexes({ force = false } = {}) {
+export async function loadHighlightWordIndexes({ force = false } = {}) {
     await loadKnownAnkiWords({ force });
     await loadKnownBasicWords({ force });
 }
 
-async function checkKnownAnkiWordsStaleOnPlayerOpen({ silent = true } = {}) {
-    if (typeof apiJson !== "function") return null;
+export async function checkKnownAnkiWordsStaleOnPlayerOpen({ silent = true } = {}) {
 
     try {
         const { response, data } = await apiJson("/known-anki-words/stale-check", {
@@ -279,7 +285,7 @@ async function checkKnownAnkiWordsStaleOnPlayerOpen({ silent = true } = {}) {
     }
 }
 
-function chunkArray<T>(items: T[], size: number): T[][] {
+export function chunkArray<T>(items: T[], size: number): T[][] {
     const chunks = [];
     for (let i = 0; i < items.length; i += size) {
         chunks.push(items.slice(i, i + size));
@@ -287,7 +293,7 @@ function chunkArray<T>(items: T[], size: number): T[][] {
     return chunks;
 }
 
-async function refreshKnownAnkiWordsFromAnki({ fullRebuild = false } = {}) {
+export async function refreshKnownAnkiWordsFromAnki({ fullRebuild = false } = {}) {
     const ankiUrl = (document.getElementById("ankiUrl") as HTMLInputElement | null)?.value?.trim();
     const autoRefresh = (document.getElementById("ankiHighlightAutoRefreshInterval") as HTMLSelectElement | null)?.value || "daily";
     const wordFields = getHighlightWordFieldNames();
@@ -334,7 +340,7 @@ async function refreshKnownAnkiWordsFromAnki({ fullRebuild = false } = {}) {
     return data;
 }
 
-async function refreshKnownAnkiWordFromNote({
+export async function refreshKnownAnkiWordFromNote({
     noteId,
     word = "",
     wordFields = null
@@ -376,14 +382,14 @@ async function refreshKnownAnkiWordFromNote({
         locked: data.status === "mature"
     });
 
-    knownAnkiWordsLoaded = false;
+    knownAnkiWordsLoadedState.value = false;
     rerenderCurrentSubtitleWithAnkiHighlighter();
 
     return data;
 }
 
 
-function findKnownRawMatchesInText(text: string, tokens: JapaneseToken[] | null = null): AnkiTextMatch[] {
+export function findKnownRawMatchesInText(text: string, tokens: JapaneseToken[] | null = null): AnkiTextMatch[] {
     const source = String(text || "");
     const matches: AnkiTextMatch[] = [];
 
@@ -417,7 +423,7 @@ function findKnownRawMatchesInText(text: string, tokens: JapaneseToken[] | null 
     return matches;
 }
 
-function collectSubtitleCandidates(text: string): string[] {
+export function collectSubtitleCandidates(text: string): string[] {
     const source = String(text || "");
     const tokens = tokenizeJapaneseTextSync?.(source);
 
@@ -439,7 +445,7 @@ function collectSubtitleCandidates(text: string): string[] {
     return [...candidates];
 }
 
-async function ensureStatusesForSubtitleText(text: string, { rerender = true, silent = false } = {}) {
+export async function ensureStatusesForSubtitleText(text: string, { rerender = true, silent = false } = {}) {
     await loadHighlightWordIndexes();
 
     if (!silent) {
@@ -453,7 +459,7 @@ async function ensureStatusesForSubtitleText(text: string, { rerender = true, si
     }
 }
 
-async function ensureStatusesForCandidates(candidates: string[], { silent = false } = {}) {
+export async function ensureStatusesForCandidates(candidates: string[], { silent = false } = {}) {
     await loadHighlightWordIndexes();
 
     if (!silent) {
@@ -463,9 +469,7 @@ async function ensureStatusesForCandidates(candidates: string[], { silent = fals
     }
 }
 
-function rerenderCurrentSubtitleWithAnkiHighlighter() {
-    if (typeof getCurrentSubtitle !== "function") return;
-    if (typeof renderSubtitleOverlay !== "function") return;
+export function rerenderCurrentSubtitleWithAnkiHighlighter() {
     if (typeof overlay === "undefined") return;
 
     renderSubtitleOverlay({
@@ -476,7 +480,7 @@ function rerenderCurrentSubtitleWithAnkiHighlighter() {
     });
 }
 
-function findAnkiMatchesInText(text: string): AnkiTextMatch[] {
+export function findAnkiMatchesInText(text: string): AnkiTextMatch[] {
     const source = String(text || "");
     const tokens = tokenizeJapaneseTextSync?.(source);
     const matches: AnkiTextMatch[] = findKnownRawMatchesInText(source, tokens);
@@ -511,11 +515,11 @@ function findAnkiMatchesInText(text: string): AnkiTextMatch[] {
     return resolveOverlappingAnkiMatches(matches);
 }
 
-function isLearnedAnkiStatusForComprehension(status: AnkiWordStatus | undefined): boolean {
+export function isLearnedAnkiStatusForComprehension(status: AnkiWordStatus | undefined): boolean {
     return status === "young" || status === "mature";
 }
 
-function getUnknownKanjiTokenCountForText(text: string): number {
+export function getUnknownKanjiTokenCountForText(text: string): number {
     const source = String(text || "");
     const tokens = tokenizeJapaneseTextSync?.(source);
 
@@ -545,7 +549,7 @@ function getUnknownKanjiTokenCountForText(text: string): number {
     return unknownCount;
 }
 
-const ankiSubtitleHighlighter = {
+export const ankiSubtitleHighlighter = {
     get enabled() {
         return getSubtitleHighlightSettings().enabled;
     },
@@ -571,7 +575,7 @@ const ankiSubtitleHighlighter = {
     }
 };
 
-function addRuntimeKnownBasicWord(word: string) {
+export function addRuntimeKnownBasicWord(word: string) {
     const normalized = normalizeHighlightWord(word);
 
     if (!normalized) return;

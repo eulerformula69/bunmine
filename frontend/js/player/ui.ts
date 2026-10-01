@@ -1,12 +1,15 @@
-interface ToastActionButton {
+import { ToastType } from "../types/runtime-types.js";
+import { i18n } from "../core/i18n.js";
+import { state } from "../core/state.js";
+import { addCardToDeck, addKnownBasicBtn, fullscreenBtn, playPause, settingsBtn, video } from "../core/dom.js";
+export interface ToastActionButton {
   label: string;
   onClick?: () => void | Promise<void>;
 }
 
-declare let selectedKnownBasicWord: string;
-declare function getSubtitleIndexFromSelection(selection?: Selection | null): number;
+import { getSubtitleIndexFromSelection } from "./selection-model.js";
 
-function showToast(message: string, type: ToastType = "info", timeout = 3000): void {
+export function showToast(message: string, type: ToastType = "info", timeout = 3000): void {
   let container = document.getElementById("mpToastContainer");
 
   if (!container) {
@@ -31,7 +34,7 @@ function showToast(message: string, type: ToastType = "info", timeout = 3000): v
   }, timeout);
 }
 
-function showActionToast(message: string, actions: ToastActionButton[] = [], type: ToastType = "info", timeout = 0): HTMLDivElement {
+export function showActionToast(message: string, actions: ToastActionButton[] = [], type: ToastType = "info", timeout = 0): HTMLDivElement {
   let container = document.getElementById("mpToastContainer");
 
   if (!container) {
@@ -89,9 +92,9 @@ function showActionToast(message: string, actions: ToastActionButton[] = [], typ
   return toast;
 }
 
-function t(key: string, params: Record<string, unknown> = {}): string {
+export function t(key: string, params: Record<string, unknown> = {}): string {
     const fallbackDict = i18n?.en?.dict || {};
-    const dictionary = i18n?.[currentLang]?.dict || fallbackDict;
+    const dictionary = i18n?.[state.currentLang]?.dict || fallbackDict;
 
     let text = dictionary[key] || fallbackDict[key] || key;
 
@@ -102,25 +105,25 @@ function t(key: string, params: Record<string, unknown> = {}): string {
     return text;
 }
 
-function updatePlayButton(): void {
+export function updatePlayButton(): void {
     playPause.textContent = video.paused ? "▶" : "⏸";
 }
 
-function updateFullscreenButtonText(): void {
+export function updateFullscreenButtonText(): void {
     if (!fullscreenBtn) return;
 
     const isFullscreen = !!document.fullscreenElement;
     const key = isFullscreen ? "exitFullscreen" : "fullscreen";
-    const label = i18n[currentLang].dict[key] || (isFullscreen ? "Exit Fullscreen" : "Fullscreen");
+    const label = i18n[state.currentLang].dict[key] || (isFullscreen ? "Exit Fullscreen" : "Fullscreen");
 
     fullscreenBtn.textContent = "⛶";
     fullscreenBtn.title = label;
     fullscreenBtn.setAttribute("aria-label", label);
 }
 
-function updateIconButtons(): void {
+export function updateIconButtons(): void {
     if (settingsBtn) {
-        const settingsLabel = i18n[currentLang].dict.settings || "Settings";
+        const settingsLabel = i18n[state.currentLang].dict.settings || "Settings";
         settingsBtn.textContent = "⚙";
         settingsBtn.title = settingsLabel;
         settingsBtn.setAttribute("aria-label", settingsLabel);
@@ -129,7 +132,7 @@ function updateIconButtons(): void {
     updateFullscreenButtonText();
 }
 
-async function toggleFullscreenMode(): Promise<void> {
+export async function toggleFullscreenMode(): Promise<void> {
     try {
         if (!document.fullscreenElement) {
             await document.documentElement.requestFullscreen();
@@ -141,7 +144,7 @@ async function toggleFullscreenMode(): Promise<void> {
     }
 }
 
-function isTypingTarget(target: EventTarget | null): boolean {
+export function isTypingTarget(target: EventTarget | null): boolean {
     if (!target || !(target instanceof HTMLElement)) return false;
 
     const tag = target.tagName;
@@ -150,9 +153,9 @@ function isTypingTarget(target: EventTarget | null): boolean {
 
 
 // add dynamic frame step
-const FRAME_STEP_SECONDS = 1 / 24;
+export const FRAME_STEP_SECONDS = 1 / 24;
 
-function stepFrame(direction: number): void {
+export function stepFrame(direction: number): void {
     if (!video.duration || Number.isNaN(video.duration)) return;
 
     video.pause();
@@ -166,7 +169,7 @@ function stepFrame(direction: number): void {
 
 }
 
-function seekBySeconds(seconds: number): void {
+export function seekBySeconds(seconds: number): void {
     if (!video.duration || Number.isNaN(video.duration)) return;
 
     const nextTime = Math.max(
@@ -178,7 +181,7 @@ function seekBySeconds(seconds: number): void {
 
 }
 
-function getCleanSelectedText(): string {
+export function getCleanSelectedText(): string {
     const selection = window.getSelection();
 
     if (!selection || selection.rangeCount === 0) {
@@ -192,7 +195,7 @@ function getCleanSelectedText(): string {
 }
 
 
-function showAddKnownBasicButtonForSelection(): void {
+export function showAddKnownBasicButtonForSelection(): void {
     if (!addKnownBasicBtn && !addCardToDeck) return;
 
     const word = getCleanSelectedText();
@@ -217,7 +220,7 @@ function showAddKnownBasicButtonForSelection(): void {
         return;
     }
 
-    selectedKnownBasicWord = word;
+    state.selectedKnownBasicWord = word;
 
     const main = document.getElementById("main")!;
     const mainRect = main.getBoundingClientRect();
@@ -242,8 +245,8 @@ function showAddKnownBasicButtonForSelection(): void {
     }
 }
 
-function hideAddKnownBasicButton(): void {
+export function hideAddKnownBasicButton(): void {
     addKnownBasicBtn?.classList.add("hidden");
     addCardToDeck?.classList.add("hidden");
-    selectedKnownBasicWord = "";
+    state.selectedKnownBasicWord = "";
 }

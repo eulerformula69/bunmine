@@ -1,4 +1,8 @@
-function fromRuntimeSubtitleCue(
+import { RuntimeSubtitleCue, SubtitleFormat } from "../model.js";
+import { SubtitleCueDraft, normalizeSubtitleCues } from "../normalization.js";
+import { SubtitleParseError, SubtitleParseInput, SubtitleParseResult, SubtitleParser } from "../parser-types.js";
+import { parseASS, parseSRT } from "../parsing.js";
+export function fromRuntimeSubtitleCue(
     cue: RuntimeSubtitleCue,
     format: SubtitleFormat
 ): SubtitleCueDraft {
@@ -22,7 +26,7 @@ function fromRuntimeSubtitleCue(
     };
 }
 
-class LegacySubtitleParser implements SubtitleParser {
+export class LegacySubtitleParser implements SubtitleParser {
     readonly id = "legacy";
 
     supports(format: SubtitleFormat): boolean {

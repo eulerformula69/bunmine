@@ -1,6 +1,7 @@
-type LibraryTranslate = (key: string, params?: Record<string, unknown>) => string;
+import { LibraryEpisodeView, LibraryFilterState, LibraryPrimaryAction, LibrarySeriesFilter, LibrarySeriesStatus, LibrarySeriesView } from "./library-types.js";
+export type LibraryTranslate = (key: string, params?: Record<string, unknown>) => string;
 
-const LibraryPresentation = {
+export const LibraryPresentation = {
     progressThresholdSeconds: 5,
 
     episodeCanResume(episode: LibraryEpisodeView): boolean {

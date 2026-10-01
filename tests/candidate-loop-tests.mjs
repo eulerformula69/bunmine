@@ -1,18 +1,15 @@
 import assert from "node:assert/strict";
-import fs from "node:fs";
-import vm from "node:vm";
 
 const frames = new Map();
 const timers = new Map();
 let serial = 0;
-const context = vm.createContext({
+Object.assign(globalThis, {
     requestAnimationFrame: (fn) => { frames.set(++serial, fn); return serial; },
     cancelAnimationFrame: (id) => frames.delete(id),
     setTimeout: (fn) => { timers.set(++serial, fn); return serial; },
     clearTimeout: (id) => timers.delete(id),
 });
-vm.runInContext(fs.readFileSync("dist/js/video/media-playback.js", "utf8"), context);
-vm.runInContext(fs.readFileSync("dist/js/player/candidate-loop.js", "utf8"), context);
+const context = await import("../dist/esm/player/candidate-loop.js");
 const listeners = {};
 const media = {
     currentTime: 0, duration: 20, readyState: 4, paused: false, playbackRate: 1,

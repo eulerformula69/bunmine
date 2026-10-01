@@ -1,4 +1,6 @@
-interface RuntimePrefetchOptions {
+import { BunmineState } from "../core/state.js";
+import { RuntimeSubtitleCue } from "../subtitles/model.js";
+export interface RuntimePrefetchOptions {
     state: BunmineState;
     getSubtitles: () => RuntimeSubtitleCue[];
     getCurrentSubtitle: () => RuntimeSubtitleCue | null | undefined;
@@ -11,7 +13,7 @@ interface RuntimePrefetchOptions {
     delay?: (milliseconds: number) => Promise<void>;
 }
 
-function createRuntimePrefetchController(options: RuntimePrefetchOptions) {
+export function createRuntimePrefetchController(options: RuntimePrefetchOptions) {
     const delay = options.delay || ((milliseconds) => new Promise<void>((resolve) => {
         setTimeout(resolve, milliseconds);
     }));

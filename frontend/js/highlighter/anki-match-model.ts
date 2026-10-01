@@ -1,11 +1,13 @@
-function normalizeJapaneseNumberText(value: unknown): string {
+import { AnkiTextMatch, HighlightSpan, normalizeHighlightWord } from "./anki-highlighter.js";
+import { JapaneseToken } from "../types/runtime-types.js";
+export function normalizeJapaneseNumberText(value: unknown): string {
     return String(value || "")
         .replace(/[０-９]/g, (ch) =>
             String.fromCharCode(ch.charCodeAt(0) - 0xFEE0)
         );
 }
 
-function addCandidate(candidates: string[], value: unknown) {
+export function addCandidate(candidates: string[], value: unknown) {
     const normalized = normalizeHighlightWord(normalizeJapaneseNumberText(value));
 
     if (normalized && normalized !== "*") {
@@ -13,17 +15,17 @@ function addCandidate(candidates: string[], value: unknown) {
     }
 }
 
-function getTokenStart(token: JapaneseToken): number {
+export function getTokenStart(token: JapaneseToken): number {
     return Math.max(0, Number(token.word_position || 1) - 1);
 }
 
-function getTokenEnd(token: JapaneseToken): number {
+export function getTokenEnd(token: JapaneseToken): number {
     return getTokenStart(token) + String(token.surface_form || "").length;
 }
 
 
 
-function getJapaneseTokenCandidates(token: JapaneseToken): string[] {
+export function getJapaneseTokenCandidates(token: JapaneseToken): string[] {
     const surface = String(token.surface_form || "");
     const basic = String(token.basic_form || "");
     const candidates: string[] = [];
@@ -116,7 +118,7 @@ function getJapaneseTokenCandidates(token: JapaneseToken): string[] {
     return [...new Set(candidates)];
 }
 
-function isVerbChainTailToken(token: JapaneseToken | undefined): boolean {
+export function isVerbChainTailToken(token: JapaneseToken | undefined): boolean {
     if (!token) return false;
 
     const surface = token.surface_form || "";
@@ -136,7 +138,7 @@ function isVerbChainTailToken(token: JapaneseToken | undefined): boolean {
     return false;
 }
 
-function buildJapaneseHighlightSpans(tokens: JapaneseToken[]): HighlightSpan[] {
+export function buildJapaneseHighlightSpans(tokens: JapaneseToken[]): HighlightSpan[] {
     const spans: HighlightSpan[] = [];
 
     for (let i = 0; i < tokens.length; i += 1) {
@@ -177,8 +179,8 @@ function buildJapaneseHighlightSpans(tokens: JapaneseToken[]): HighlightSpan[] {
 			candidates.push(...getJapaneseTokenCandidates({
 				surface_form: chainSurface,
 				basic_form: chainSurface
-			}));			
-			
+			}));
+
             spans.push({
                 start,
                 end: chainEnd,
@@ -187,13 +189,13 @@ function buildJapaneseHighlightSpans(tokens: JapaneseToken[]): HighlightSpan[] {
             });
         }
     }
-	
+
 	spans.push(...buildJapaneseCompoundSpans(tokens));
-	
+
     return spans;
 }
 
-function buildJapaneseCompoundSpans(tokens: JapaneseToken[]): HighlightSpan[] {
+export function buildJapaneseCompoundSpans(tokens: JapaneseToken[]): HighlightSpan[] {
     const spans: HighlightSpan[] = [];
     const maxWindowSize = 2;
 
@@ -228,7 +230,7 @@ function buildJapaneseCompoundSpans(tokens: JapaneseToken[]): HighlightSpan[] {
     return spans;
 }
 
-function resolveOverlappingAnkiMatches(matches: AnkiTextMatch[]): AnkiTextMatch[] {
+export function resolveOverlappingAnkiMatches(matches: AnkiTextMatch[]): AnkiTextMatch[] {
     const selected: AnkiTextMatch[] = [];
 
     for (const match of matches
@@ -253,5 +255,3 @@ function resolveOverlappingAnkiMatches(matches: AnkiTextMatch[]): AnkiTextMatch[
         return (b.end - b.start) - (a.end - a.start);
     });
 }
-
-

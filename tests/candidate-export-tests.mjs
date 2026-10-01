@@ -1,21 +1,15 @@
 import assert from "node:assert/strict";
-import fs from "node:fs";
-import vm from "node:vm";
+import { installDom } from "./dom-environment.mjs";
+const dom = installDom();
 
+await import("../dist/esm/player/sidebar-i18n.js");
+const ctx = Object.assign({}, ...await Promise.all(["anki-actions", "candidate-export", "candidate-model", "auto-attach-controller"].map(name => import('../dist/esm/player/' + name + '.js'))));
+const {t} = await import("../dist/esm/player/ui.js");
 const requests = [];
-const ctx = vm.createContext({
-    console, setTimeout, clearTimeout, AbortController,
-    t: (key) => key,
-    document: { getElementById: (id) => ({ value: id === "imageSubtitleMode" ? subtitleMode : "", checked: subtitlesEnabled }) },
-    buildApiUrl: (path) => path,
-    fetch: async (url, options) => {
-        requests.push([url, JSON.parse(options.body)]);
-        return { ok: true, json: async () => ({ filename: "media", result: null }) };
-    },
-});
-for (const path of ["anki-actions", "candidate-export", "candidate-model", "auto-attach-controller"]) {
-    vm.runInContext(fs.readFileSync(`dist/js/player/${path}.js`, "utf8"), ctx);
-}
+globalThis.fetch = async (url, options) => {
+    requests.push([url, JSON.parse(options.body)]);
+    return new Response(JSON.stringify({ filename: "media", result: null }));
+};
 const stored = new Map([1, 2].map((id) => [id, {
     id, revision: 1, snapshot: {
         videoPayload: { videoFileId: id }, currentIdx: 142,
@@ -27,19 +21,20 @@ const stored = new Map([1, 2].map((id) => [id, {
         sentenceField: "Sentence", screenshotMode: "webp", trackIndex: "default", volumeLevel: 1,
     },
 }]));
-let subtitleMode = "all";
-let subtitlesEnabled = true;
+document.getElementById("imageSubtitleMode").value = "all";
+document.getElementById("includeImageSubtitle").checked = true;
 const exports = ctx.createCandidateExportService({
     source: async (id) => structuredClone(stored.get(id)),
     configure() {},
 });
 let activeId = 1;
-ctx.candidateExports = exports;
+ctx.resolveAnkiExportSnapshot = async () => (await exports.load(activeId)).snapshot;
 ctx.candidatePanel = { exportCandidateId: () => activeId };
 ctx.fetchDeckNoteIds = async () => [123];
 ctx.fetchNotesInfo = async () => [{ fields: {} }];
 const media = ctx.createAnkiMediaController({
     translate: String,
+    fetchNotesInfo: ctx.fetchNotesInfo, fetchDeckNoteIds: ctx.fetchDeckNoteIds,
     resolveExportSnapshot: () => ctx.resolveAnkiExportSnapshot(),
     validateExportSnapshot: exports.validate,
     getVideoPayload: () => ({ videoFileId: 99 }), getVideoCurrentTime: () => 999,
@@ -73,7 +68,7 @@ original.context = { start: 0, end: 2, anchor: 1, cues: [
     { start: 12, end: 14, text: "word1" },
     { start: 14, end: 16, text: "after" },
 ] };
-subtitleMode = "timed";
+document.getElementById("imageSubtitleMode").value = "timed";
 requests.length = 0;
 await media.updateCurrentOrSelected();
 assert.equal(requests[0][1].imageSubtitleMode, "timed");
@@ -85,19 +80,19 @@ assert.deepEqual(requests[0][1].imageSubtitleCues, [
 assert.equal(requests[2][1].params.note.fields.Sentence, "before word1 after");
 assert.equal(original.imageSubtitleMode, "all");
 assert.equal(original.imageSubtitleCues.length, 0);
-subtitlesEnabled = false;
+document.getElementById("includeImageSubtitle").checked = false;
 const disabled = ctx.buildImageSubtitleExport((await exports.load(1)).snapshot);
 assert.equal(disabled.text, "");
 assert.equal(disabled.imageSubtitleCues.length, 0);
-subtitlesEnabled = true;
-subtitleMode = "all";
+document.getElementById("includeImageSubtitle").checked = true;
+document.getElementById("imageSubtitleMode").value = "all";
 assert.equal(ctx.buildImageSubtitleExport((await exports.load(1)).snapshot).imageSubtitleMode, "all");
-subtitleMode = "timed";
+document.getElementById("imageSubtitleMode").value = "timed";
 const old = { combinedText: "legacy", imageSubtitleText: "legacy" };
-assert.throws(() => ctx.buildImageSubtitleExport(old), /candidateSubtitleTimingMissing/);
-subtitleMode = "all";
+assert.throws(() => ctx.buildImageSubtitleExport(old), { message: t("candidateSubtitleTimingMissing") });
+document.getElementById("imageSubtitleMode").value = "all";
 assert.doesNotThrow(() => ctx.buildImageSubtitleExport(old));
-subtitleMode = "timed";
+document.getElementById("imageSubtitleMode").value = "timed";
 
 // Listener resolves the same candidate source and freezes its identity during the wait.
 requests.length = 0;
@@ -135,10 +130,12 @@ assert.equal((await pending).snapshot.audioEnd, 19);
 
 // Stale snapshots and failed saves cannot silently export old boundaries.
 requests.length = 0;
-await assert.rejects(media.updateNote(123, snapshots[0]), /candidateContextChanged/);
+await assert.rejects(media.updateNote(123, snapshots[0]), { message: t("candidateContextChanged") });
 assert.equal(requests.length, 0);
 exports.trackSave(2, Promise.reject(new Error("save failed")));
 await assert.rejects(exports.load(2), /save failed/);
 exports.trackSave(2, Promise.resolve());
 assert.equal((await exports.load(2)).snapshot.audioEnd, 27);
 console.log("Candidate export: manual, listener, independent IDs, save wait, failure and revision checks passed");
+
+dom.window.close();

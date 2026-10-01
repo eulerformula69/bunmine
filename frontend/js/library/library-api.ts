@@ -1,8 +1,11 @@
-function libraryListSeries(): Promise<ApiResult<LibrarySeriesListResponse>> {
+import { ApiResult, JobResponse, LibraryCoverSearchResponse, LibraryFolderDialogResponse, LibraryJobStatusResponse, LibraryMutationResponse, LibraryPlaybackResponse, LibrarySeriesDetailResponse, LibrarySeriesListResponse, LibrarySubtitlePlanResponse, LibrarySubtitleSearchResponse } from "../types/api.js";
+import { apiJson } from "../core/api.js";
+import { LibraryProgressPayload } from "../types/runtime-types.js";
+export function libraryListSeries(): Promise<ApiResult<LibrarySeriesListResponse>> {
     return apiJson<LibrarySeriesListResponse>("/library/series");
 }
 
-function libraryChooseFolder(initialPath = ""): Promise<ApiResult<LibraryFolderDialogResponse>> {
+export function libraryChooseFolder(initialPath = ""): Promise<ApiResult<LibraryFolderDialogResponse>> {
     return apiJson<LibraryFolderDialogResponse>("/library/dialog/folder", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -10,26 +13,26 @@ function libraryChooseFolder(initialPath = ""): Promise<ApiResult<LibraryFolderD
     });
 }
 
-function libraryStartJob(
+export function libraryStartJob(
     requestPath: string,
     requestOptions: RequestInit = {}
 ): Promise<ApiResult<JobResponse>> {
     return apiJson<JobResponse>(requestPath, requestOptions);
 }
 
-function libraryGetJobStatus(jobId: string): Promise<ApiResult<LibraryJobStatusResponse>> {
+export function libraryGetJobStatus(jobId: string): Promise<ApiResult<LibraryJobStatusResponse>> {
     return apiJson<LibraryJobStatusResponse>(`/library/jobs/${encodeURIComponent(jobId)}`);
 }
 
-function libraryGetSeries(seriesId: string | number): Promise<ApiResult<LibrarySeriesDetailResponse>> {
+export function libraryGetSeries(seriesId: string | number): Promise<ApiResult<LibrarySeriesDetailResponse>> {
     return apiJson<LibrarySeriesDetailResponse>(`/library/series/${encodeURIComponent(seriesId)}`);
 }
 
-function libraryGetEpisodePlayback(episodeId: string | number): Promise<ApiResult<LibraryPlaybackResponse>> {
+export function libraryGetEpisodePlayback(episodeId: string | number): Promise<ApiResult<LibraryPlaybackResponse>> {
     return apiJson<LibraryPlaybackResponse>(`/library/episodes/${encodeURIComponent(episodeId)}/playback`);
 }
 
-function libraryPostEpisodeProgress(
+export function libraryPostEpisodeProgress(
     episodeId: string | number,
     payload: Record<string, unknown>
 ): Promise<ApiResult<LibraryProgressPayload>> {
@@ -40,7 +43,7 @@ function libraryPostEpisodeProgress(
     });
 }
 
-function librarySetEpisodeCompleted(
+export function librarySetEpisodeCompleted(
     episodeId: string | number,
     completed: boolean
 ): Promise<ApiResult<LibraryMutationResponse>> {
@@ -51,19 +54,19 @@ function librarySetEpisodeCompleted(
     });
 }
 
-function libraryDeleteSeries(seriesId: string | number): Promise<ApiResult<LibraryMutationResponse>> {
+export function libraryDeleteSeries(seriesId: string | number): Promise<ApiResult<LibraryMutationResponse>> {
     return apiJson<LibraryMutationResponse>(`/library/series/${encodeURIComponent(seriesId)}`, {
         method: "DELETE"
     });
 }
 
-function libraryDeleteMissingEpisode(episodeId: string | number): Promise<ApiResult<LibraryMutationResponse>> {
+export function libraryDeleteMissingEpisode(episodeId: string | number): Promise<ApiResult<LibraryMutationResponse>> {
     return apiJson<LibraryMutationResponse>(`/library/episodes/${encodeURIComponent(episodeId)}`, {
         method: "DELETE"
     });
 }
 
-function libraryRelinkSeries(
+export function libraryRelinkSeries(
     seriesId: string | number,
     payload: Record<string, unknown>
 ): Promise<ApiResult<LibraryMutationResponse>> {
@@ -74,7 +77,7 @@ function libraryRelinkSeries(
     });
 }
 
-function librarySearchEpisodeSubtitles(
+export function librarySearchEpisodeSubtitles(
     episodeId: string | number,
     query: string
 ): Promise<ApiResult<LibrarySubtitleSearchResponse>> {
@@ -83,7 +86,7 @@ function librarySearchEpisodeSubtitles(
     );
 }
 
-function librarySelectEpisodeSubtitle(
+export function librarySelectEpisodeSubtitle(
     episodeId: string | number,
     payload: Record<string, unknown>
 ): Promise<ApiResult<LibraryMutationResponse>> {
@@ -94,7 +97,7 @@ function librarySelectEpisodeSubtitle(
     });
 }
 
-function libraryAnalyzeSeriesSubtitles(
+export function libraryAnalyzeSeriesSubtitles(
     seriesId: string | number,
     query: string
 ): Promise<ApiResult<LibrarySubtitlePlanResponse>> {
@@ -105,7 +108,7 @@ function libraryAnalyzeSeriesSubtitles(
     });
 }
 
-function libraryPlanEpisodeSubtitle(
+export function libraryPlanEpisodeSubtitle(
     episodeId: string | number,
     query: string
 ): Promise<ApiResult<LibrarySubtitlePlanResponse>> {
@@ -116,7 +119,7 @@ function libraryPlanEpisodeSubtitle(
     });
 }
 
-function librarySearchSeriesCover(
+export function librarySearchSeriesCover(
     seriesId: string | number,
     query: string
 ): Promise<ApiResult<LibraryCoverSearchResponse>> {
@@ -125,7 +128,7 @@ function librarySearchSeriesCover(
     );
 }
 
-function librarySelectSeriesCover(
+export function librarySelectSeriesCover(
     seriesId: string | number,
     payload: Record<string, unknown>
 ): Promise<ApiResult<LibraryMutationResponse>> {

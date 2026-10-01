@@ -1,6 +1,7 @@
-type SubtitleFormat = "srt" | "vtt" | "ass" | "ssa" | "unknown";
 
-interface SubtitleCue {
+export type SubtitleFormat = "srt" | "vtt" | "ass" | "ssa" | "unknown";
+
+export interface SubtitleCue {
     id: string;
     startTime: number;
     endTime: number;
@@ -22,7 +23,7 @@ interface SubtitleCue {
     metadata?: Readonly<Record<string, unknown>>;
 }
 
-interface RuntimeSubtitleCue {
+export interface RuntimeSubtitleCue {
     start: number;
     end: number;
     text: string;
@@ -41,7 +42,7 @@ interface RuntimeSubtitleCue {
     [key: string]: unknown;
 }
 
-function toRuntimeSubtitleCue(cue: SubtitleCue): RuntimeSubtitleCue {
+export function toRuntimeSubtitleCue(cue: SubtitleCue): RuntimeSubtitleCue {
     return {
         start: cue.startTime,
         end: cue.endTime,
@@ -61,6 +62,6 @@ function toRuntimeSubtitleCue(cue: SubtitleCue): RuntimeSubtitleCue {
     };
 }
 
-function toRuntimeSubtitleCues(cues: readonly SubtitleCue[]): RuntimeSubtitleCue[] {
+export function toRuntimeSubtitleCues(cues: readonly SubtitleCue[]): RuntimeSubtitleCue[] {
     return cues.map(toRuntimeSubtitleCue);
 }

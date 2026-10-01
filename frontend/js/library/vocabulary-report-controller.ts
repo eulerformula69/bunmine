@@ -1,4 +1,9 @@
-function buildVocabularyReportPayload(root: ParentNode = document) {
+import { lt } from "./library-i18n.js";
+import { libraryGetJobStatus, libraryStartJob } from "./library-api.js";
+import { LibraryJobData } from "./library-types.js";
+import { getApiErrorMessage } from "../core/api.js";
+import { currentOpenedSeriesState } from "./library.js";
+export function buildVocabularyReportPayload(root: ParentNode = document) {
     const statuses = Array.from(root.querySelectorAll<HTMLInputElement>('input[name="reportStatus"]:checked')).map(input => input.value);
     const selectedSheets = new Set(Array.from(root.querySelectorAll<HTMLInputElement>('input[name="reportSheet"]:checked')).map(input => input.value));
     const includeParticles = root.querySelector<HTMLInputElement>('#reportIncludeParticles')?.checked ?? false;
@@ -6,7 +11,7 @@ function buildVocabularyReportPayload(root: ParentNode = document) {
     return { statuses, includeParticles, includeAuxiliaryForms, sheets: { summary: selectedSheets.has("summary"), occurrences: selectedSheets.has("occurrences"), statistics: selectedSheets.has("statistics") } };
 }
 
-function vocabularyReportFilename(contentDisposition: string): string {
+export function vocabularyReportFilename(contentDisposition: string): string {
     const utf8Name = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
     if (utf8Name) {
         try { return decodeURIComponent(utf8Name.trim()); } catch { /* use regular filename */ }
@@ -15,7 +20,7 @@ function vocabularyReportFilename(contentDisposition: string): string {
     return (regularName?.[1] || regularName?.[2] || "vocabulary_report.xlsx").trim();
 }
 
-async function downloadVocabularyReport(seriesId: string | number, root: ParentNode = document) {
+export async function downloadVocabularyReport(seriesId: string | number, root: ParentNode = document) {
     const button = root.querySelector<HTMLButtonElement>("#confirmVocabularyReportBtn");
     const status = root.querySelector<HTMLElement>("#vocabularyReportStatus");
     if (!button || button.disabled) return;
@@ -43,11 +48,11 @@ async function downloadVocabularyReport(seriesId: string | number, root: ParentN
     } finally { button.disabled = false; button.textContent = lt("prepareReport"); }
 }
 
-function bindVocabularyReportController() {
+export function bindVocabularyReportController() {
     const modal = document.getElementById("vocabularyReportModal"); const open = document.getElementById("exportVocabularyBtn");
     const close = () => modal?.classList.add("hidden");
     open?.addEventListener("click", () => modal?.classList.remove("hidden"));
     document.getElementById("closeVocabularyReportBtn")?.addEventListener("click", close);
     document.getElementById("cancelVocabularyReportBtn")?.addEventListener("click", close);
-    document.getElementById("confirmVocabularyReportBtn")?.addEventListener("click", () => { if (currentOpenedSeries) downloadVocabularyReport(currentOpenedSeries.id).catch(() => undefined); });
+    document.getElementById("confirmVocabularyReportBtn")?.addEventListener("click", () => { if (currentOpenedSeriesState.value) downloadVocabularyReport(currentOpenedSeriesState.value.id).catch(() => undefined); });
 }

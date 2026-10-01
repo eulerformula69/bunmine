@@ -1,4 +1,8 @@
-interface CandidateReviewOptions {
+import { candidateApi } from "./candidate-api.js";
+import { AnkiMediaSnapshot } from "./anki-actions.js";
+import { MiningCandidate, findCandidateNote } from "./candidate-model.js";
+import { t } from "./ui.js";
+export interface CandidateReviewOptions {
     action: typeof candidateApi.action;
     noteIds(snapshot: AnkiMediaSnapshot): Promise<number[]>;
     copy(word: string): Promise<void>;
@@ -10,7 +14,7 @@ interface CandidateReviewOptions {
     now(): number;
 }
 
-function createCandidateReviewController(options: CandidateReviewOptions) {
+export function createCandidateReviewController(options: CandidateReviewOptions) {
     let busy = false;
     return {
         isBusy: () => busy,

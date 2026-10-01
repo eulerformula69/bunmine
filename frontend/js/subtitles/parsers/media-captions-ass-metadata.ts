@@ -1,4 +1,5 @@
-interface MediaCaptionsAssCueMetadata {
+
+export interface MediaCaptionsAssCueMetadata {
     startTime: number;
     endTime: number;
     rawText: string;
@@ -16,7 +17,7 @@ interface MediaCaptionsAssCueMetadata {
     italic?: boolean;
 }
 
-interface MediaCaptionsAssStyle {
+export interface MediaCaptionsAssStyle {
     alignment?: number;
     fontName?: string;
     fontSize?: number;
@@ -25,12 +26,12 @@ interface MediaCaptionsAssStyle {
     italic?: boolean;
 }
 
-interface MediaCaptionsAssTextResult {
+export interface MediaCaptionsAssTextResult {
     text: string;
     hasDrawingMode: boolean;
 }
 
-function normalizeMediaCaptionsAssSource(source: string): string {
+export function normalizeMediaCaptionsAssSource(source: string): string {
     return source.replace(/\{[^{}\r\n]*}/g, (block) => {
         const content = block.slice(1, -1);
         const malformedPrefix = content.match(/^\d+(\\(?=[A-Za-z0-9])[\s\S]*)$/);
@@ -39,7 +40,7 @@ function normalizeMediaCaptionsAssSource(source: string): string {
     });
 }
 
-function extractMediaCaptionsAssMetadata(
+export function extractMediaCaptionsAssMetadata(
     source: string,
     format: "ass" | "ssa"
 ): MediaCaptionsAssCueMetadata[] {
@@ -123,7 +124,7 @@ function extractMediaCaptionsAssMetadata(
     return cues;
 }
 
-function matchMediaCaptionsAssMetadata(
+export function matchMediaCaptionsAssMetadata(
     cues: readonly MediaCaptionsAssCueMetadata[],
     startTime: number,
     endTime: number,
@@ -139,7 +140,7 @@ function matchMediaCaptionsAssMetadata(
     return cues[index];
 }
 
-function extractMediaCaptionsAssText(rawText: string): MediaCaptionsAssTextResult {
+export function extractMediaCaptionsAssText(rawText: string): MediaCaptionsAssTextResult {
     const overrideTagPattern = /\{([^}]*)}/g;
     let cursor = 0;
     let drawingMode = 0;
@@ -171,13 +172,13 @@ function extractMediaCaptionsAssText(rawText: string): MediaCaptionsAssTextResul
     };
 }
 
-function defaultAssEventFormat(format: "ass" | "ssa"): string[] {
+export function defaultAssEventFormat(format: "ass" | "ssa"): string[] {
     return format === "ssa"
         ? ["marked", "start", "end", "style", "name", "marginl", "marginr", "marginv", "effect", "text"]
         : ["layer", "start", "end", "style", "name", "marginl", "marginr", "marginv", "effect", "text"];
 }
 
-function parseAssTimestamp(value: string): number | null {
+export function parseAssTimestamp(value: string): number | null {
     const parts = value.trim().split(":");
     if (parts.length !== 3) return null;
     const hours = Number(parts[0]);
@@ -187,13 +188,13 @@ function parseAssTimestamp(value: string): number | null {
     return Number.isFinite(result) ? result : null;
 }
 
-function parseFiniteAssNumber(value: string | undefined): number | undefined {
+export function parseFiniteAssNumber(value: string | undefined): number | undefined {
     if (!value) return undefined;
     const number = Number(value);
     return Number.isFinite(number) ? number : undefined;
 }
 
-function convertAssColorToCss(value: string): string | undefined {
+export function convertAssColorToCss(value: string): string | undefined {
     const source = value.trim();
     if (!source) return undefined;
     const hex = source.replace(/^&H/i, "").replace(/&$/, "").padStart(8, "0");

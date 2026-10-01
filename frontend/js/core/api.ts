@@ -1,10 +1,11 @@
-const API_BASE = window.location.origin;
+import { ApiPayload, ApiResult } from "../types/api.js";
+export const API_BASE = window.location.origin;
 
-function buildApiUrl(path: string): string {
+export function buildApiUrl(path: string): string {
     return `${API_BASE}${path}`;
 }
 
-async function apiJson<T extends ApiPayload = ApiPayload>(
+export async function apiJson<T extends ApiPayload = ApiPayload>(
     path: string,
     options: RequestInit = {}
 ): Promise<ApiResult<T>> {
@@ -25,7 +26,7 @@ async function apiJson<T extends ApiPayload = ApiPayload>(
     return { response, data };
 }
 
-function normalizeApiPayload<T extends ApiPayload>(data: T): T {
+export function normalizeApiPayload<T extends ApiPayload>(data: T): T {
     if (!data || typeof data !== "object") return data;
 
     if (data.ok === false && data.error && typeof data.error === "object") {
@@ -36,18 +37,18 @@ function normalizeApiPayload<T extends ApiPayload>(data: T): T {
     return data;
 }
 
-function getApiErrorMessage(data: ApiPayload | null | undefined, fallback = "Request failed"): string {
+export function getApiErrorMessage(data: ApiPayload | null | undefined, fallback = "Request failed"): string {
     if (!data || typeof data !== "object") return fallback;
     if (typeof data.error === "string" && data.error) return data.error;
     if (data.errorInfo?.message) return data.errorInfo.message;
     return fallback;
 }
 
-function sleep(ms: number): Promise<void> {
+export function sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function fetchWithRetry(url: string, options: RequestInit | undefined, {
+export async function fetchWithRetry(url: string, options: RequestInit | undefined, {
     retries = 5,
     delayMs = 800,
     label = "request"

@@ -1,57 +1,58 @@
-interface ApiErrorInfo {
+
+export interface ApiErrorInfo {
     code?: string;
     message?: string;
     details?: unknown;
 }
 
-interface ApiPayload {
+export interface ApiPayload {
     ok?: boolean;
     error?: string | ApiErrorInfo;
     errorInfo?: ApiErrorInfo;
     [key: string]: unknown;
 }
 
-interface ApiResult<T extends ApiPayload = ApiPayload> {
+export interface ApiResult<T extends ApiPayload = ApiPayload> {
     response: Response;
     data: T;
 }
 
-interface CurrentVideoResponse extends ApiPayload {
+export interface CurrentVideoResponse extends ApiPayload {
     filename?: string | null;
     subtitleFilename?: string | null;
     videoFileId?: string | number | null;
     subtitleFileId?: string | number | null;
 }
 
-interface VideoListItem {
+export interface VideoListItem {
     filename: string;
     subtitleFilename?: string | null;
     videoFileId?: string | number | null;
     subtitleFileId?: string | number | null;
 }
 
-interface VideoListResponse extends ApiPayload {
+export interface VideoListResponse extends ApiPayload {
     videos?: VideoListItem[];
 }
 
-interface SubtitleItem {
+export interface SubtitleItem {
     start: number;
     end: number;
     text: string;
 }
 
-interface SubtitleResponse extends ApiPayload {
+export interface SubtitleResponse extends ApiPayload {
     subtitles?: SubtitleItem[];
     filename?: string;
 }
 
-interface MediaExportResponse extends ApiPayload {
+export interface MediaExportResponse extends ApiPayload {
     filename?: string;
     url?: string;
     cached?: boolean;
 }
 
-interface LibrarySeries {
+export interface LibrarySeries {
     id: number;
     title: string;
     posterUrl?: string | null;
@@ -71,7 +72,7 @@ interface LibrarySeries {
     coverUrl?: string | null;
 }
 
-interface LibraryEpisode {
+export interface LibraryEpisode {
     id: number;
     title?: string;
     episodeNumber?: number | null;
@@ -89,62 +90,62 @@ interface LibraryEpisode {
     lastWatchedAt?: string | null;
 }
 
-interface LibrarySeriesListResponse extends ApiPayload {
+export interface LibrarySeriesListResponse extends ApiPayload {
     series?: LibrarySeries[];
     summary?: unknown;
 }
 
-interface LibrarySeriesDetailResponse extends ApiPayload {
+export interface LibrarySeriesDetailResponse extends ApiPayload {
     series?: LibrarySeries;
     episodes?: LibraryEpisode[];
 }
 
-interface LibraryPlaybackResponse extends ApiPayload {
+export interface LibraryPlaybackResponse extends ApiPayload {
     episode?: LibraryEpisode;
     video?: unknown;
     subtitle?: unknown;
 }
 
-interface JobResponse extends ApiPayload {
+export interface JobResponse extends ApiPayload {
     jobId?: string;
     status?: "queued" | "running" | "done" | "failed" | string;
     result?: unknown;
 }
 
-interface LibraryFolderDialogResponse extends ApiPayload {
+export interface LibraryFolderDialogResponse extends ApiPayload {
     path?: string;
 }
 
-interface LibraryJobStatusResponse extends JobResponse {
+export interface LibraryJobStatusResponse extends JobResponse {
     progress?: unknown;
 }
 
-interface LibrarySubtitleSearchResponse extends ApiPayload {
+export interface LibrarySubtitleSearchResponse extends ApiPayload {
     results?: unknown[];
 }
 
-interface LibrarySubtitlePlanResponse extends ApiPayload {
+export interface LibrarySubtitlePlanResponse extends ApiPayload {
     plan?: unknown;
 }
 
-interface LibraryCoverSearchResponse extends ApiPayload {
+export interface LibraryCoverSearchResponse extends ApiPayload {
     results?: unknown[];
 }
 
-interface LibraryMutationResponse extends ApiPayload {
+export interface LibraryMutationResponse extends ApiPayload {
     series?: LibrarySeries;
     episode?: LibraryEpisode;
     count?: number;
     unresolved?: number;
 }
 
-interface KnownWordsResponse extends ApiPayload {
+export interface KnownWordsResponse extends ApiPayload {
     words?: string[];
     statuses?: Record<string, string>;
     settings?: HighlightSettingsResponse;
 }
 
-interface HighlightSettingsResponse extends ApiPayload {
+export interface HighlightSettingsResponse extends ApiPayload {
     autoRefreshInterval?: "off" | "daily" | "weekly" | string;
     deckNames?: string[];
     wordFields?: string[];

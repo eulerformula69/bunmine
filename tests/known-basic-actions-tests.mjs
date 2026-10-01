@@ -1,11 +1,6 @@
 import assert from "node:assert/strict";
-import fs from "node:fs";
-import vm from "node:vm";
 
-const source = fs.readFileSync("dist/js/player/known-basic-actions.js", "utf8")
-    .replace("function createKnownBasicActions", "globalThis.createKnownBasicActions = function");
-const context = vm.createContext({ console });
-vm.runInContext(source, context);
+const context = await import("../dist/esm/player/known-basic-actions.js");
 
 const events = [];
 const actions = context.createKnownBasicActions({

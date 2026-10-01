@@ -1,4 +1,5 @@
-interface PlayerShellBindingsOptions {
+import { playMedia } from "../video/media-playback.js";
+export interface PlayerShellBindingsOptions {
     video: HTMLVideoElement;
     volume: HTMLInputElement;
     dropzone: HTMLElement;
@@ -14,7 +15,7 @@ interface PlayerShellBindingsOptions {
     handleFiles: (files: FileList | null) => unknown;
 }
 
-function bindPlayerShell(options: PlayerShellBindingsOptions): void {
+export function bindPlayerShell(options: PlayerShellBindingsOptions): void {
     const { video, volume, dropzone, videoContainer, multiInput, playPause,
         settingsModal, closeSettingsButton, progress, controls } = options;
 

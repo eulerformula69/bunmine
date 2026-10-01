@@ -1,31 +1,17 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import vm from "node:vm";
+import { installDom } from "./dom-environment.mjs";
+const dom = installDom();
+
 import kuromoji from "kuromoji";
 
-const highlighterPath = fileURLToPath(new URL("../dist/js/highlighter/anki-highlighter.js", import.meta.url));
-const matchModelPath = fileURLToPath(new URL("../dist/js/highlighter/anki-match-model.js", import.meta.url));
-const comprehensionLevelPath = fileURLToPath(new URL("../dist/js/subtitles/comprehension-level.js", import.meta.url));
 const tokenFixtures = new Map();
-
-const context = {
-    console,
-    document: {
-        getElementById() {
-            return null;
-        }
-    },
-    tokenizeJapaneseTextSync(text) {
-        return tokenFixtures.get(text) ?? null;
-    }
-};
-
-vm.createContext(context);
-vm.runInContext(readFileSync(comprehensionLevelPath, "utf8"), context, { filename: comprehensionLevelPath });
-vm.runInContext(readFileSync(matchModelPath, "utf8"), context, { filename: matchModelPath });
-vm.runInContext(readFileSync(highlighterPath, "utf8"), context, { filename: highlighterPath });
-
+const context = Object.assign({}, ...await Promise.all([
+    "highlighter/anki-highlighter", "highlighter/anki-match-model", "subtitles/comprehension-level"
+].map(name => import('../dist/esm/' + name + '.js'))));
+const { japaneseTokenizerInstanceState } = await import("../dist/esm/japanese/japanese-tokenizer.js");
+japaneseTokenizerInstanceState.value = { tokenize: text => tokenFixtures.get(text) ?? null };
 function resetKnownWords(...words) {
     context.clearRuntimeWordStatuses();
 
@@ -150,3 +136,5 @@ for (const text of ["ありがとう", "本当にありがとうございます"
 }
 
 console.log("Highlighter match tests passed");
+
+dom.window.close();

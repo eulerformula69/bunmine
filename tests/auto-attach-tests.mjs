@@ -1,6 +1,7 @@
+import { installDom } from "./dom-environment.mjs";
+const dom = installDom();
+const { t: translate } = await import("../dist/esm/player/ui.js");
 import assert from "node:assert/strict";
-import fs from "node:fs";
-import vm from "node:vm";
 
 let browserLock = false;
 const locks = { async request(_name, _options, action) {
@@ -8,14 +9,11 @@ const locks = { async request(_name, _options, action) {
     browserLock = true;
     try { return await action({}); } finally { browserLock = false; }
 } };
-function makeContext() {
-    const context = vm.createContext({ console, navigator: { locks }, t: (key) => key, setTimeout, clearTimeout });
-    for (const name of ["anki-acquire-lock", "candidate-model", "auto-attach-controller"]) {
-        vm.runInContext(fs.readFileSync(`dist/js/player/${name}.js`, "utf8"), context);
-    }
-    return context;
-}
-const context = makeContext();
+Object.defineProperty(globalThis.navigator, "locks", { configurable: true, value: locks });
+const controllerModule = await import("../dist/esm/player/auto-attach-controller.js");
+let session = 0;
+async function makeContext() { return { ...controllerModule, ...await import(`../dist/esm/player/anki-acquire-lock.js?session=${++session}`) }; }
+const context = await makeContext();
 function harness(overrides = {}) {
     const events = [];
     let calls = 0;
@@ -71,7 +69,7 @@ function harness(overrides = {}) {
     await new Promise((resolve) => setImmediate(resolve));
     assert.equal(controller.isBusy(), true);
     await assert.rejects(context.runExclusiveAnkiAcquire(async () => {}));
-    const otherTab = makeContext();
+    const otherTab = await makeContext();
     await assert.rejects(otherTab.runExclusiveAnkiAcquire(async () => {}));
     controller.cancel();
     finish([1]);
@@ -82,6 +80,8 @@ function harness(overrides = {}) {
 {
     const { controller, events } = harness({ noteIds: async () => [1] });
     await controller.start("word", 0);
-    assert.ok(events.some(([name, message]) => name === "error" && message === "toastAutoAttachNoNewCard"));
+    assert.ok(events.some(([name, message]) => name === "error" && message === translate("toastAutoAttachNoNewCard")));
 }
 console.log("Automatic Anki attachment, cancellation, and shared lock tests passed");
+
+dom.window.close();

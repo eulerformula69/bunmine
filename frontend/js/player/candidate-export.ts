@@ -1,5 +1,10 @@
+import { MiningCandidate } from "./candidate-model.js";
+import { AnkiMediaSnapshot } from "./anki-actions.js";
+import { t } from "./ui.js";
+import { candidateExports, candidatePanel } from "./candidate-bindings.js";
+import { ankiMediaController } from "./app.js";
 // Export data belongs to a candidate ID, never to the current video position.
-function createCandidateExportService(options: {
+export function createCandidateExportService(options: {
     source(id: number): Promise<MiningCandidate>;
     configure(snapshot: AnkiMediaSnapshot): void;
 }) {
@@ -33,7 +38,7 @@ function createCandidateExportService(options: {
     };
 }
 
-async function resolveAnkiExportSnapshot(index?: number): Promise<AnkiMediaSnapshot> {
+export async function resolveAnkiExportSnapshot(index?: number): Promise<AnkiMediaSnapshot> {
     const id = candidatePanel.exportCandidateId();
     if (id !== undefined) return (await candidateExports.load(id)).snapshot;
     return ankiMediaController.buildSnapshot({ subtitleIndex: index });

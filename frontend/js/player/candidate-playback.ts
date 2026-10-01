@@ -1,4 +1,16 @@
-async function playCandidateSource(candidate: MiningCandidate): Promise<MiningCandidate> {
+import { MiningCandidate } from "./candidate-model.js";
+import { video } from "../core/dom.js";
+import { candidateApi } from "./candidate-api.js";
+import { getCurrentVideoPayload } from "../video/media-payload.js";
+import { saveLibraryWatchProgress } from "../video/progress.js";
+import { apiJson, getApiErrorMessage } from "../core/api.js";
+import { LibraryPlaybackPayload } from "../types/runtime-types.js";
+import { loadLibraryEpisodePlayback, restoreSelectedVideoFromServer } from "../video/playback-restore.js";
+import { state } from "../core/state.js";
+import { resetEpisodeNavigation } from "./episode-navigation.js";
+import { VideoListResponse } from "../types/api.js";
+import { t } from "./ui.js";
+export async function playCandidateSource(candidate: MiningCandidate): Promise<MiningCandidate> {
     video.pause();
     candidate = await candidateApi.source(candidate.id);
     const payload = candidate.snapshot.videoPayload;
@@ -12,9 +24,9 @@ async function playCandidateSource(candidate: MiningCandidate): Promise<MiningCa
             await loadLibraryEpisodePlayback({ ...data, videoFileId: payload.videoFileId,
                 videoUrl: `/library/file/${payload.videoFileId}`, currentTimeSeconds: candidate.snapshot.audioStart });
         } else if ("filename" in payload) {
-            currentLibraryEpisodeId = null;
-            currentLibraryVideoFileId = null;
-            currentLibrarySubtitleFileId = null;
+            state.currentLibraryEpisodeId = null;
+            state.currentLibraryVideoFileId = null;
+            state.currentLibrarySubtitleFileId = null;
             resetEpisodeNavigation();
             const { data } = await apiJson<VideoListResponse>("/videos");
             const info = data.videos?.find((item) => item.filename === payload.filename);

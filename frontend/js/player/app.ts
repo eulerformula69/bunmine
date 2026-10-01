@@ -1,35 +1,31 @@
-﻿const {
-    video,
-    sidebar,
-    multiInput,
-    fullscreenBtn,
-    settingsBtn,
-    settingsModal,
-    closeSettingsBtn,
-    dropzone,
-    toggleBtn,
-    overlay,
-    deleteVideoBtn,
-    playPause,
-    progress,
-    timeLabel,
-    videoContainer,
-    controls,
-    ankiAllBtn,
-    targetNoteSelect,
-    fontSizeRange,
-    subtitleOverlay,
-    resizer,
-    videoPickerModal,
-    videoPickerList,
-    videoPickerCancelBtn,
-    addKnownBasicBtn,
-    addCardToDeck,
-    volume
-} = playerContext.dom as Required<PlayerDom>;
-
-
-function hasActiveSubtitleTextSelection(): boolean {
+import { ankiAllBtn, closeSettingsBtn, controls, deleteVideoBtn, dropzone, fontSizeRange, fullscreenBtn, multiInput, overlay, playPause, progress, settingsBtn, settingsModal, sidebar, subtitleOverlay, targetNoteSelect, timeLabel, toggleBtn, video, videoContainer, videoPickerCancelBtn, videoPickerModal, volume } from "../core/dom.js";
+import { getActiveSubtitleEntries, getActiveSubtitles, getCurrentSubtitle, getPrimarySubtitleIndex } from "../subtitles/timing.js";
+import { state } from "../core/state.js";
+import { addRuntimeKnownBasicWord, ankiRuntimeWordStatusMap, ankiSubtitleHighlighter, checkKnownAnkiWordsStaleOnPlayerOpen, clearRuntimeWordStatuses, collectSubtitleCandidates, ensureStatusesForCandidates, ensureStatusesForSubtitleText, getHighlightWordFieldNames, loadHighlightWordIndexes, refreshKnownAnkiWordFromNote, refreshKnownAnkiWordsFromAnki, rerenderCurrentSubtitleWithAnkiHighlighter } from "../highlighter/anki-highlighter.js";
+import { renderSubtitleOverlay } from "../subtitles/subtitles.js";
+import { formatTime } from "../subtitles/parsing.js";
+import { clearSearchMatches, getCurrentSearchMatch, getSubtitleContextSelection, initSubtitleSidebar, isSubtitleContextDepthDefault, resetSubtitleContextDepths, seekBySubtitle, syncSubtitleStyle } from "../subtitles/subtitles-sidebar.js";
+import { findActiveSubtitleIndexAtTime, getAdjustedPlaybackTime } from "./playback-loop.js";
+import { createKnownBasicActions } from "./known-basic-actions.js";
+import { getJapaneseTokenizer, tokenizeJapaneseText } from "../japanese/japanese-tokenizer.js";
+import { apiJson, buildApiUrl } from "../core/api.js";
+import { hideAddKnownBasicButton, seekBySeconds, showActionToast, showToast, stepFrame, t, toggleFullscreenMode, updateFullscreenButtonText, updateIconButtons } from "./ui.js";
+import { createRuntimePrefetchController } from "./runtime-prefetch.js";
+import { bindPlayerShell } from "./shell-bindings.js";
+import { handleFiles } from "../video/video.js";
+import { createTargetNoteDropdownController } from "./target-note-dropdown.js";
+import { i18n } from "../core/i18n.js";
+import { createAnkiMediaController, fetchDeckNoteIds, fetchNotesInfo, pickNotePreviewText } from "./anki-actions.js";
+import { bindPlayerHotkeys } from "./hotkeys.js";
+import { playMedia } from "../video/media-playback.js";
+import { focusSubtitleWordSearch, replayCurrentSubtitle } from "../subtitles/sidebar-actions.js";
+import { resolveAnkiExportSnapshot } from "./candidate-export.js";
+import { candidateExports } from "./candidate-bindings.js";
+import { getCurrentVideoPayload } from "../video/media-payload.js";
+import { getValidatedVolume } from "../video/audio-preview.js";
+import { renderSubtitles } from "../subtitles/sidebar-render.js";
+import { loadLibraryEpisodeFromUrl, restoreCurrentVideoFromServer } from "../video/playback-restore.js";
+export function hasActiveSubtitleTextSelection(): boolean {
     const selection = window.getSelection();
     if (!selection || selection.rangeCount === 0 || selection.isCollapsed) return false;
 
@@ -46,8 +42,8 @@ video.addEventListener("timeupdate", () => {
     const sub = getCurrentSubtitle() || null;
     const isSelectingSubtitleText = hasActiveSubtitleTextSelection();
 
-    if (sub?.text && sub.text !== lastRuntimeSubtitleText) {
-        lastRuntimeSubtitleText = sub.text;
+    if (sub?.text && sub.text !== state.lastRuntimeSubtitleText) {
+        state.lastRuntimeSubtitleText = sub.text;
 
         ensureStatusesForSubtitleText(sub.text).catch((err) => {
             console.warn("Runtime subtitle status lookup failed:", err);
@@ -55,30 +51,30 @@ video.addEventListener("timeupdate", () => {
     }
 
 	if (sub) {
-		const currentSubtitleIndex = subtitles.indexOf(sub);
+		const currentSubtitleIndex = state.subtitles.indexOf(sub);
 
 		if (currentSubtitleIndex !== -1) {
 			const windowSize =
-				runtimePrefetchWindowEnd - runtimePrefetchWindowStart + 1;
+				state.runtimePrefetchWindowEnd - state.runtimePrefetchWindowStart + 1;
 
 			const halfPoint =
-				runtimePrefetchWindowStart + Math.floor(windowSize / 2);
+				state.runtimePrefetchWindowStart + Math.floor(windowSize / 2);
 
 			const shouldPrefetchNextWindow =
-				runtimePrefetchWindowStart !== -1 &&
-				runtimePrefetchWindowEnd !== -1 &&
+				state.runtimePrefetchWindowStart !== -1 &&
+				state.runtimePrefetchWindowEnd !== -1 &&
 				currentSubtitleIndex >= halfPoint &&
-				runtimeNextPrefetchStart < subtitles.length &&
-				!runtimePrefetchAllInProgress;
+				state.runtimeNextPrefetchStart < state.subtitles.length &&
+				!state.runtimePrefetchAllInProgress;
 
 			if (shouldPrefetchNextWindow) {
 				console.log(
-					`Runtime next window trigger: current=${currentSubtitleIndex}, next=${runtimeNextPrefetchStart}`
+					`Runtime next window trigger: current=${currentSubtitleIndex}, next=${state.runtimeNextPrefetchStart}`
 				);
 
 				prefetchRuntimeStatusesForAllSubtitles({
 					silent: true,
-					startIndex: runtimeNextPrefetchStart
+					startIndex: state.runtimeNextPrefetchStart
 				});
 			}
 		}
@@ -97,7 +93,7 @@ video.addEventListener("timeupdate", () => {
     timeLabel.textContent = `${formatTime(video.currentTime)} / ${formatTime(video.duration)}`;
 
     if (!video.paused && sub && !isSelectingSubtitleText) {
-        const idx = subtitles.indexOf(sub);
+        const idx = state.subtitles.indexOf(sub);
         syncSubtitleStyle(idx);
     }
 
@@ -105,8 +101,8 @@ video.addEventListener("timeupdate", () => {
 
 	if (currentSearchMatch && !video.paused) {
 		const currentSubtitleIndex = findActiveSubtitleIndexAtTime(
-			subtitles,
-			getAdjustedPlaybackTime(video, globalSubDelay)
+			state.subtitles,
+			getAdjustedPlaybackTime(video, state.globalSubDelay)
 		);
 
 		if (
@@ -116,10 +112,10 @@ video.addEventListener("timeupdate", () => {
 			clearSearchMatches?.();
 		}
 	}
-	
+
 });
 
-const knownBasicActions = createKnownBasicActions({
+export const knownBasicActions = createKnownBasicActions({
     tokenize: (text) => tokenizeJapaneseText(text),
     request: apiJson,
     translate: t,
@@ -137,23 +133,21 @@ const knownBasicActions = createKnownBasicActions({
     clearSelection: () => window.getSelection()?.removeAllRanges(),
     copyText: (text) => navigator.clipboard.writeText(text),
 });
-const addWordToKnownBasic = knownBasicActions.addWord;
-const copyWordForYomitan = knownBasicActions.copyWord;
+export const addWordToKnownBasic = knownBasicActions.addWord;
+export const copyWordForYomitan = knownBasicActions.copyWord;
 
-const runtimePrefetchController = createRuntimePrefetchController({
-    state: window.BunmineState,
-    getSubtitles: () => subtitles,
+export const runtimePrefetchController = createRuntimePrefetchController({
+    state: state,
+    getSubtitles: () => state.subtitles,
     getCurrentSubtitle: () => getCurrentSubtitle?.(),
     loadWordIndexes: () => loadHighlightWordIndexes?.() || Promise.resolve(),
-    loadTokenizer: () => typeof getJapaneseTokenizer === "function"
-        ? getJapaneseTokenizer()
-        : Promise.resolve(),
+    loadTokenizer: getJapaneseTokenizer,
     collectCandidates: collectSubtitleCandidates,
     hasStatus: (candidate) => ankiRuntimeWordStatusMap.has(candidate),
     ensureStatuses: ensureStatusesForCandidates,
     rerender: () => rerenderCurrentSubtitleWithAnkiHighlighter?.(),
 });
-async function prefetchRuntimeStatusesForAllSubtitles(options = {}) {
+export async function prefetchRuntimeStatusesForAllSubtitles(options = {}) {
     await runtimePrefetchController.prefetch(options);
 }
 
@@ -173,19 +167,19 @@ bindPlayerShell({
     handleFiles,
 });
 
-const targetNoteDropdown = createTargetNoteDropdownController({
+export const targetNoteDropdown = createTargetNoteDropdownController({
     select: targetNoteSelect,
     getAnkiUrl: () => (document.getElementById("ankiUrl") as HTMLInputElement).value,
     getDeckName: () => (document.getElementById("deckName") as HTMLInputElement).value,
-    getLastAddedLabel: () => i18n[currentLang].dict.lastAdded || "🕘",
-    getLastAddedTitle: () => i18n[currentLang].dict.lastAddedTitle || "Last added card",
+    getLastAddedLabel: () => i18n[state.currentLang].dict.lastAdded || "🕘",
+    getLastAddedTitle: () => i18n[state.currentLang].dict.lastAddedTitle || "Last added card",
     fetchDeckNoteIds,
     fetchNotesInfo,
     pickNotePreviewText
 });
 
-const refreshTargetNoteList = targetNoteDropdown.refresh;
-const initTargetNoteDropdown = targetNoteDropdown.init;
+export const refreshTargetNoteList = targetNoteDropdown.refresh;
+export const initTargetNoteDropdown = targetNoteDropdown.init;
 bindPlayerHotkeys({
     seekBySeconds,
     seekBySubtitle,
@@ -197,7 +191,7 @@ bindPlayerHotkeys({
     toggleSubtitles: () => toggleBtn.click(),
 });
 
-function maybePromptSubtitleDepthReset() {
+export function maybePromptSubtitleDepthReset() {
     if (isSubtitleContextDepthDefault()) return;
 
     showActionToast(
@@ -218,43 +212,11 @@ function maybePromptSubtitleDepthReset() {
     );
 }
 
-function getActiveSubtitleIndex() {
+export function getActiveSubtitleIndex() {
     return getPrimarySubtitleIndex();
 }
 
-function getSubtitleIndexFromSelection(selection = window.getSelection()) {
-    if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
-        return -1;
-    }
-
-    const anchorNode = selection.anchorNode;
-    const focusNode = selection.focusNode;
-    const anchorElement = anchorNode?.nodeType === Node.TEXT_NODE
-        ? anchorNode.parentElement
-        : anchorNode as Element | null;
-    const focusElement = focusNode?.nodeType === Node.TEXT_NODE
-        ? focusNode.parentElement
-        : focusNode as Element | null;
-
-    const sidebarSubtitle = anchorElement?.closest?.(".subtitle[data-index]")
-        || focusElement?.closest?.(".subtitle[data-index]");
-
-    if (sidebarSubtitle) {
-        const idx = Number((sidebarSubtitle as HTMLElement).dataset.index);
-        return Number.isInteger(idx) ? idx : -1;
-    }
-
-    if (overlay?.contains(anchorElement) || overlay?.contains(focusElement)) {
-        const overlaySubtitle = anchorElement?.closest?.(".subtitle-overlay-line[data-subtitle-index]")
-            || focusElement?.closest?.(".subtitle-overlay-line[data-subtitle-index]");
-        const index = Number((overlaySubtitle as HTMLElement | null)?.dataset.subtitleIndex);
-        return Number.isInteger(index) ? index : getActiveSubtitleIndex();
-    }
-
-    return -1;
-}
-
-const ankiMediaController = createAnkiMediaController({
+export const ankiMediaController = createAnkiMediaController({
     resolveExportSnapshot: () => resolveAnkiExportSnapshot(),
     validateExportSnapshot: (snapshot) => candidateExports.validate(snapshot),
     translate: t,
@@ -262,9 +224,9 @@ const ankiMediaController = createAnkiMediaController({
     getVideoCurrentTime: () => video.currentTime,
     getValidatedVolume,
     getActiveSubtitleIndex,
-    getSubtitleStart: (index) => subtitles[index].start,
+    getSubtitleStart: (index) => state.subtitles[index].start,
     getSubtitleContext: getSubtitleContextSelection,
-    getGlobalSubtitleDelay: () => globalSubDelay,
+    getGlobalSubtitleDelay: () => state.globalSubDelay,
     getTargetNoteId: () => Number(targetNoteSelect?.value || 0),
     clearTargetNote: () => {
         if (targetNoteSelect) targetNoteSelect.value = "";
@@ -272,10 +234,10 @@ const ankiMediaController = createAnkiMediaController({
     refreshTargetNotes: () => refreshTargetNoteList({ preserveSelection: false }),
     maybePromptSubtitleDepthReset,
     resetRuntimeHighlightPrefetch: () => {
-        runtimePrefetchWindowStart = -1;
-        runtimePrefetchWindowEnd = -1;
-        runtimeNextPrefetchStart = 0;
-        runtimeHighlightPrefetchReady = false;
+        state.runtimePrefetchWindowStart = -1;
+        state.runtimePrefetchWindowEnd = -1;
+        state.runtimeNextPrefetchStart = 0;
+        state.runtimeHighlightPrefetchReady = false;
     },
     refreshKnownWord: (payload) => refreshKnownAnkiWordFromNote?.(payload),
     getHighlightWordFields: () => getHighlightWordFieldNames?.(),
@@ -286,9 +248,9 @@ const ankiMediaController = createAnkiMediaController({
     showToast
 });
 
-const buildCurrentAnkiMediaSnapshot = ankiMediaController.buildSnapshot;
-const updateAnkiNoteWithSnapshot = ankiMediaController.updateNote;
-const updateCurrentOrSelectedAnkiCard = ankiMediaController.updateCurrentOrSelected;
+export const buildCurrentAnkiMediaSnapshot = ankiMediaController.buildSnapshot;
+export const updateAnkiNoteWithSnapshot = ankiMediaController.updateNote;
+export const updateCurrentOrSelectedAnkiCard = ankiMediaController.updateCurrentOrSelected;
 
 ankiAllBtn.onclick = async () => {
     try {
@@ -300,7 +262,7 @@ ankiAllBtn.onclick = async () => {
 };
 
 deleteVideoBtn.onclick = async () => {
-    await fetch(buildApiUrl(`/delete-video?filename=${encodeURIComponent(currentVideoFile)}`), {
+    await fetch(buildApiUrl(`/delete-video?filename=${encodeURIComponent(state.currentVideoFile)}`), {
         method: "DELETE"
     });
 
@@ -362,27 +324,27 @@ fontSizeRange.addEventListener("input", (e) => {
     });
 });
 
-const globalSubDelayInput = document.getElementById("globalSubDelay");
+export const globalSubDelayInput = document.getElementById("globalSubDelay");
 
 globalSubDelayInput.addEventListener("input", (e) => {
-    globalSubDelay = parseFloat((e.target as HTMLInputElement).value) || 0;
-    lastRuntimeSubtitleText = "";
-    runtimePrefetchAllRunId += 1;
+    state.globalSubDelay = parseFloat((e.target as HTMLInputElement).value) || 0;
+    state.lastRuntimeSubtitleText = "";
+    state.runtimePrefetchAllRunId += 1;
 
 	renderSubtitles();
 	rerenderCurrentSubtitleWithAnkiHighlighter?.();
 });
 
-const ankiUrlInput = document.getElementById("ankiUrl");
-const deckNameInput = document.getElementById("deckName");
-const highlightWordFieldInput = document.getElementById("highlightWordField");
-const highlightDeckNamesInput = document.getElementById("highlightDeckNames");
+export const ankiUrlInput = document.getElementById("ankiUrl");
+export const deckNameInput = document.getElementById("deckName");
+export const highlightWordFieldInput = document.getElementById("highlightWordField");
+export const highlightDeckNamesInput = document.getElementById("highlightDeckNames");
 
 [ankiUrlInput, deckNameInput].forEach((input) => {
     input?.addEventListener("input", () => {
-        clearTimeout(deckNoteRefreshTimer);
+        clearTimeout(state.deckNoteRefreshTimer);
 
-        deckNoteRefreshTimer = setTimeout(() => {
+        state.deckNoteRefreshTimer = setTimeout(() => {
             refreshTargetNoteList({ preserveSelection: true });
         }, 500);
     });
@@ -390,18 +352,18 @@ const highlightDeckNamesInput = document.getElementById("highlightDeckNames");
 
 [ankiUrlInput, highlightWordFieldInput, highlightDeckNamesInput].forEach((input) => {
     input?.addEventListener("change", () => {
-        lastRuntimeSubtitleText = "";
-        runtimePrefetchAllRunId += 1;
-		runtimeHighlightPrefetchReady = false;
+        state.lastRuntimeSubtitleText = "";
+        state.runtimePrefetchAllRunId += 1;
+		state.runtimeHighlightPrefetchReady = false;
 		prefetchRuntimeStatusesForAllSubtitles({ silent: true });
 
-		runtimePrefetchWindowStart = -1;
-		runtimePrefetchWindowEnd = -1;
-		runtimeNextPrefetchStart = 0;
-		runtimeHighlightPrefetchReady = false;
+		state.runtimePrefetchWindowStart = -1;
+		state.runtimePrefetchWindowEnd = -1;
+		state.runtimeNextPrefetchStart = 0;
+		state.runtimeHighlightPrefetchReady = false;
 
 		clearRuntimeWordStatuses?.();
-		
+
         const sub = getCurrentSubtitle();
 
         if (sub?.text) {
@@ -463,7 +425,7 @@ window.addEventListener("load", () => {
         });
 });
 
-function setAnkiHighlightRefreshStatus(message, kind = "info") {
+export function setAnkiHighlightRefreshStatus(message, kind = "info") {
     const statusEl = document.getElementById("ankiHighlightRefreshStatus");
     if (!statusEl) return;
 
@@ -472,12 +434,12 @@ function setAnkiHighlightRefreshStatus(message, kind = "info") {
 }
 
 document.getElementById("refreshAnkiHighlighterBtn")?.addEventListener("click", async () => {
-    runtimePrefetchAllRunId += 1;
+    state.runtimePrefetchAllRunId += 1;
 
-    runtimePrefetchWindowStart = -1;
-    runtimePrefetchWindowEnd = -1;
-    runtimeNextPrefetchStart = 0;
-    runtimeHighlightPrefetchReady = false;
+    state.runtimePrefetchWindowStart = -1;
+    state.runtimePrefetchWindowEnd = -1;
+    state.runtimeNextPrefetchStart = 0;
+    state.runtimeHighlightPrefetchReady = false;
 
     const refreshBtn = document.getElementById("refreshAnkiHighlighterBtn") as HTMLButtonElement | null;
     const oldButtonText = refreshBtn?.textContent || "Refresh Highlight Words";

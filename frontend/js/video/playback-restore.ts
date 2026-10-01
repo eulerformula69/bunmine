@@ -1,4 +1,22 @@
-﻿async function restoreCurrentVideoFromServer(): Promise<void> {
+import { apiJson, buildApiUrl, getApiErrorMessage } from "../core/api.js";
+import { VideoListResponse } from "../types/api.js";
+import { dropzone, overlay, video, videoPickerList, videoPickerModal } from "../core/dom.js";
+import { UploadedVideoInfo } from "./types.js";
+import { state } from "../core/state.js";
+import { restoreSubtitleFromServer } from "./upload.js";
+import { clearRuntimeWordStatuses } from "../highlighter/anki-highlighter.js";
+import { renderSubtitles } from "../subtitles/sidebar-render.js";
+import { renderSubtitleOverlay } from "../subtitles/subtitles.js";
+import { showToast, t } from "../player/ui.js";
+import { LibraryPlaybackPayload } from "../types/runtime-types.js";
+import { updateEpisodeNavigation } from "../player/episode-navigation.js";
+import { resetLibraryProgressTracking } from "./progress.js";
+import { restoreSubtitleFromCurrentTime } from "../subtitles/subtitles-sidebar.js";
+import { prefetchRuntimeStatusesForAllSubtitles } from "../player/app.js";
+import { parseSubtitleSource } from "../subtitles/parse-subtitle-source.js";
+import { detectSubtitleFormat } from "../subtitles/format-detection.js";
+import { toRuntimeSubtitleCues } from "../subtitles/model.js";
+export async function restoreCurrentVideoFromServer(): Promise<void> {
     try {
         const { data } = await apiJson<VideoListResponse>("/videos");
 
@@ -21,13 +39,13 @@
     }
 }
 
-async function restoreSelectedVideoFromServer(videoInfo: UploadedVideoInfo): Promise<void> {
+export async function restoreSelectedVideoFromServer(videoInfo: UploadedVideoInfo): Promise<void> {
     if (!videoInfo?.filename) {
         dropzone.classList.remove("hidden");
         return;
     }
 
-    currentVideoFile = videoInfo.filename;
+    state.currentVideoFile = videoInfo.filename;
 
     video.src = buildApiUrl(`/video/${encodeURIComponent(videoInfo.filename)}`);
     video.load();
@@ -39,8 +57,8 @@ async function restoreSelectedVideoFromServer(videoInfo: UploadedVideoInfo): Pro
     if (videoInfo.subtitleFilename) {
         await restoreSubtitleFromServer(videoInfo.subtitleFilename);
     } else {
-        subtitles = [];
-        lastRuntimeSubtitleText = "";
+        state.subtitles = [];
+        state.lastRuntimeSubtitleText = "";
 
         clearRuntimeWordStatuses?.();
 
@@ -65,7 +83,7 @@ async function restoreSelectedVideoFromServer(videoInfo: UploadedVideoInfo): Pro
     }, { once: true });
 }
 
-function showVideoPickerModal(videos: UploadedVideoInfo[]): void {
+export function showVideoPickerModal(videos: UploadedVideoInfo[]): void {
     if (!videoPickerModal || !videoPickerList) {
         return;
     }
@@ -102,7 +120,7 @@ function showVideoPickerModal(videos: UploadedVideoInfo[]): void {
 }
 
 
-async function loadLibraryEpisodeFromUrl(): Promise<boolean> {
+export async function loadLibraryEpisodeFromUrl(): Promise<boolean> {
     const params = new URLSearchParams(window.location.search);
     const episodeId = params.get("episodeId");
 
@@ -138,22 +156,25 @@ async function loadLibraryEpisodeFromUrl(): Promise<boolean> {
 }
 
 
-async function loadLibraryEpisodePlayback(playback: LibraryPlaybackPayload): Promise<void> {
-    currentLibraryEpisodeId = playback.episodeId;
-    currentLibraryVideoFileId = playback.videoFileId;
-    currentLibrarySubtitleFileId = playback.subtitleFileId || null;
+export async function loadLibraryEpisodePlayback(
+    playback: LibraryPlaybackPayload,
+    restoreSubtitle = restoreLibrarySubtitle
+): Promise<void> {
+    state.currentLibraryEpisodeId = playback.episodeId;
+    state.currentLibraryVideoFileId = playback.videoFileId;
+    state.currentLibrarySubtitleFileId = playback.subtitleFileId || null;
     void updateEpisodeNavigation(playback);
 
 	resetLibraryProgressTracking();
 
     // Р’ library-СЂРµР¶РёРјРµ РїРѕРєР° РЅРµ РёСЃРїРѕР»СЊР·СѓРµРј СЃС‚Р°СЂРѕРµ РёРјСЏ С„Р°Р№Р»Р° РёР· UploadedVideos.
     // РЎР»РµРґСѓСЋС‰РёРј С€Р°РіРѕРј Р°РґР°РїС‚РёСЂСѓРµРј screenshot/audio endpoints РїРѕРґ episodeId.
-    currentVideoFile = null;
+    state.currentVideoFile = null;
 
-    subtitles = [];
-    lastRuntimeSubtitleText = "";
-    runtimePrefetchAllRunId += 1;
-    runtimeHighlightPrefetchReady = false;
+    state.subtitles = [];
+    state.lastRuntimeSubtitleText = "";
+    state.runtimePrefetchAllRunId += 1;
+    state.runtimeHighlightPrefetchReady = false;
 
     clearRuntimeWordStatuses?.();
 
@@ -182,9 +203,9 @@ async function loadLibraryEpisodePlayback(playback: LibraryPlaybackPayload): Pro
 
     dropzone.classList.add("hidden");
     videoPickerModal?.classList.add("hidden");
-	
+
     if (playback.subtitleUrl) {
-        await restoreLibrarySubtitle(playback.subtitleUrl);
+        await restoreSubtitle(playback.subtitleUrl);
     } else {
         renderSubtitles();
 
@@ -219,7 +240,7 @@ async function loadLibraryEpisodePlayback(playback: LibraryPlaybackPayload): Pro
 }
 
 
-async function restoreLibrarySubtitle(subtitleUrl: string): Promise<void> {
+export async function restoreLibrarySubtitle(subtitleUrl: string): Promise<void> {
     try {
         const res = await fetch(buildApiUrl(subtitleUrl));
 
@@ -234,8 +255,8 @@ async function restoreLibrarySubtitle(subtitleUrl: string): Promise<void> {
             filename: subtitleUrl
         });
 
-        subtitles = toRuntimeSubtitleCues(parsed.cues);
-        lastRuntimeSubtitleText = "";
+        state.subtitles = toRuntimeSubtitleCues(parsed.cues);
+        state.lastRuntimeSubtitleText = "";
 
         clearRuntimeWordStatuses?.();
 
@@ -246,12 +267,12 @@ async function restoreLibrarySubtitle(subtitleUrl: string): Promise<void> {
             text: ""
         });
 
-        if (!subtitles.length) {
+        if (!state.subtitles.length) {
             showToast("Subtitle file was loaded, but no subtitles were parsed", "error", 5000);
         }
     } catch (err) {
         console.error("Library subtitle restore failed:", err);
-        subtitles = [];
+        state.subtitles = [];
 
         renderSubtitles();
 

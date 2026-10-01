@@ -1,15 +1,18 @@
-let episodeNavigationRevision = 0;
+import { LibraryPlaybackPayload } from "../types/runtime-types.js";
+import { apiJson } from "../core/api.js";
+import { LibrarySeriesDetailResponse } from "../types/api.js";
+export const episodeNavigationRevisionState = { value: 0 };
 
-function resetEpisodeNavigation(): void {
-    episodeNavigationRevision += 1;
+export function resetEpisodeNavigation(): void {
+    episodeNavigationRevisionState.value += 1;
     document.getElementById("episodeNavigation").hidden = true;
     document.getElementById("nextEpisodeLink").hidden = true;
 }
 
-async function updateEpisodeNavigation(playback: LibraryPlaybackPayload): Promise<void> {
+export async function updateEpisodeNavigation(playback: LibraryPlaybackPayload): Promise<void> {
     resetEpisodeNavigation();
     if (!playback.seriesId || !playback.episodeId) return;
-    const revision = episodeNavigationRevision;
+    const revision = episodeNavigationRevisionState.value;
     const navigation = document.getElementById("episodeNavigation");
     const allEpisodes = document.getElementById("allEpisodesLink") as HTMLAnchorElement;
     const nextEpisode = document.getElementById("nextEpisodeLink") as HTMLAnchorElement;
@@ -21,7 +24,7 @@ async function updateEpisodeNavigation(playback: LibraryPlaybackPayload): Promis
         const { response, data } = await apiJson<LibrarySeriesDetailResponse>(
             `/library/series/${encodeURIComponent(playback.seriesId)}`
         );
-        if (revision !== episodeNavigationRevision) return;
+        if (revision !== episodeNavigationRevisionState.value) return;
         if (!response.ok || data.error) throw new Error("Could not load episode navigation");
         const episodes = data.episodes || [];
         const index = episodes.findIndex((episode) => String(episode.id) === String(playback.episodeId));

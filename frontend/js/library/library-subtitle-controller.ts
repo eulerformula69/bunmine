@@ -1,4 +1,7 @@
-interface LibrarySubtitleControllerOptions {
+import { LibraryEpisodeView, LibrarySeriesView, SubtitleCandidate, SubtitleEpisodeSelection } from "./library-types.js";
+import { LibraryTranslate } from "./library-presentation.js";
+import { ApiPayload, LibraryMutationResponse } from "../types/api.js";
+export interface LibrarySubtitleControllerOptions {
     modal: HTMLElement;
     title: HTMLElement;
     subtitle: HTMLElement;
@@ -15,7 +18,7 @@ interface LibrarySubtitleControllerOptions {
     reportError?: (message: string) => void;
 }
 
-function createLibrarySubtitleController(options: LibrarySubtitleControllerOptions) {
+export function createLibrarySubtitleController(options: LibrarySubtitleControllerOptions) {
     let current: SubtitleEpisodeSelection | null = null;
     const t = options.translate;
 

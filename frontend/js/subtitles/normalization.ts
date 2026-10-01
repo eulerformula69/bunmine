@@ -1,16 +1,18 @@
-interface SubtitleCueDraft extends Omit<SubtitleCue, "id" | "startTime" | "endTime" | "text"> {
+import { SubtitleCue, SubtitleFormat } from "./model.js";
+import { SubtitleParseWarning } from "./parser-types.js";
+export interface SubtitleCueDraft extends Omit<SubtitleCue, "id" | "startTime" | "endTime" | "text"> {
     id?: string;
     startTime: number;
     endTime: number;
     text: string;
 }
 
-interface SubtitleCueNormalizationResult {
+export interface SubtitleCueNormalizationResult {
     cues: SubtitleCue[];
     warnings: SubtitleParseWarning[];
 }
 
-function normalizeSubtitleCues(
+export function normalizeSubtitleCues(
     drafts: readonly SubtitleCueDraft[],
     format: SubtitleFormat = "unknown"
 ): SubtitleCueNormalizationResult {
@@ -41,7 +43,7 @@ function normalizeSubtitleCues(
     return { cues, warnings };
 }
 
-function createSubtitleCueId(
+export function createSubtitleCueId(
     format: SubtitleFormat,
     cueIndex: number,
     startTime: number,

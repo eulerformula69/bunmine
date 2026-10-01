@@ -1,12 +1,13 @@
-function getAdjustedPlaybackTime(videoEl: HTMLVideoElement, subtitleDelaySeconds: number): number {
+import { RuntimeSubtitleCue } from "../subtitles/model.js";
+export function getAdjustedPlaybackTime(videoEl: HTMLVideoElement, subtitleDelaySeconds: number): number {
     return videoEl.currentTime - subtitleDelaySeconds;
 }
 
-function findActiveSubtitleIndexAtTime(cues: RuntimeSubtitleCue[], adjustedTime: number): number {
+export function findActiveSubtitleIndexAtTime(cues: RuntimeSubtitleCue[], adjustedTime: number): number {
     return cues.findIndex((cue) => adjustedTime >= cue.start && adjustedTime <= cue.end);
 }
 
-function getActiveSubtitleAtTime(cues: RuntimeSubtitleCue[], adjustedTime: number): RuntimeSubtitleCue | null {
+export function getActiveSubtitleAtTime(cues: RuntimeSubtitleCue[], adjustedTime: number): RuntimeSubtitleCue | null {
     const index = findActiveSubtitleIndexAtTime(cues, adjustedTime);
     return index >= 0 ? cues[index] : null;
 }

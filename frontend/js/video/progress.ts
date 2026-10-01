@@ -1,28 +1,32 @@
-﻿const LIBRARY_AUTO_COMPLETE_MIN_WATCHED_RATIO = 0.75;
-const LIBRARY_AUTO_COMPLETE_POSITION_RATIO = 0.92;
-const LIBRARY_AUTO_COMPLETE_ENDING_RATIO = 0.05;
-const LIBRARY_AUTO_COMPLETE_ENDING_MAX_SECONDS = 90;
+import { video } from "../core/dom.js";
+import { state } from "../core/state.js";
+import { showActionToast, showToast, t } from "../player/ui.js";
+import { apiJson, buildApiUrl, getApiErrorMessage } from "../core/api.js";
+export const LIBRARY_AUTO_COMPLETE_MIN_WATCHED_RATIO = 0.75;
+export const LIBRARY_AUTO_COMPLETE_POSITION_RATIO = 0.92;
+export const LIBRARY_AUTO_COMPLETE_ENDING_RATIO = 0.05;
+export const LIBRARY_AUTO_COMPLETE_ENDING_MAX_SECONDS = 90;
 
-let libraryProgressLastSentAtMs = 0;
-let libraryProgressLastVideoTime = 0;
-let libraryProgressSaveInFlight = false;
-let libraryAutoCompletePromptEpisodeId = null;
-let libraryAutoCompleteDismissedEpisodeId = null;
+export const libraryProgressLastSentAtMsState = { value: 0 };
+export const libraryProgressLastVideoTimeState = { value: 0 };
+export const libraryProgressSaveInFlightState = { value: false };
+export const libraryAutoCompletePromptEpisodeIdState = { value: null };
+export const libraryAutoCompleteDismissedEpisodeIdState = { value: null };
 
-function resetLibraryProgressTracking() {
-    libraryProgressLastSentAtMs = 0;
-    libraryProgressLastVideoTime = Number.isFinite(video.currentTime)
+export function resetLibraryProgressTracking() {
+    libraryProgressLastSentAtMsState.value = 0;
+    libraryProgressLastVideoTimeState.value = Number.isFinite(video.currentTime)
         ? video.currentTime
         : 0;
-    libraryAutoCompletePromptEpisodeId = null;
-    libraryAutoCompleteDismissedEpisodeId = null;
+    libraryAutoCompletePromptEpisodeIdState.value = null;
+    libraryAutoCompleteDismissedEpisodeIdState.value = null;
 }
 
-function getLibraryWatchedDeltaSeconds(currentTime) {
-    const previousTime = Number(libraryProgressLastVideoTime || 0);
+export function getLibraryWatchedDeltaSeconds(currentTime) {
+    const previousTime = Number(libraryProgressLastVideoTimeState.value || 0);
     const delta = currentTime - previousTime;
 
-    libraryProgressLastVideoTime = currentTime;
+    libraryProgressLastVideoTimeState.value = currentTime;
 
     // РЎС‡РёС‚Р°РµРј С‚РѕР»СЊРєРѕ РѕР±С‹С‡РЅРѕРµ РґРІРёР¶РµРЅРёРµ РІРїРµСЂС‘Рґ.
     // РџРµСЂРµРјРѕС‚РєРё Рё Р±РѕР»СЊС€РёРµ СЃРєР°С‡РєРё РЅРµ СЃС‡РёС‚Р°РµРј РєР°Рє РїСЂРѕСЃРјРѕС‚СЂ.
@@ -33,11 +37,11 @@ function getLibraryWatchedDeltaSeconds(currentTime) {
     return delta;
 }
 
-function shouldPromptLibraryAutoComplete(progress) {
-    if (!currentLibraryEpisodeId || !progress) return false;
+export function shouldPromptLibraryAutoComplete(progress) {
+    if (!state.currentLibraryEpisodeId || !progress) return false;
     if (progress.completed) return false;
-    if (libraryAutoCompletePromptEpisodeId === currentLibraryEpisodeId) return false;
-    if (libraryAutoCompleteDismissedEpisodeId === currentLibraryEpisodeId) return false;
+    if (libraryAutoCompletePromptEpisodeIdState.value === state.currentLibraryEpisodeId) return false;
+    if (libraryAutoCompleteDismissedEpisodeIdState.value === state.currentLibraryEpisodeId) return false;
 
     const duration = Number(progress.duration_seconds ?? video.duration ?? 0);
     const currentTime = Number(progress.current_time_seconds ?? video.currentTime ?? 0);
@@ -63,10 +67,10 @@ function shouldPromptLibraryAutoComplete(progress) {
     return watchedEnough && nearEnd;
 }
 
-function maybePromptLibraryAutoComplete(progress) {
+export function maybePromptLibraryAutoComplete(progress) {
     if (!shouldPromptLibraryAutoComplete(progress)) return;
 
-    libraryAutoCompletePromptEpisodeId = currentLibraryEpisodeId;
+    libraryAutoCompletePromptEpisodeIdState.value = state.currentLibraryEpisodeId;
 
     showActionToast(
         t("libraryAutoCompleteQuestion"),
@@ -94,7 +98,7 @@ function maybePromptLibraryAutoComplete(progress) {
             {
                 label: t("libraryAutoCompleteDismiss"),
                 onClick: () => {
-                    libraryAutoCompleteDismissedEpisodeId = currentLibraryEpisodeId;
+                    libraryAutoCompleteDismissedEpisodeIdState.value = state.currentLibraryEpisodeId;
                 }
             }
         ],
@@ -103,22 +107,22 @@ function maybePromptLibraryAutoComplete(progress) {
     );
 }
 
-async function saveLibraryWatchProgress({
+export async function saveLibraryWatchProgress({
     force = false,
     completed = false,
     skipAutoCompletePrompt = false,
     rethrowErrors = false
 } = {}) {
-    if (!currentLibraryEpisodeId) return null;
+    if (!state.currentLibraryEpisodeId) return null;
     if (!Number.isFinite(video.currentTime)) return null;
 
     const now = Date.now();
 
-    if (!force && now - libraryProgressLastSentAtMs < 10000) {
+    if (!force && now - libraryProgressLastSentAtMsState.value < 10000) {
         return null;
     }
 
-    if (libraryProgressSaveInFlight) {
+    if (libraryProgressSaveInFlightState.value) {
         return null;
     }
 
@@ -126,12 +130,12 @@ async function saveLibraryWatchProgress({
     const duration = Number.isFinite(video.duration) ? Number(video.duration) : null;
     const watchedDelta = getLibraryWatchedDeltaSeconds(currentTime);
 
-    libraryProgressLastSentAtMs = now;
-    libraryProgressSaveInFlight = true;
+    libraryProgressLastSentAtMsState.value = now;
+    libraryProgressSaveInFlightState.value = true;
 
     try {
         const { response, data } = await apiJson(
-            `/library/episodes/${encodeURIComponent(currentLibraryEpisodeId)}/progress`,
+            `/library/episodes/${encodeURIComponent(state.currentLibraryEpisodeId)}/progress`,
             {
                 method: "POST",
                 headers: {
@@ -162,13 +166,13 @@ async function saveLibraryWatchProgress({
         }
         return null;
     } finally {
-        libraryProgressSaveInFlight = false;
+        libraryProgressSaveInFlightState.value = false;
     }
 }
 
-function installLibraryProgressListeners() {
+export function installLibraryProgressListeners() {
     video.addEventListener("timeupdate", () => {
-        if (!currentLibraryEpisodeId || video.paused) return;
+        if (!state.currentLibraryEpisodeId || video.paused) return;
 
         saveLibraryWatchProgress();
     });
@@ -185,7 +189,7 @@ function installLibraryProgressListeners() {
     });
 
     window.addEventListener("beforeunload", () => {
-        if (!currentLibraryEpisodeId) return;
+        if (!state.currentLibraryEpisodeId) return;
 
         const currentTime = Number(video.currentTime || 0);
         const duration = Number.isFinite(video.duration) ? Number(video.duration) : null;
@@ -199,7 +203,7 @@ function installLibraryProgressListeners() {
         });
 
         navigator.sendBeacon(
-            buildApiUrl(`/library/episodes/${encodeURIComponent(currentLibraryEpisodeId)}/progress`),
+            buildApiUrl(`/library/episodes/${encodeURIComponent(state.currentLibraryEpisodeId)}/progress`),
             new Blob([payload], { type: "application/json" })
         );
     });

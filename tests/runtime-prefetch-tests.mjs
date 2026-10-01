@@ -1,11 +1,6 @@
 import assert from "node:assert/strict";
-import fs from "node:fs";
-import vm from "node:vm";
 
-const source = fs.readFileSync("dist/js/player/runtime-prefetch.js", "utf8")
-    .replace("function createRuntimePrefetchController", "globalThis.createRuntimePrefetchController = function");
-const context = vm.createContext({ console, setTimeout });
-vm.runInContext(source, context);
+const context = await import("../dist/esm/player/runtime-prefetch.js");
 
 const state = {
     runtimePrefetchAllRunId: 0,

@@ -1,4 +1,5 @@
-const sidebarTranslations: Record<string, Record<string, string>> = {
+import { i18n } from "../core/i18n.js";
+export const sidebarTranslations: Record<string, Record<string, string>> = {
     ru: {
         candidateContextChanged: "Границы кандидата изменились. Повторите добавление карточки.",
         candidateContextTitle: "Контекст кандидата",

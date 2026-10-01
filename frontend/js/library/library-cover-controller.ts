@@ -1,4 +1,7 @@
-interface LibraryCoverControllerOptions {
+import { LibraryTranslate } from "./library-presentation.js";
+import { ApiPayload } from "../types/api.js";
+import { CoverSearchResult, LibrarySeriesView } from "./library-types.js";
+export interface LibraryCoverControllerOptions {
     modal: HTMLElement;
     title: HTMLElement;
     subtitle: HTMLElement;
@@ -13,7 +16,7 @@ interface LibraryCoverControllerOptions {
     reportError?: (message: string) => void;
 }
 
-function createLibraryCoverController(options: LibraryCoverControllerOptions) {
+export function createLibraryCoverController(options: LibraryCoverControllerOptions) {
     let currentSeries: LibrarySeriesView | null = null;
     const t = options.translate;
 

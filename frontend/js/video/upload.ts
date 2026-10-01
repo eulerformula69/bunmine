@@ -1,4 +1,14 @@
-﻿async function uploadVideoInBackground(videoFile: File, subtitleFile: File | null = null): Promise<void> {
+import { apiJson, buildApiUrl, getApiErrorMessage } from "../core/api.js";
+import { CurrentVideoResponse } from "../types/api.js";
+import { showToast, t } from "../player/ui.js";
+import { state } from "../core/state.js";
+import { parseSubtitleSource } from "../subtitles/parse-subtitle-source.js";
+import { detectSubtitleFormat } from "../subtitles/format-detection.js";
+import { toRuntimeSubtitleCues } from "../subtitles/model.js";
+import { clearRuntimeWordStatuses } from "../highlighter/anki-highlighter.js";
+import { renderSubtitles } from "../subtitles/sidebar-render.js";
+import { prefetchRuntimeStatusesForAllSubtitles } from "../player/app.js";
+export async function uploadVideoInBackground(videoFile: File, subtitleFile: File | null = null): Promise<void> {
     const form = new FormData();
     form.append("videoFile", videoFile);
 
@@ -16,7 +26,7 @@
 
         if (!data.filename) return;
 
-        currentVideoFile = data.filename;
+        state.currentVideoFile = data.filename;
         if (subtitleFile) {
             await uploadSubtitleInBackground(subtitleFile, data.filename);
         }
@@ -27,7 +37,7 @@
     }
 }
 
-async function uploadSubtitleInBackground(subtitleFile: File, videoFilename: string): Promise<void> {
+export async function uploadSubtitleInBackground(subtitleFile: File, videoFilename: string): Promise<void> {
     const form = new FormData();
 
     form.append("subtitleFile", subtitleFile);
@@ -56,7 +66,7 @@ async function uploadSubtitleInBackground(subtitleFile: File, videoFilename: str
     }
 }
 
-async function restoreSubtitleFromServer(subtitleFilename: string): Promise<void> {
+export async function restoreSubtitleFromServer(subtitleFilename: string): Promise<void> {
     try {
         const res = await fetch(buildApiUrl(`/subtitle/${encodeURIComponent(subtitleFilename)}`));
 
@@ -70,11 +80,11 @@ async function restoreSubtitleFromServer(subtitleFilename: string): Promise<void
             format: detectSubtitleFormat({ filename: subtitleFilename, source: text }),
             filename: subtitleFilename
         });
-        subtitles = toRuntimeSubtitleCues(parsed.cues);
+        state.subtitles = toRuntimeSubtitleCues(parsed.cues);
 
-        lastRuntimeSubtitleText = "";
-        runtimePrefetchAllRunId += 1;
-		runtimeHighlightPrefetchReady = false;
+        state.lastRuntimeSubtitleText = "";
+        state.runtimePrefetchAllRunId += 1;
+		state.runtimeHighlightPrefetchReady = false;
 
         clearRuntimeWordStatuses?.();
 

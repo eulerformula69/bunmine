@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
-import fs from "node:fs";
-import vm from "node:vm";
-
-const context = vm.createContext({ console, setInterval, clearInterval, t: (key) => key });
-for (const name of ["candidate-model", "capture-controller", "review-controller"]) {
-    vm.runInContext(fs.readFileSync(`dist/js/player/${name}.js`, "utf8"), context);
-}
+import { installDom } from "./dom-environment.mjs";
+const dom = installDom();
+const context = {
+    ...await import("../dist/esm/player/candidate-model.js"),
+    ...await import("../dist/esm/player/capture-controller.js"),
+    ...await import("../dist/esm/player/review-controller.js"),
+};
 const snapshot = { selectedWord: "猫", combinedText: "猫です", audioStart: 10, audioEnd: 15 };
 let saved;
 let saves = 0;
@@ -101,3 +101,5 @@ const candidate = () => ({ id: 1, snapshot: { ...snapshot }, anki_note_id: null 
     assert.equal(events[0][0], "reject");
 }
 console.log("Candidate controller tests passed");
+
+dom.window.close();

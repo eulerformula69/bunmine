@@ -1,4 +1,7 @@
-function createCandidateCaptureController(options: {
+import { AnkiMediaSnapshot } from "./anki-actions.js";
+import { MiningCandidate } from "./candidate-model.js";
+import { t } from "./ui.js";
+export function createCandidateCaptureController(options: {
     buildSnapshot(index: number): AnkiMediaSnapshot;
     save(snapshot: AnkiMediaSnapshot): Promise<MiningCandidate>;
     saved(): Promise<void>;

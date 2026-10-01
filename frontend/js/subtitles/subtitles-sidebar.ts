@@ -1,14 +1,28 @@
-﻿
+import { initSubtitleContextDrag, isSubtitleContextDragging } from "./context-drag.js";
+import { overlay, resizer, sidebar, toggleBtn, video } from "../core/dom.js";
+import { state } from "../core/state.js";
+import { i18n } from "../core/i18n.js";
+import { RuntimeSubtitleCue } from "./model.js";
+import { getCurrentSubtitleIndexForNavigation, goToNextSubtitle, goToPreviousSubtitle } from "./sidebar-actions.js";
+import { buildSubtitleContextSelection } from "./context-selection.js";
+import { ensureSubtitleSearchPanel } from "./search-panel.js";
+import { renderSubtitles } from "./sidebar-render.js";
+import { SubtitleSearchResult, buildSubtitleTimeSearchMatches, findSubtitleIndexByTime, findSubtitleTextMatchesInCues, getSubtitleSearchHaystackForText, parseSubtitleSearchTime } from "./search.js";
+import { tokenizeJapaneseTextSync } from "../japanese/japanese-tokenizer.js";
+import { findSubtitleIndexForOffset, findSubtitleIndexForPlaybackTime } from "./navigation.js";
+import { renderSubtitleOverlay } from "./subtitles.js";
+import { ankiSubtitleHighlighter } from "../highlighter/anki-highlighter.js";
+
 // sidebar bootstrap
 
-function initSubtitleSidebar() {
+export function initSubtitleSidebar() {
     initSubtitleSearchPanel();
     initSubtitleSidebarToggle();
     initSubtitleSidebarResizer();
     initSubtitleContextDrag();
 }
 
-function initSubtitleSidebarToggle() {
+export function initSubtitleSidebarToggle() {
     if (!toggleBtn || !sidebar || !resizer) return;
     if (toggleBtn.dataset.sidebarInitialized === "true") return;
 
@@ -19,7 +33,7 @@ function initSubtitleSidebarToggle() {
     const setOpen = (isOpen: boolean) => {
         if (!isOpen) {
             const currentWidth = sidebar.style.width || `${Math.round(sidebar.getBoundingClientRect().width)}px`;
-            if (currentWidth && currentWidth !== "0px") lastSidebarWidth = currentWidth;
+            if (currentWidth && currentWidth !== "0px") state.lastSidebarWidth = currentWidth;
 
             sidebar.classList.add("hidden");
             resizer.classList.add("hidden");
@@ -29,7 +43,7 @@ function initSubtitleSidebarToggle() {
             resizer.classList.remove("hidden");
 
             const saved = JSON.parse(localStorage.getItem("subtitlePlayerSettings") || "{}").sidebarWidth;
-            sidebar.style.width = lastSidebarWidth || saved || "320px";
+            sidebar.style.width = state.lastSidebarWidth || saved || "320px";
         }
 
         toggleBtn.classList.toggle("active", isOpen);
@@ -46,10 +60,10 @@ function initSubtitleSidebarToggle() {
     setOpen(!sidebar.classList.contains("hidden"));
 }
 
-function updateSubtitleSidebarLabels() {
+export function updateSubtitleSidebarLabels() {
     if (!toggleBtn || !sidebar) return;
 
-    const dict = i18n[currentLang]?.dict || i18n.en.dict;
+    const dict = i18n[state.currentLang]?.dict || i18n.en.dict;
     const isOpen = !sidebar.classList.contains("hidden");
     const toggleLabel = dict[isOpen ? "hideSidebar" : "showSidebar"];
     const closeButton = document.getElementById("closeSubtitleSidebarBtn");
@@ -65,20 +79,20 @@ function updateSubtitleSidebarLabels() {
     }
 }
 
-function initSubtitleSidebarResizer() {
+export function initSubtitleSidebarResizer() {
     if (!resizer || !sidebar) return;
     if (resizer.dataset.sidebarResizeInitialized === "true") return;
 
     resizer.dataset.sidebarResizeInitialized = "true";
 
     resizer.addEventListener("mousedown", () => {
-        isResizing = true;
+        state.isResizing = true;
         document.body.style.cursor = "col-resize";
         document.body.style.userSelect = "none";
     });
 
     document.addEventListener("mousemove", (e) => {
-        if (!isResizing) return;
+        if (!state.isResizing) return;
 
         const newWidth = window.innerWidth - e.clientX;
 
@@ -88,9 +102,9 @@ function initSubtitleSidebarResizer() {
     });
 
     document.addEventListener("mouseup", () => {
-        if (!isResizing) return;
+        if (!state.isResizing) return;
 
-        isResizing = false;
+        state.isResizing = false;
         document.body.style.cursor = "default";
         document.body.style.userSelect = "auto";
 
@@ -102,7 +116,7 @@ function initSubtitleSidebarResizer() {
 
 // subtitle context
 
-interface SubtitleContextRange {
+export interface SubtitleContextRange {
     currentIdx: number;
     startIdx: number;
     endIdx: number;
@@ -110,14 +124,14 @@ interface SubtitleContextRange {
     forwardDepth: number;
 }
 
-interface SubtitleContextSelectionState extends SubtitleContextRange {
+export interface SubtitleContextSelectionState extends SubtitleContextRange {
     items: RuntimeSubtitleCue[];
     text: string;
     startTime: number;
     endTime: number;
 }
 
-function normalizeSubtitleContextDepth(value: unknown): number {
+export function normalizeSubtitleContextDepth(value: unknown): number {
     const numericValue = Number(value);
 
     if (!Number.isFinite(numericValue)) return 0;
@@ -125,18 +139,18 @@ function normalizeSubtitleContextDepth(value: unknown): number {
     return Math.max(0, Math.floor(numericValue));
 }
 
-function getSubtitleContextRange(currentIdx: number | null = null): SubtitleContextRange {
+export function getSubtitleContextRange(currentIdx: number | null = null): SubtitleContextRange {
     const resolvedCurrentIdx = Number.isInteger(currentIdx)
         ? currentIdx
         : (
-            Number.isInteger(lastClickedSubtitleIdx) &&
-            lastClickedSubtitleIdx >= 0 &&
-            lastClickedSubtitleIdx < subtitles.length
-                ? lastClickedSubtitleIdx
+            Number.isInteger(state.lastClickedSubtitleIdx) &&
+            state.lastClickedSubtitleIdx >= 0 &&
+            state.lastClickedSubtitleIdx < state.subtitles.length
+                ? state.lastClickedSubtitleIdx
                 : getCurrentSubtitleIndexForNavigation()
         );
 
-    if (!subtitles.length || resolvedCurrentIdx < 0 || resolvedCurrentIdx >= subtitles.length) {
+    if (!state.subtitles.length || resolvedCurrentIdx < 0 || resolvedCurrentIdx >= state.subtitles.length) {
         return {
             currentIdx: -1,
             startIdx: -1,
@@ -146,19 +160,19 @@ function getSubtitleContextRange(currentIdx: number | null = null): SubtitleCont
         };
     }
 
-    const backDepth = normalizeSubtitleContextDepth(subtitleContextBackDepth);
-    const forwardDepth = normalizeSubtitleContextDepth(subtitleContextForwardDepth);
+    const backDepth = normalizeSubtitleContextDepth(state.subtitleContextBackDepth);
+    const forwardDepth = normalizeSubtitleContextDepth(state.subtitleContextForwardDepth);
 
     return {
         currentIdx: resolvedCurrentIdx,
         startIdx: Math.max(0, resolvedCurrentIdx - backDepth),
-        endIdx: Math.min(subtitles.length - 1, resolvedCurrentIdx + forwardDepth),
+        endIdx: Math.min(state.subtitles.length - 1, resolvedCurrentIdx + forwardDepth),
         backDepth,
         forwardDepth
     };
 }
 
-function getSubtitleContextSelection(currentIdx: number | null = null): SubtitleContextSelectionState {
+export function getSubtitleContextSelection(currentIdx: number | null = null): SubtitleContextSelectionState {
     const range = getSubtitleContextRange(currentIdx);
 
     if (range.currentIdx < 0) {
@@ -172,12 +186,12 @@ function getSubtitleContextSelection(currentIdx: number | null = null): Subtitle
     }
 
     const selection = buildSubtitleContextSelection(
-        subtitles,
+        state.subtitles,
         range.currentIdx,
         range.backDepth,
         range.forwardDepth
     );
-    const items = subtitles.slice(range.startIdx, range.endIdx + 1);
+    const items = state.subtitles.slice(range.startIdx, range.endIdx + 1);
 
     return {
         ...range,
@@ -188,17 +202,17 @@ function getSubtitleContextSelection(currentIdx: number | null = null): Subtitle
     };
 }
 
-function setSubtitleContextDepths({
-    backDepth = subtitleContextBackDepth,
-    forwardDepth = subtitleContextForwardDepth
+export function setSubtitleContextDepths({
+    backDepth = state.subtitleContextBackDepth,
+    forwardDepth = state.subtitleContextForwardDepth
 }: {
     backDepth?: number;
     forwardDepth?: number;
 } = {}) {
-    subtitleContextBackDepth = normalizeSubtitleContextDepth(backDepth);
-    subtitleContextForwardDepth = normalizeSubtitleContextDepth(forwardDepth);
+    state.subtitleContextBackDepth = normalizeSubtitleContextDepth(backDepth);
+    state.subtitleContextForwardDepth = normalizeSubtitleContextDepth(forwardDepth);
 
-    if (typeof isSubtitleContextDragging === "function" && isSubtitleContextDragging()) {
+    if (isSubtitleContextDragging()) {
         updateSubtitleContextRangePreview();
         return;
     }
@@ -208,40 +222,40 @@ function setSubtitleContextDepths({
 	});
 }
 
-function updateSubtitleContextRangePreview() {
+export function updateSubtitleContextRangePreview() {
     const context = getSubtitleContextRange();
 
-    subtitleElements.forEach(({ div, index }) => {
+    state.subtitleElements.forEach(({ div, index }) => {
         const isInRange = context.currentIdx >= 0 && index >= context.startIdx && index <= context.endIdx;
         div.classList.toggle("capture-range", isInRange);
         div.classList.toggle("active", index === context.currentIdx);
     });
 }
 
-function resetSubtitleContextDepths() {
+export function resetSubtitleContextDepths() {
     setSubtitleContextDepths({
         backDepth: 0,
         forwardDepth: 0
     });
 }
 
-function isSubtitleContextDepthDefault() {
-    return subtitleContextBackDepth === 0 && subtitleContextForwardDepth === 0;
+export function isSubtitleContextDepthDefault() {
+    return state.subtitleContextBackDepth === 0 && state.subtitleContextForwardDepth === 0;
 }
 
 // search
 
-function initSubtitleSearchPanel() {
+export function initSubtitleSearchPanel() {
     ensureSubtitleSearchPanel(
         sidebar,
         {
-            query: subtitleSearchQuery || "",
-            timeSeconds: subtitleSearchTimeSeconds
+            query: state.subtitleSearchQuery || "",
+            timeSeconds: state.subtitleSearchTimeSeconds
         },
         {
             onWordFocus(wordInput, timeInput) {
-                subtitleSearchMode = "word";
-                subtitleSearchTimeSeconds = null;
+                state.subtitleSearchMode = "word";
+                state.subtitleSearchTimeSeconds = null;
 
                 if (timeInput) timeInput.value = "";
 
@@ -250,8 +264,8 @@ function initSubtitleSearchPanel() {
                 }
             },
             onTimeFocus(wordInput, timeInput) {
-                subtitleSearchMode = "time";
-                subtitleSearchQuery = "";
+                state.subtitleSearchMode = "time";
+                state.subtitleSearchQuery = "";
 
                 if (wordInput) wordInput.value = "";
 
@@ -260,13 +274,13 @@ function initSubtitleSearchPanel() {
                 }
             },
             onWordInput(value, timeInput) {
-                subtitleSearchMode = "word";
-                subtitleSearchQuery = value;
-                subtitleSearchTimeSeconds = null;
+                state.subtitleSearchMode = "word";
+                state.subtitleSearchQuery = value;
+                state.subtitleSearchTimeSeconds = null;
 
                 if (timeInput) timeInput.value = "";
 
-                setSearchMatches(findSubtitleTextMatches(subtitleSearchQuery));
+                setSearchMatches(findSubtitleTextMatches(state.subtitleSearchQuery));
             },
             onWordEnter(event, value) {
                 if (event.key !== "Enter") return;
@@ -278,7 +292,7 @@ function initSubtitleSearchPanel() {
                     return;
                 }
 
-                if (!subtitleSearchMatches.length) {
+                if (!state.subtitleSearchMatches.length) {
                     setSearchMatches(findSubtitleTextMatches(value), 0);
                     return;
                 }
@@ -286,20 +300,20 @@ function initSubtitleSearchPanel() {
                 goToSearchMatch(event.shiftKey ? -1 : 1);
             },
             onTimeInput(value, wordInput) {
-                subtitleSearchMode = "time";
-                subtitleSearchQuery = "";
+                state.subtitleSearchMode = "time";
+                state.subtitleSearchQuery = "";
 
                 if (wordInput) wordInput.value = "";
 
                 const seconds = parseSearchTime(value);
 
                 if (!Number.isFinite(seconds)) {
-                    subtitleSearchTimeSeconds = null;
+                    state.subtitleSearchTimeSeconds = null;
                     clearSearchMatches();
                     return;
                 }
 
-                subtitleSearchTimeSeconds = seconds;
+                state.subtitleSearchTimeSeconds = seconds;
                 setSearchMatches(buildTimeSearchMatches(seconds));
             },
             onTimeEnter(event) {
@@ -331,7 +345,7 @@ function initSubtitleSearchPanel() {
                 goToNextSubtitle();
             },
             onCommit() {
-                if (subtitleSearchMode === "time") {
+                if (state.subtitleSearchMode === "time") {
                     activateTimeSearch({ commit: true });
                     return;
                 }
@@ -341,61 +355,61 @@ function initSubtitleSearchPanel() {
         }
     );
 }
-function hasActiveSubtitleSearch() {
-    return subtitleSearchMatches.length > 0;
+export function hasActiveSubtitleSearch() {
+    return state.subtitleSearchMatches.length > 0;
 }
 
-function clearSearchMatches() {
-    if (!subtitleSearchMatches.length && subtitleSearchIndex === -1) return;
-    subtitleSearchMatches = [];
-    subtitleSearchIndex = -1;
+export function clearSearchMatches() {
+    if (!state.subtitleSearchMatches.length && state.subtitleSearchIndex === -1) return;
+    state.subtitleSearchMatches = [];
+    state.subtitleSearchIndex = -1;
 
     renderSubtitles();
 }
 
-function setSearchMatches(matches: SubtitleSearchResult[], index = 0) {
-    subtitleSearchMatches = Array.isArray(matches) ? matches : [];
-    subtitleSearchIndex = subtitleSearchMatches.length ? index : -1;
+export function setSearchMatches(matches: SubtitleSearchResult[], index = 0) {
+    state.subtitleSearchMatches = Array.isArray(matches) ? matches : [];
+    state.subtitleSearchIndex = state.subtitleSearchMatches.length ? index : -1;
 
     renderSubtitles();
     scrollToSearchMatch(getCurrentSearchMatch());
 }
 
-function findSubtitleTextMatches(query: string): SubtitleSearchResult[] {
+export function findSubtitleTextMatches(query: string): SubtitleSearchResult[] {
     return findSubtitleTextMatchesInCues(
-        subtitles,
+        state.subtitles,
         query,
         (text) => tokenizeJapaneseTextSync(text) || []
     );
 }
 
-function getSubtitleSearchHaystack(text: string): string {
+export function getSubtitleSearchHaystack(text: string): string {
     return getSubtitleSearchHaystackForText(
         text,
         (value) => tokenizeJapaneseTextSync(value) || []
     );
 }
 
-function parseSearchTime(value: string | undefined): number | null {
+export function parseSearchTime(value: string | undefined): number | null {
     return parseSubtitleSearchTime(value);
 }
 
-function findSubtitleByTime(seconds: number): number {
-    return findSubtitleIndexByTime(subtitles, seconds, globalSubDelay);
+export function findSubtitleByTime(seconds: number): number {
+    return findSubtitleIndexByTime(state.subtitles, seconds, state.globalSubDelay);
 }
 
-function buildTimeSearchMatches(seconds: number): SubtitleSearchResult[] {
-    return buildSubtitleTimeSearchMatches(subtitles, seconds, globalSubDelay);
+export function buildTimeSearchMatches(seconds: number): SubtitleSearchResult[] {
+    return buildSubtitleTimeSearchMatches(state.subtitles, seconds, state.globalSubDelay);
 }
-function activateTimeSearch({ commit = false } = {}) {
+export function activateTimeSearch({ commit = false } = {}) {
     const timeInput = document.getElementById("subtitleTimeSearchInput") as HTMLInputElement | null;
     const seconds = parseSearchTime(timeInput?.value);
 
     if (!Number.isFinite(seconds)) return;
 
-    subtitleSearchMode = "time";
-    subtitleSearchTimeSeconds = seconds;
-    subtitleSearchQuery = "";
+    state.subtitleSearchMode = "time";
+    state.subtitleSearchTimeSeconds = seconds;
+    state.subtitleSearchQuery = "";
 
     const wordInput = document.getElementById("subtitleWordSearchInput") as HTMLInputElement | null;
     if (wordInput) wordInput.value = "";
@@ -407,14 +421,14 @@ function activateTimeSearch({ commit = false } = {}) {
     }
 }
 
-function getCurrentSearchMatch() {
-    if (!subtitleSearchMatches.length) return null;
-    if (subtitleSearchIndex < 0) return null;
+export function getCurrentSearchMatch() {
+    if (!state.subtitleSearchMatches.length) return null;
+    if (state.subtitleSearchIndex < 0) return null;
 
-    return subtitleSearchMatches[subtitleSearchIndex] || null;
+    return state.subtitleSearchMatches[state.subtitleSearchIndex] || null;
 }
 
-function scrollToSearchMatch(match) {
+export function scrollToSearchMatch(match) {
     if (!match) return;
 
     const el = sidebar.querySelector(
@@ -429,37 +443,37 @@ function scrollToSearchMatch(match) {
     });
 }
 
-function goToSearchMatch(direction = 1) {
-    if (!subtitleSearchMatches.length) {
-        if (subtitleSearchMode === "word") {
+export function goToSearchMatch(direction = 1) {
+    if (!state.subtitleSearchMatches.length) {
+        if (state.subtitleSearchMode === "word") {
             const wordInput = document.getElementById("subtitleWordSearchInput") as HTMLInputElement | null;
-            subtitleSearchQuery = wordInput?.value || "";
-            subtitleSearchMatches = findSubtitleTextMatches(subtitleSearchQuery);
+            state.subtitleSearchQuery = wordInput?.value || "";
+            state.subtitleSearchMatches = findSubtitleTextMatches(state.subtitleSearchQuery);
         }
 
-        if (subtitleSearchMode === "time") {
+        if (state.subtitleSearchMode === "time") {
             const timeInput = document.getElementById("subtitleTimeSearchInput") as HTMLInputElement | null;
             const seconds = parseSearchTime(timeInput?.value);
 
             if (Number.isFinite(seconds)) {
-                subtitleSearchTimeSeconds = seconds;
-                subtitleSearchMatches = buildTimeSearchMatches(seconds);
+                state.subtitleSearchTimeSeconds = seconds;
+                state.subtitleSearchMatches = buildTimeSearchMatches(seconds);
             }
         }
 
-        subtitleSearchIndex = subtitleSearchMatches.length ? 0 : -1;
+        state.subtitleSearchIndex = state.subtitleSearchMatches.length ? 0 : -1;
     }
 
-    if (!subtitleSearchMatches.length) return;
+    if (!state.subtitleSearchMatches.length) return;
 
-    subtitleSearchIndex += direction;
+    state.subtitleSearchIndex += direction;
 
-    if (subtitleSearchIndex >= subtitleSearchMatches.length) {
-        subtitleSearchIndex = 0;
+    if (state.subtitleSearchIndex >= state.subtitleSearchMatches.length) {
+        state.subtitleSearchIndex = 0;
     }
 
-    if (subtitleSearchIndex < 0) {
-        subtitleSearchIndex = subtitleSearchMatches.length - 1;
+    if (state.subtitleSearchIndex < 0) {
+        state.subtitleSearchIndex = state.subtitleSearchMatches.length - 1;
     }
 
     const match = getCurrentSearchMatch();
@@ -468,39 +482,39 @@ function goToSearchMatch(direction = 1) {
     scrollToSearchMatch(match);
 }
 
-function commitSearchMatch() {
+export function commitSearchMatch() {
     const match = getCurrentSearchMatch();
 
     if (!match) return;
 
-    const sub = subtitles[match.subtitleIndex];
+    const sub = state.subtitles[match.subtitleIndex];
 
     if (!sub) return;
 
     if (match.type === "time" && Number.isFinite(match.seconds)) {
         video.currentTime = match.seconds;
     } else {
-        video.currentTime = sub.start + globalSubDelay;
+        video.currentTime = sub.start + state.globalSubDelay;
     }
 
     video.pause();
     syncSubtitleStyle(match.subtitleIndex);
 
-    subtitleSearchMatches = [];
-    subtitleSearchIndex = -1;
+    state.subtitleSearchMatches = [];
+    state.subtitleSearchIndex = -1;
     renderSubtitles();
 }
 
 // navigation
 
-function seekBySubtitle(offset: number) {
-    if (!subtitles.length) return;
+export function seekBySubtitle(offset: number) {
+    if (!state.subtitles.length) return;
 
     clearSearchMatches();
 
-    const currentIdx = findSubtitleIndexForOffset(subtitles, video.currentTime, offset);
+    const currentIdx = findSubtitleIndexForOffset(state.subtitles, video.currentTime, offset);
 
-    const targetSub = subtitles[currentIdx];
+    const targetSub = state.subtitles[currentIdx];
 
     video.pause();
     video.currentTime = targetSub.start + 0.05;
@@ -514,16 +528,16 @@ function seekBySubtitle(offset: number) {
     syncSubtitleStyle(currentIdx);
 }
 
-function syncSubtitleStyle(idx: number) {
-    lastClickedSubtitleIdx = idx;
+export function syncSubtitleStyle(idx: number) {
+    state.lastClickedSubtitleIdx = idx;
 
     renderSubtitles();
 
-    subtitleElements[idx]?.div.scrollIntoView({ behavior: "smooth", block: "center" });
+    state.subtitleElements[idx]?.div.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
-function restoreSubtitleFromCurrentTime() {
-    const idx = findSubtitleIndexForPlaybackTime(subtitles, video.currentTime, globalSubDelay);
+export function restoreSubtitleFromCurrentTime() {
+    const idx = findSubtitleIndexForPlaybackTime(state.subtitles, video.currentTime, state.globalSubDelay);
 
     if (idx === -1) return;
 

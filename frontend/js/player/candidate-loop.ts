@@ -1,4 +1,6 @@
-function createCandidateLoop(media: HTMLVideoElement) {
+import { playMedia } from "../video/media-playback.js";
+import { AnkiMediaSnapshot } from "./anki-actions.js";
+export function createCandidateLoop(media: HTMLVideoElement) {
     let range: { start: number; end: number } | null = null;
     let frame = 0;
     let timer: ReturnType<typeof setTimeout> | undefined;

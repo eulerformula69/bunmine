@@ -1,4 +1,5 @@
-interface SubtitleRenderModel {
+import { RuntimeSubtitleCue } from "./model.js";
+export interface SubtitleRenderModel {
     index: number;
     start: number;
     end: number;
@@ -6,7 +7,7 @@ interface SubtitleRenderModel {
     active: boolean;
 }
 
-function buildSubtitleRenderModel(
+export function buildSubtitleRenderModel(
     cue: RuntimeSubtitleCue,
     index: number,
     currentTime: number,

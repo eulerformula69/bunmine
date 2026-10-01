@@ -1,6 +1,13 @@
-function applyLibraryLanguage() {
-    libraryCurrentLang = loadLibraryLanguage();
-    document.documentElement.lang = libraryCurrentLang;
+import { libraryCurrentLangState, loadLibraryLanguage, lt } from "./library-i18n.js";
+import { BulkSubtitlePlan, LibraryEpisodeView, LibraryFilterState, LibraryJobData, LibrarySeriesFilter, LibrarySeriesSort, LibrarySeriesStatus, LibrarySeriesView } from "./library-types.js";
+import { LibraryPresentation } from "./library-presentation.js";
+import { libraryChooseFolder, libraryDeleteMissingEpisode, libraryDeleteSeries, libraryGetJobStatus, libraryGetSeries, libraryListSeries, libraryRelinkSeries, librarySearchEpisodeSubtitles, librarySearchSeriesCover, librarySelectEpisodeSubtitle, librarySelectSeriesCover, librarySetEpisodeCompleted, libraryStartJob } from "./library-api.js";
+import { sleep } from "../core/api.js";
+import { createLibrarySubtitleController } from "./library-subtitle-controller.js";
+import { createLibraryCoverController } from "./library-cover-controller.js";
+export function applyLibraryLanguage() {
+    libraryCurrentLangState.value = loadLibraryLanguage();
+    document.documentElement.lang = libraryCurrentLangState.value;
     document.title = lt("libraryTitle");
     document.querySelectorAll<HTMLElement>("[data-i18n]").forEach((element) => {
         const key = element.dataset.i18n;
@@ -11,74 +18,74 @@ function applyLibraryLanguage() {
     });
 }
 
-const seriesGrid = document.getElementById("seriesGrid") as HTMLElement;
-const librarySummary = document.getElementById("librarySummary") as HTMLElement;
-const catalogResultSummary = document.getElementById("catalogResultSummary") as HTMLElement;
-const catalogEmpty = document.getElementById("catalogEmpty") as HTMLElement;
-const catalogView = document.getElementById("catalogView") as HTMLElement;
-const seriesView = document.getElementById("seriesView") as HTMLElement;
-const libraryHeader = document.querySelector(".library-header") as HTMLElement;
-const scanLibraryBtn = document.getElementById("scanLibraryBtn") as HTMLButtonElement;
-const addAnimeBtn = document.getElementById("addAnimeBtn") as HTMLButtonElement;
-const librarySearchInput = document.getElementById("librarySearchInput") as HTMLInputElement;
-const libraryFilters = document.getElementById("libraryFilters") as HTMLElement;
-const seriesTitle = document.getElementById("seriesTitle") as HTMLElement;
-const seriesStatus = document.getElementById("seriesStatus") as HTMLElement;
-const seriesStats = document.getElementById("seriesStats") as HTMLElement;
-const seriesCurrentEpisode = document.getElementById("seriesCurrentEpisode") as HTMLElement;
-const seriesDetailCover = document.getElementById("seriesDetailCover") as HTMLElement;
-const seriesPrimaryAction = document.getElementById("seriesPrimaryAction") as HTMLAnchorElement;
-const episodeList = document.getElementById("episodeList") as HTMLElement;
-const fileList = document.getElementById("fileList") as HTMLElement;
-const seriesTabs = document.getElementById("seriesTabs") as HTMLElement;
-const closeSeriesPanelBtn = document.getElementById("closeSeriesPanelBtn") as HTMLButtonElement;
-const changeSeriesCoverBtn = document.getElementById("changeSeriesCoverBtn") as HTMLButtonElement;
-const downloadMissingSubtitlesBtn = document.getElementById("downloadMissingSubtitlesBtn") as HTMLButtonElement;
-const relinkSeriesFilesBtn = document.getElementById("relinkSeriesFilesBtn") as HTMLButtonElement;
-const deleteSeriesBtn = document.getElementById("deleteSeriesBtn") as HTMLButtonElement;
+export const seriesGrid = document.getElementById("seriesGrid") as HTMLElement;
+export const librarySummary = document.getElementById("librarySummary") as HTMLElement;
+export const catalogResultSummary = document.getElementById("catalogResultSummary") as HTMLElement;
+export const catalogEmpty = document.getElementById("catalogEmpty") as HTMLElement;
+export const catalogView = document.getElementById("catalogView") as HTMLElement;
+export const seriesView = document.getElementById("seriesView") as HTMLElement;
+export const libraryHeader = document.querySelector(".library-header") as HTMLElement;
+export const scanLibraryBtn = document.getElementById("scanLibraryBtn") as HTMLButtonElement;
+export const addAnimeBtn = document.getElementById("addAnimeBtn") as HTMLButtonElement;
+export const librarySearchInput = document.getElementById("librarySearchInput") as HTMLInputElement;
+export const libraryFilters = document.getElementById("libraryFilters") as HTMLElement;
+export const seriesTitle = document.getElementById("seriesTitle") as HTMLElement;
+export const seriesStatus = document.getElementById("seriesStatus") as HTMLElement;
+export const seriesStats = document.getElementById("seriesStats") as HTMLElement;
+export const seriesCurrentEpisode = document.getElementById("seriesCurrentEpisode") as HTMLElement;
+export const seriesDetailCover = document.getElementById("seriesDetailCover") as HTMLElement;
+export const seriesPrimaryAction = document.getElementById("seriesPrimaryAction") as HTMLAnchorElement;
+export const episodeList = document.getElementById("episodeList") as HTMLElement;
+export const fileList = document.getElementById("fileList") as HTMLElement;
+export const seriesTabs = document.getElementById("seriesTabs") as HTMLElement;
+export const closeSeriesPanelBtn = document.getElementById("closeSeriesPanelBtn") as HTMLButtonElement;
+export const changeSeriesCoverBtn = document.getElementById("changeSeriesCoverBtn") as HTMLButtonElement;
+export const downloadMissingSubtitlesBtn = document.getElementById("downloadMissingSubtitlesBtn") as HTMLButtonElement;
+export const relinkSeriesFilesBtn = document.getElementById("relinkSeriesFilesBtn") as HTMLButtonElement;
+export const deleteSeriesBtn = document.getElementById("deleteSeriesBtn") as HTMLButtonElement;
 
-const coverModal = document.getElementById("coverModal") as HTMLElement;
-const coverModalTitle = document.getElementById("coverModalTitle") as HTMLElement;
-const coverModalSubtitle = document.getElementById("coverModalSubtitle") as HTMLElement;
-const closeCoverModalBtn = document.getElementById("closeCoverModalBtn") as HTMLButtonElement;
-const coverSearchInput = document.getElementById("coverSearchInput") as HTMLInputElement;
-const coverSearchBtn = document.getElementById("coverSearchBtn") as HTMLButtonElement;
-const coverResults = document.getElementById("coverResults") as HTMLElement;
-const subtitleModal = document.getElementById("subtitleModal") as HTMLElement;
-const subtitleModalTitle = document.getElementById("subtitleModalTitle") as HTMLElement;
-const subtitleModalSubtitle = document.getElementById("subtitleModalSubtitle") as HTMLElement;
-const closeSubtitleModalBtn = document.getElementById("closeSubtitleModalBtn") as HTMLButtonElement;
-const subtitleSearchInput = document.getElementById("subtitleSearchInput") as HTMLInputElement;
-const subtitleSearchBtn = document.getElementById("subtitleSearchBtn") as HTMLButtonElement;
-const subtitleResults = document.getElementById("subtitleResults") as HTMLElement;
-const bulkSubtitleModal = document.getElementById("bulkSubtitleModal") as HTMLElement;
-const bulkSubtitleModalTitle = document.getElementById("bulkSubtitleModalTitle") as HTMLElement;
-const bulkSubtitleModalSubtitle = document.getElementById("bulkSubtitleModalSubtitle") as HTMLElement;
-const closeBulkSubtitleModalBtn = document.getElementById("closeBulkSubtitleModalBtn") as HTMLButtonElement;
-const bulkSubtitleSearchInput = document.getElementById("bulkSubtitleSearchInput") as HTMLInputElement;
-const bulkSubtitleSearchBtn = document.getElementById("bulkSubtitleSearchBtn") as HTMLButtonElement;
-const bulkSubtitleStatus = document.getElementById("bulkSubtitleStatus") as HTMLElement;
-const bulkSubtitleSets = document.getElementById("bulkSubtitleSets") as HTMLElement;
-const bulkSubtitleList = document.getElementById("bulkSubtitleList") as HTMLElement;
-const confirmBulkSubtitleDownloadBtn = document.getElementById("confirmBulkSubtitleDownloadBtn") as HTMLButtonElement;
-const cancelBulkSubtitleDownloadBtn = document.getElementById("cancelBulkSubtitleDownloadBtn") as HTMLButtonElement;
+export const coverModal = document.getElementById("coverModal") as HTMLElement;
+export const coverModalTitle = document.getElementById("coverModalTitle") as HTMLElement;
+export const coverModalSubtitle = document.getElementById("coverModalSubtitle") as HTMLElement;
+export const closeCoverModalBtn = document.getElementById("closeCoverModalBtn") as HTMLButtonElement;
+export const coverSearchInput = document.getElementById("coverSearchInput") as HTMLInputElement;
+export const coverSearchBtn = document.getElementById("coverSearchBtn") as HTMLButtonElement;
+export const coverResults = document.getElementById("coverResults") as HTMLElement;
+export const subtitleModal = document.getElementById("subtitleModal") as HTMLElement;
+export const subtitleModalTitle = document.getElementById("subtitleModalTitle") as HTMLElement;
+export const subtitleModalSubtitle = document.getElementById("subtitleModalSubtitle") as HTMLElement;
+export const closeSubtitleModalBtn = document.getElementById("closeSubtitleModalBtn") as HTMLButtonElement;
+export const subtitleSearchInput = document.getElementById("subtitleSearchInput") as HTMLInputElement;
+export const subtitleSearchBtn = document.getElementById("subtitleSearchBtn") as HTMLButtonElement;
+export const subtitleResults = document.getElementById("subtitleResults") as HTMLElement;
+export const bulkSubtitleModal = document.getElementById("bulkSubtitleModal") as HTMLElement;
+export const bulkSubtitleModalTitle = document.getElementById("bulkSubtitleModalTitle") as HTMLElement;
+export const bulkSubtitleModalSubtitle = document.getElementById("bulkSubtitleModalSubtitle") as HTMLElement;
+export const closeBulkSubtitleModalBtn = document.getElementById("closeBulkSubtitleModalBtn") as HTMLButtonElement;
+export const bulkSubtitleSearchInput = document.getElementById("bulkSubtitleSearchInput") as HTMLInputElement;
+export const bulkSubtitleSearchBtn = document.getElementById("bulkSubtitleSearchBtn") as HTMLButtonElement;
+export const bulkSubtitleStatus = document.getElementById("bulkSubtitleStatus") as HTMLElement;
+export const bulkSubtitleSets = document.getElementById("bulkSubtitleSets") as HTMLElement;
+export const bulkSubtitleList = document.getElementById("bulkSubtitleList") as HTMLElement;
+export const confirmBulkSubtitleDownloadBtn = document.getElementById("confirmBulkSubtitleDownloadBtn") as HTMLButtonElement;
+export const cancelBulkSubtitleDownloadBtn = document.getElementById("cancelBulkSubtitleDownloadBtn") as HTMLButtonElement;
 
-let librarySeries: LibrarySeriesView[] = [];
-let currentOpenedSeries: LibrarySeriesView | null = null;
-let currentOpenedEpisodes: LibraryEpisodeView[] = [];
-let currentBulkSubtitlePlan: BulkSubtitlePlan | null = null;
-let currentBulkSubtitleSetKey: string | null = null;
-let isBulkSubtitleDownloading = false;
-let isBulkSubtitlePreparing = false;
-const JIMAKU_PLAN_REQUEST_DELAY_MS = 1300;
-const JIMAKU_429_DEFAULT_WAIT_MS = 12000;
-const JIMAKU_429_MAX_RETRIES = 4;
-const JIMAKU_DOWNLOAD_CONCURRENCY = 2;
-const LIBRARY_VIEW_STATE_KEY = "bunmineLibraryViewState";
-const VALID_FILTERS: LibrarySeriesFilter[] = ["all", "watching", "not-started", "completed", "missing-video", "missing-subtitles", "file-problems"];
-const VALID_SORTS: LibrarySeriesSort[] = ["last-watched", "progress", "title", "recently-added"];
+export const librarySeriesState = { value: [] as LibrarySeriesView[] };
+export const currentOpenedSeriesState = { value: null as LibrarySeriesView | null };
+export const currentOpenedEpisodesState = { value: [] as LibraryEpisodeView[] };
+export const currentBulkSubtitlePlanState = { value: null as BulkSubtitlePlan | null };
+export const currentBulkSubtitleSetKeyState = { value: null as string | null };
+export const isBulkSubtitleDownloadingState = { value: false };
+export const isBulkSubtitlePreparingState = { value: false };
+export const JIMAKU_PLAN_REQUEST_DELAY_MS = 1300;
+export const JIMAKU_429_DEFAULT_WAIT_MS = 12000;
+export const JIMAKU_429_MAX_RETRIES = 4;
+export const JIMAKU_DOWNLOAD_CONCURRENCY = 2;
+export const LIBRARY_VIEW_STATE_KEY = "bunmineLibraryViewState";
+export const VALID_FILTERS: LibrarySeriesFilter[] = ["all", "watching", "not-started", "completed", "missing-video", "missing-subtitles", "file-problems"];
+export const VALID_SORTS: LibrarySeriesSort[] = ["last-watched", "progress", "title", "recently-added"];
 
-function loadLibraryViewState(): LibraryFilterState {
+export function loadLibraryViewState(): LibraryFilterState {
     try {
         const stored = JSON.parse(localStorage.getItem(LIBRARY_VIEW_STATE_KEY) || "{}");
         return {
@@ -91,37 +98,37 @@ function loadLibraryViewState(): LibraryFilterState {
     }
 }
 
-function saveLibraryViewState() {
+export function saveLibraryViewState() {
     localStorage.setItem(LIBRARY_VIEW_STATE_KEY, JSON.stringify({ filter: filterState.filter, sort: filterState.sort }));
 }
 
-const filterState: LibraryFilterState = loadLibraryViewState();
+export const filterState: LibraryFilterState = loadLibraryViewState();
 
-function escapeHtml(value: unknown) { return LibraryPresentation.escapeHtml(value); }
-function formatBytes(value: unknown) { return LibraryPresentation.formatBytes(value); }
-function formatLibraryTime(value: unknown) { return LibraryPresentation.formatTime(value); }
-function statusKeyLabel(status: string) { return LibraryPresentation.planStatusLabel(status, lt); }
-function statusLabel(status: LibrarySeriesStatus) { return lt(status === "not-started" ? "notStarted" : status); }
-function linkStatusIcon(status: string | undefined) {
+export function escapeHtml(value: unknown) { return LibraryPresentation.escapeHtml(value); }
+export function formatBytes(value: unknown) { return LibraryPresentation.formatBytes(value); }
+export function formatLibraryTime(value: unknown) { return LibraryPresentation.formatTime(value); }
+export function statusKeyLabel(status: string) { return LibraryPresentation.planStatusLabel(status, lt); }
+export function statusLabel(status: LibrarySeriesStatus) { return lt(status === "not-started" ? "notStarted" : status); }
+export function linkStatusIcon(status: string | undefined) {
     if (status === "linked") return "/icons/chain-ok.svg";
     if (status === "partial") return "/icons/chain-missing.svg";
     return "/icons/chain-broken.svg";
 }
-function linkStatusTitle(status: string | undefined) {
+export function linkStatusTitle(status: string | undefined) {
     return lt(status === "linked" ? "allLinked" : status === "partial" ? "partiallyLinked" : "missingFiles");
 }
 
-const FILTER_GROUPS: Array<{ label: string; items: Array<[LibrarySeriesFilter, string]> }> = [
+export const FILTER_GROUPS: Array<{ label: string; items: Array<[LibrarySeriesFilter, string]> }> = [
     { label: "myLibrary", items: [["all", "all"], ["watching", "watching"], ["not-started", "notStarted"], ["completed", "completed"]] },
     { label: "files", items: [["missing-video", "missingVideo"], ["missing-subtitles", "missingSubtitles"], ["file-problems", "fileProblems"]] },
 ];
-const SORT_ITEMS: Array<[LibrarySeriesSort, string]> = [["last-watched", "recentlyWatched"], ["progress", "byProgress"], ["title", "byTitle"], ["recently-added", "recentlyAdded"]];
+export const SORT_ITEMS: Array<[LibrarySeriesSort, string]> = [["last-watched", "recentlyWatched"], ["progress", "byProgress"], ["title", "byTitle"], ["recently-added", "recentlyAdded"]];
 
-function filterCount(filter: LibrarySeriesFilter) {
-    return librarySeries.filter((series) => LibraryPresentation.matchesFilter(series, filter)).length;
+export function filterCount(filter: LibrarySeriesFilter) {
+    return librarySeriesState.value.filter((series) => LibraryPresentation.matchesFilter(series, filter)).length;
 }
 
-function renderFilters() {
+export function renderFilters() {
     libraryFilters.replaceChildren();
     for (const group of FILTER_GROUPS) {
         const section = document.createElement("section");
@@ -153,15 +160,15 @@ function renderFilters() {
     libraryFilters.appendChild(sort);
 }
 
-function renderCatalog() {
-    const visible = LibraryPresentation.filterAndSort([...librarySeries], filterState);
+export function renderCatalog() {
+    const visible = LibraryPresentation.filterAndSort([...librarySeriesState.value], filterState);
     seriesGrid.replaceChildren(...visible.map(renderSeriesCard));
     catalogEmpty.classList.toggle("hidden", visible.length > 0);
-    catalogResultSummary.textContent = lt("showingSeries", { count: visible.length, total: librarySeries.length });
+    catalogResultSummary.textContent = lt("showingSeries", { count: visible.length, total: librarySeriesState.value.length });
     renderFilters();
 }
 
-function renderSeriesCard(item: LibrarySeriesView) {
+export function renderSeriesCard(item: LibrarySeriesView) {
     const card = document.createElement("article");
     card.className = "series-card";
     card.tabIndex = 0;
@@ -180,29 +187,29 @@ function renderSeriesCard(item: LibrarySeriesView) {
     return card;
 }
 
-async function loadLibrarySeries() {
+export async function loadLibrarySeries() {
     librarySummary.textContent = lt("loading");
     const { response, data } = await libraryListSeries();
     if (!response.ok || data.error) throw new Error(data.error || lt("couldNotLoadLibrary"));
-    librarySeries = (Array.isArray(data.series) ? data.series : []) as LibrarySeriesView[];
-    const total = librarySeries.reduce((sum, item) => sum + Number(item.episodesCount || 0), 0);
-    const watched = librarySeries.reduce((sum, item) => sum + Number(item.completedEpisodes || 0), 0);
-    librarySummary.textContent = lt("seriesSummary", { count: librarySeries.length, watched, total });
+    librarySeriesState.value = (Array.isArray(data.series) ? data.series : []) as LibrarySeriesView[];
+    const total = librarySeriesState.value.reduce((sum, item) => sum + Number(item.episodesCount || 0), 0);
+    const watched = librarySeriesState.value.reduce((sum, item) => sum + Number(item.completedEpisodes || 0), 0);
+    librarySummary.textContent = lt("seriesSummary", { count: librarySeriesState.value.length, watched, total });
     renderCatalog();
     openSeriesFromHash();
 }
 
-function episodeNumber(episode: LibraryEpisodeView) {
+export function episodeNumber(episode: LibraryEpisodeView) {
     return episode.episodeNumber ?? episode.title ?? "—";
 }
 
-function episodeState(episode: LibraryEpisodeView) {
+export function episodeState(episode: LibraryEpisodeView) {
     if (episode.completed) return lt("watched");
     if (Number(episode.currentTimeSeconds || 0) > 5) return lt("inProgress");
     return lt("notWatched");
 }
 
-function renderEpisodeRow(episode: LibraryEpisodeView) {
+export function renderEpisodeRow(episode: LibraryEpisodeView) {
     const row = document.createElement("article");
     row.className = `episode-row${episode.hasVideo ? " clickable" : ""}`;
     const canResume = LibraryPresentation.episodeCanResume(episode);
@@ -215,7 +222,7 @@ function renderEpisodeRow(episode: LibraryEpisodeView) {
     return row;
 }
 
-function renderFileRow(episode: LibraryEpisodeView) {
+export function renderFileRow(episode: LibraryEpisodeView) {
     const row = document.createElement("article");
     row.className = "file-row";
     row.innerHTML = `<div><h3>${escapeHtml(lt("episodeLabel", { number: episodeNumber(episode) }))}</h3><p>${escapeHtml(episode.videoFilename || lt("missingVideo"))}</p><p>${escapeHtml(episode.subtitleFilename || lt("missingSubtitles"))}</p></div><div class="file-actions"><button class="button small subtitle-file-action" type="button" ${episode.hasVideo ? "" : "disabled"}>${escapeHtml(episode.hasSubtitle ? lt("changeJpSubs") : lt("findJpSubs"))}</button>${!episode.hasVideo && !episode.hasSubtitle ? `<button class="button small danger delete-missing-episode-btn" type="button">${escapeHtml(lt("deleteMissingEpisode"))}</button>` : ""}</div>`;
@@ -224,7 +231,7 @@ function renderFileRow(episode: LibraryEpisodeView) {
     return row;
 }
 
-async function openSeries(seriesId: string | number, updateHash = true) {
+export async function openSeries(seriesId: string | number, updateHash = true) {
     catalogView.classList.add("hidden");
     seriesView.classList.remove("hidden");
     libraryHeader.classList.add("hidden");
@@ -234,12 +241,12 @@ async function openSeries(seriesId: string | number, updateHash = true) {
     fileList.replaceChildren();
     const { response, data } = await libraryGetSeries(seriesId);
     if (!response.ok || data.error || !data.series) throw new Error(data.error || lt("couldNotLoadSeries"));
-    currentOpenedEpisodes = (data.episodes || []) as LibraryEpisodeView[];
-    currentOpenedSeries = { ...(data.series as LibrarySeriesView), completedEpisodes: currentOpenedEpisodes.filter((item) => item.completed).length };
-    const series = currentOpenedSeries;
+    currentOpenedEpisodesState.value = (data.episodes || []) as LibraryEpisodeView[];
+    currentOpenedSeriesState.value = { ...(data.series as LibrarySeriesView), completedEpisodes: currentOpenedEpisodesState.value.filter((item) => item.completed).length };
+    const series = currentOpenedSeriesState.value;
     const status = LibraryPresentation.seriesStatus(series);
-    const primary = LibraryPresentation.primaryAction(series, currentOpenedEpisodes);
-    const current = currentOpenedEpisodes.find((item) => !item.completed && Number(item.currentTimeSeconds || 0) > 5) || currentOpenedEpisodes.find((item) => !item.completed);
+    const primary = LibraryPresentation.primaryAction(series, currentOpenedEpisodesState.value);
+    const current = currentOpenedEpisodesState.value.find((item) => !item.completed && Number(item.currentTimeSeconds || 0) > 5) || currentOpenedEpisodesState.value.find((item) => !item.completed);
     seriesTitle.replaceChildren();
     const titleIcon = document.createElement("img");
     titleIcon.className = "series-link-status-icon";
@@ -255,55 +262,55 @@ async function openSeries(seriesId: string | number, updateHash = true) {
     seriesPrimaryAction.textContent = lt(primary.kind === "start" ? "startWatching" : primary.kind === "continue" ? "continueWatching" : "openEpisodes");
     seriesPrimaryAction.href = primary.episodeId ? `/?episodeId=${encodeURIComponent(primary.episodeId)}` : "#episodes";
     seriesDetailCover.innerHTML = series.coverUrl ? `<img src="${escapeHtml(series.coverUrl)}" alt="">` : `<span class="cover-letter">${escapeHtml(series.title.slice(0, 1))}</span>`;
-    episodeList.replaceChildren(...currentOpenedEpisodes.map(renderEpisodeRow));
-    fileList.replaceChildren(...currentOpenedEpisodes.map(renderFileRow));
+    episodeList.replaceChildren(...currentOpenedEpisodesState.value.map(renderEpisodeRow));
+    fileList.replaceChildren(...currentOpenedEpisodesState.value.map(renderFileRow));
     if (updateHash) history.pushState({ seriesId: series.id }, "", `#series=${encodeURIComponent(series.id)}`);
     window.scrollTo({ top: 0 });
 }
 
-function closeSeriesView(updateHash = true) {
+export function closeSeriesView(updateHash = true) {
     seriesView.classList.add("hidden");
     catalogView.classList.remove("hidden");
     libraryHeader.classList.remove("hidden");
     document.body.classList.remove("series-route");
-    currentOpenedSeries = null;
-    currentOpenedEpisodes = [];
+    currentOpenedSeriesState.value = null;
+    currentOpenedEpisodesState.value = [];
     if (updateHash) history.pushState({}, "", location.pathname);
 }
 
-function openSeriesFromHash() {
+export function openSeriesFromHash() {
     const match = location.hash.match(/^#series=(\d+)/);
-    if (match && (!currentOpenedSeries || String(currentOpenedSeries.id) !== match[1])) openSeries(match[1], false).catch(showError);
+    if (match && (!currentOpenedSeriesState.value || String(currentOpenedSeriesState.value.id) !== match[1])) openSeries(match[1], false).catch(showError);
     else if (!match && !seriesView.classList.contains("hidden")) closeSeriesView(false);
 }
 
-async function toggleEpisodeCompleted(episode: LibraryEpisodeView, checkbox: HTMLInputElement) {
+export async function toggleEpisodeCompleted(episode: LibraryEpisodeView, checkbox: HTMLInputElement) {
     checkbox.disabled = true;
     try {
         const { response, data } = await librarySetEpisodeCompleted(episode.id, checkbox.checked);
         if (!response.ok || data.error) throw new Error(data.error || lt("couldNotUpdateEpisodeStatus"));
         episode.completed = checkbox.checked;
-        if (currentOpenedSeries) await openSeries(currentOpenedSeries.id, false);
+        if (currentOpenedSeriesState.value) await openSeries(currentOpenedSeriesState.value.id, false);
         await loadLibrarySeries();
     } catch (error) { checkbox.checked = !checkbox.checked; showError(error); }
     finally { checkbox.disabled = false; }
 }
 
-async function deleteMissingEpisode(episode: LibraryEpisodeView) {
+export async function deleteMissingEpisode(episode: LibraryEpisodeView) {
     if (!confirm(lt("deleteMissingEpisodeConfirm", { title: episode.title || lt("untitled") }))) return;
     const { response, data } = await libraryDeleteMissingEpisode(episode.id);
     if (!response.ok || data.error) throw new Error(data.error || lt("deleteMissingEpisodeFailed"));
-    if (currentOpenedSeries) await openSeries(currentOpenedSeries.id, false);
+    if (currentOpenedSeriesState.value) await openSeries(currentOpenedSeriesState.value.id, false);
     await loadLibrarySeries();
 }
 
-async function chooseLocalFolder(initialPath = "") {
+export async function chooseLocalFolder(initialPath = "") {
     const { response, data } = await libraryChooseFolder(initialPath);
     if (!response.ok || data.error) throw new Error(data.error || lt("openFolderDialogFailed"));
     return data.cancelled || !data.path ? null : String(data.path);
 }
 
-async function startAndPollLibraryJob(requestPath: string, requestOptions: RequestInit = {}, failureMessage = lt("scanFailed")) {
+export async function startAndPollLibraryJob(requestPath: string, requestOptions: RequestInit = {}, failureMessage = lt("scanFailed")) {
     const { response, data } = await libraryStartJob(requestPath, requestOptions);
     if (!response.ok || data.error) throw new Error(data.error || failureMessage);
     const jobId = (data as LibraryJobData).job?.id;
@@ -318,43 +325,43 @@ async function startAndPollLibraryJob(requestPath: string, requestOptions: Reque
     }
 }
 
-async function addAnimeFromPath() {
+export async function addAnimeFromPath() {
     const path = await chooseLocalFolder();
     if (!path) return;
     await startAndPollLibraryJob("/library/scan-path", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path }) }, lt("addAnimeFailed"));
     await loadLibrarySeries();
 }
 
-async function deleteSeriesFromLibrary(seriesId: string | number, title?: string) {
-    if (!confirm(lt("deleteSeriesConfirm", { title: title || currentOpenedSeries?.title || lt("untitled") }))) return;
+export async function deleteSeriesFromLibrary(seriesId: string | number, title?: string) {
+    if (!confirm(lt("deleteSeriesConfirm", { title: title || currentOpenedSeriesState.value?.title || lt("untitled") }))) return;
     const { response, data } = await libraryDeleteSeries(seriesId);
     if (!response.ok || data.error) throw new Error(data.error || lt("deleteSeriesFailed"));
     closeSeriesView();
     await loadLibrarySeries();
 }
 
-async function relinkCurrentSeriesFiles() {
-    if (!currentOpenedSeries) return;
+export async function relinkCurrentSeriesFiles() {
+    if (!currentOpenedSeriesState.value) return;
     const path = await chooseLocalFolder();
     if (!path) return;
-    const { response, data } = await libraryRelinkSeries(currentOpenedSeries.id, { path });
+    const { response, data } = await libraryRelinkSeries(currentOpenedSeriesState.value.id, { path });
     if (!response.ok || data.error) throw new Error(data.error || lt("relinkFailed"));
-    await openSeries(currentOpenedSeries.id, false);
+    await openSeries(currentOpenedSeriesState.value.id, false);
     await loadLibrarySeries();
 }
 
-function refreshCurrentSeriesLinkStatus() {
-    if (!currentOpenedSeries) return;
-    currentOpenedSeries.linkStatus = LibraryPresentation.linkStatus(currentOpenedEpisodes);
+export function refreshCurrentSeriesLinkStatus() {
+    if (!currentOpenedSeriesState.value) return;
+    currentOpenedSeriesState.value.linkStatus = LibraryPresentation.linkStatus(currentOpenedEpisodesState.value);
 }
 
-const subtitleController = createLibrarySubtitleController({ modal: subtitleModal, title: subtitleModalTitle, subtitle: subtitleModalSubtitle, searchInput: subtitleSearchInput, searchButton: subtitleSearchBtn, results: subtitleResults, getSeries: () => currentOpenedSeries, translate: lt, escapeHtml, formatBytes, search: librarySearchEpisodeSubtitles, select: librarySelectEpisodeSubtitle, refreshSeriesStatus: refreshCurrentSeriesLinkStatus, reportError: showError });
-const openSubtitleSearchModal = subtitleController.open;
-const closeSubtitleModal = subtitleController.close;
-const searchSubtitlesForCurrentEpisode = subtitleController.search;
-const coverController = createLibraryCoverController({ modal: coverModal, title: coverModalTitle, subtitle: coverModalSubtitle, searchInput: coverSearchInput, searchButton: coverSearchBtn, results: coverResults, translate: lt, escapeHtml, search: librarySearchSeriesCover, select: librarySelectSeriesCover, reload: async () => { await loadLibrarySeries(); if (currentOpenedSeries) await openSeries(currentOpenedSeries.id, false); }, reportError: showError });
-const openCoverSearchModal = coverController.open;
-const closeCoverModal = coverController.close;
-const searchCoversForCurrentSeries = coverController.search;
+export const subtitleController = createLibrarySubtitleController({ modal: subtitleModal, title: subtitleModalTitle, subtitle: subtitleModalSubtitle, searchInput: subtitleSearchInput, searchButton: subtitleSearchBtn, results: subtitleResults, getSeries: () => currentOpenedSeriesState.value, translate: lt, escapeHtml, formatBytes, search: librarySearchEpisodeSubtitles, select: librarySelectEpisodeSubtitle, refreshSeriesStatus: refreshCurrentSeriesLinkStatus, reportError: showError });
+export const openSubtitleSearchModal = subtitleController.open;
+export const closeSubtitleModal = subtitleController.close;
+export const searchSubtitlesForCurrentEpisode = subtitleController.search;
+export const coverController = createLibraryCoverController({ modal: coverModal, title: coverModalTitle, subtitle: coverModalSubtitle, searchInput: coverSearchInput, searchButton: coverSearchBtn, results: coverResults, translate: lt, escapeHtml, search: librarySearchSeriesCover, select: librarySelectSeriesCover, reload: async () => { await loadLibrarySeries(); if (currentOpenedSeriesState.value) await openSeries(currentOpenedSeriesState.value.id, false); }, reportError: showError });
+export const openCoverSearchModal = coverController.open;
+export const closeCoverModal = coverController.close;
+export const searchCoversForCurrentSeries = coverController.search;
 
-function showError(error: unknown) { alert(error instanceof Error ? error.message : String(error)); }
+export function showError(error: unknown) { alert(error instanceof Error ? error.message : String(error)); }

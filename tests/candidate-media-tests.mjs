@@ -1,28 +1,30 @@
 import assert from "node:assert/strict";
-import fs from "node:fs";
-import vm from "node:vm";
+import { installDom } from "./dom-environment.mjs";
+const dom = installDom();
+
 
 const fields = {
+    sentenceFuriganaField: "",
     screenshotMode: "current", pictureField: "Picture", audioField: "Audio", sentenceField: "Sentence",
     ankiUrl: "http://anki.test", deckName: "Japanese", fontSizeRange: "24", subOffsetStart: "0", subOffsetEnd: "0",
 };
 let includeImageSubtitle = true;
 let currentContext = { startTime: 10, endTime: 15, text: "猫です。" };
 const requests = [];
-const context = vm.createContext({
-    console, AbortController, setTimeout, clearTimeout,
-    document: { getElementById: (id) => ({ value: fields[id] || "", checked: includeImageSubtitle }) },
-    buildApiUrl: (url) => url,
-    fetch: async (url, options) => {
-        const body = JSON.parse(options.body);
-        requests.push([url, body]);
-        return { ok: true, json: async () => ({ filename: url === "/screenshot" ? "image.jpg" : "audio.mp3", result: null }) };
-    },
-});
-vm.runInContext(fs.readFileSync("dist/js/player/anki-actions.js", "utf8"), context);
-context.fetchNotesInfo = async () => [{ noteId: 123, fields: { Expression: { value: "猫" } } }];
+const context = await import("../dist/esm/player/anki-actions.js");
+function syncFields() {
+    for (const [id, value] of Object.entries(fields)) document.getElementById(id).value = value;
+    document.getElementById("includeImageSubtitle").checked = includeImageSubtitle;
+}
+globalThis.fetch = async (url, options) => {
+    const path = new URL(url).pathname;
+    requests.push([path, JSON.parse(options.body)]);
+    return new Response(JSON.stringify({filename: path === "/screenshot" ? "image.jpg" : "audio.mp3", result: null}));
+};
+syncFields();
 const media = context.createAnkiMediaController({
     translate: String,
+    fetchNotesInfo: async () => [{ noteId: 123, fields: { Expression: { value: "猫" } } }],
     getVideoPayload: () => ({ filename: "original.mp4" }),
     getVideoCurrentTime: () => 12,
     getValidatedVolume: () => 0.5,
@@ -50,8 +52,11 @@ assert.equal(requests[1][1].filename, "original.mp4");
 assert.equal(requests[2][1].params.note.id, 123);
 assert.ok(requests[2][1].params.note.fields.Sentence.includes("猫"));
 fields.imageSubtitleMode = "timed";
+syncFields();
 fields.screenshotMode = "webp";
+syncFields();
 fields.subOffsetStart = "-0.5";
+syncFields();
 currentContext = { startTime: 10, endTime: 15, text: "First Second", items: [
     { start: 10, end: 11, text: "First" }, { start: 12, end: 15, text: "Second" }
 ] };
@@ -68,21 +73,29 @@ assert.deepEqual(requests[0][1].imageSubtitleCues, [
     { start: 11, end: 12, text: "First" }, { start: 13, end: 16, text: "Second" }
 ]);
 includeImageSubtitle = false;
+syncFields();
 const hidden = media.buildSnapshot();
 assert.equal(hidden.imageSubtitleCues.length, 2);
 assert.equal(context.buildImageSubtitleExport(hidden).text, "");
 assert.equal(context.buildImageSubtitleExport(hidden).imageSubtitleCues.length, 0);
 includeImageSubtitle = true;
+syncFields();
 fields.imageSubtitleMode = "all";
+syncFields();
 requests.length = 0;
 await media.updateNote(123, timed);
 assert.equal(requests[0][1].imageSubtitleMode, "all");
 fields.imageSubtitleMode = "timed";
+syncFields();
 requests.length = 0;
 await media.updateNote(123, timed);
 assert.equal(requests[0][1].imageSubtitleMode, "timed");
 fields.pictureField = "";
+syncFields();
 fields.ankiUrl = "";
+syncFields();
 assert.throws(() => media.buildSnapshot());
 assert.doesNotThrow(() => media.buildSnapshot({ validateAnki: false }));
 console.log("Candidate media snapshot and manual validation tests passed");
+
+dom.window.close();

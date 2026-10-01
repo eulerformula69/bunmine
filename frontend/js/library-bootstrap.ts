@@ -1,40 +1,12 @@
-{
-    const scripts: string[] = [
-        "/dist/js/core/api.js",
-        "/dist/js/library/library-api.js",
-        "/dist/js/library/library-types.js",
-        "/dist/js/library/library-i18n.js",
-        "/dist/js/library/library-presentation.js",
-        "/dist/js/library/library-bulk-model.js",
-        "/dist/js/library/library-cover-controller.js",
-        "/dist/js/library/library-subtitle-controller.js",
-        "/dist/js/library/library-bulk-workflow.js",
-        "/dist/js/library/vocabulary-report-controller.js",
-        "/dist/js/library/library.js",
-        "/dist/js/library/library-bindings.js",
-    ];
-
-    const loadScript = (src: string): Promise<void> => {
-        return new Promise<void>((resolve, reject) => {
-            const script = document.createElement("script");
-
-            script.src = src;
-            script.async = false;
-            script.defer = false;
-
-            script.onload = () => resolve();
-
-            script.onerror = () => {
-                reject(new Error(`Could not load ${src}`));
-            };
-
-            document.head.appendChild(script);
-        });
-    };
-
-    (async (): Promise<void> => {
-        for (const src of scripts) {
-            await loadScript(src);
-        }
-    })();
-}
+import "./core/api.js";
+import "./library/library-api.js";
+import "./library/library-types.js";
+import "./library/library-i18n.js";
+import "./library/library-presentation.js";
+import "./library/library-bulk-model.js";
+import "./library/library-cover-controller.js";
+import "./library/library-subtitle-controller.js";
+import "./library/library-bulk-workflow.js";
+import "./library/vocabulary-report-controller.js";
+import "./library/library.js";
+import "./library/library-bindings.js";

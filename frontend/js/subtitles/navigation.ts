@@ -1,4 +1,5 @@
-function findSubtitleIndexForOffset(
+import { RuntimeSubtitleCue } from "./model.js";
+export function findSubtitleIndexForOffset(
     cues: RuntimeSubtitleCue[],
     currentTime: number,
     offset: number
@@ -17,7 +18,7 @@ function findSubtitleIndexForOffset(
     return (previous || groups[0]).index;
 }
 
-function getSubtitleStartGroups(cues: RuntimeSubtitleCue[]): Array<{ start: number; index: number }> {
+export function getSubtitleStartGroups(cues: RuntimeSubtitleCue[]): Array<{ start: number; index: number }> {
     const groups: Array<{ start: number; index: number }> = [];
     cues.forEach((cue, index) => {
         if (!groups.length || Math.abs(groups[groups.length - 1].start - cue.start) > 0.02) {
@@ -27,7 +28,7 @@ function getSubtitleStartGroups(cues: RuntimeSubtitleCue[]): Array<{ start: numb
     return groups;
 }
 
-function findSubtitleIndexForPlaybackTime(
+export function findSubtitleIndexForPlaybackTime(
     cues: RuntimeSubtitleCue[],
     currentTime: number,
     delaySeconds: number

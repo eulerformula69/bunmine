@@ -1,4 +1,5 @@
-interface VideoRestoreDom {
+import { VideoListItem } from "../types/api.js";
+export interface VideoRestoreDom {
     video: HTMLVideoElement;
     dropzone: HTMLElement;
     overlay: HTMLElement | null;
@@ -6,6 +7,6 @@ interface VideoRestoreDom {
     videoPickerList: HTMLElement | null;
 }
 
-interface UploadedVideoInfo extends VideoListItem {
+export interface UploadedVideoInfo extends VideoListItem {
     filename: string;
 }

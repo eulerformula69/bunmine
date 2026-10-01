@@ -1,4 +1,7 @@
-interface ActiveSubtitleContextDrag {
+import { SubtitleDepthKind, renderSubtitles } from "./sidebar-render.js";
+import { state } from "../core/state.js";
+import { getSubtitleContextRange, setSubtitleContextDepths } from "./subtitles-sidebar.js";
+export interface ActiveSubtitleContextDrag {
     kind: SubtitleDepthKind;
     currentIdx: number;
     pointerId: number;
@@ -9,13 +12,13 @@ interface ActiveSubtitleContextDrag {
     pendingClientY: number;
 }
 
-let activeSubtitleContextDrag: ActiveSubtitleContextDrag | null = null;
+export const activeSubtitleContextDragState = { value: null as ActiveSubtitleContextDrag | null };
 
-function isSubtitleContextDragging(): boolean {
-    return activeSubtitleContextDrag !== null;
+export function isSubtitleContextDragging(): boolean {
+    return activeSubtitleContextDragState.value !== null;
 }
 
-function initSubtitleContextDrag() {
+export function initSubtitleContextDrag() {
     if (document.body.dataset.subtitleContextDragInitialized === "true") return;
 
     document.body.dataset.subtitleContextDragInitialized = "true";
@@ -24,8 +27,8 @@ function initSubtitleContextDrag() {
     document.addEventListener("pointercancel", stopSubtitleContextDrag);
 }
 
-function startSubtitleContextDrag(kind: SubtitleDepthKind, event: PointerEvent) {
-    if (!subtitles.length) return;
+export function startSubtitleContextDrag(kind: SubtitleDepthKind, event: PointerEvent) {
+    if (!state.subtitles.length) return;
 
     const context = getSubtitleContextRange();
     if (context.currentIdx < 0) return;
@@ -43,7 +46,7 @@ function startSubtitleContextDrag(kind: SubtitleDepthKind, event: PointerEvent) 
     ghost.style.height = `${rect.height}px`;
     document.body.appendChild(ghost);
 
-    activeSubtitleContextDrag = {
+    activeSubtitleContextDragState.value = {
         kind,
         currentIdx: context.currentIdx,
         pointerId: event.pointerId,
@@ -62,17 +65,17 @@ function startSubtitleContextDrag(kind: SubtitleDepthKind, event: PointerEvent) 
     document.body.dataset.subtitleDepthDragKind = kind;
 }
 
-function onSubtitleContextDragMove(event: PointerEvent) {
-    const drag = activeSubtitleContextDrag;
+export function onSubtitleContextDragMove(event: PointerEvent) {
+    const drag = activeSubtitleContextDragState.value;
     if (!drag || event.pointerId !== drag.pointerId) return;
 
     drag.pendingClientY = event.clientY;
     if (drag.frameId !== null) return;
 
     drag.frameId = requestAnimationFrame(() => {
-        if (!activeSubtitleContextDrag) return;
+        if (!activeSubtitleContextDragState.value) return;
 
-        const currentDrag = activeSubtitleContextDrag;
+        const currentDrag = activeSubtitleContextDragState.value;
         currentDrag.frameId = null;
         currentDrag.ghost.style.transform = `translateY(${currentDrag.pendingClientY - currentDrag.startClientY}px)`;
         updateSubtitleContextDepthFromPointer(
@@ -83,14 +86,14 @@ function onSubtitleContextDragMove(event: PointerEvent) {
     });
 }
 
-function stopSubtitleContextDrag(event: PointerEvent) {
-    const drag = activeSubtitleContextDrag;
+export function stopSubtitleContextDrag(event: PointerEvent) {
+    const drag = activeSubtitleContextDragState.value;
     if (!drag || event.pointerId !== drag.pointerId) return;
 
     if (drag.frameId !== null) cancelAnimationFrame(drag.frameId);
     drag.ghost.style.transform = `translateY(${event.clientY - drag.startClientY}px)`;
     updateSubtitleContextDepthFromPointer(drag.kind, event.clientY, drag.currentIdx);
-    activeSubtitleContextDrag = null;
+    activeSubtitleContextDragState.value = null;
     document.body.style.cursor = "";
     document.documentElement.style.cursor = "";
     document.body.style.userSelect = "auto";
@@ -100,7 +103,7 @@ function stopSubtitleContextDrag(event: PointerEvent) {
     requestAnimationFrame(() => settleSubtitleContextDragGhost(drag));
 }
 
-function settleSubtitleContextDragGhost(drag: ActiveSubtitleContextDrag) {
+export function settleSubtitleContextDragGhost(drag: ActiveSubtitleContextDrag) {
     const target = document.querySelector<HTMLElement>(
         `.subtitle-depth-handle[data-kind="${drag.kind}"]`
     );
@@ -117,15 +120,15 @@ function settleSubtitleContextDragGhost(drag: ActiveSubtitleContextDrag) {
     window.setTimeout(() => finishSubtitleContextDragGhost(drag.ghost), 240);
 }
 
-function finishSubtitleContextDragGhost(ghost: HTMLElement) {
+export function finishSubtitleContextDragGhost(ghost: HTMLElement) {
     ghost.remove();
     delete document.body.dataset.subtitleDepthDragKind;
 }
 
-function updateSubtitleContextDepthFromPointer(kind: SubtitleDepthKind, clientY: number, currentIdx: number) {
-    if (!subtitleElements.length) return;
+export function updateSubtitleContextDepthFromPointer(kind: SubtitleDepthKind, clientY: number, currentIdx: number) {
+    if (!state.subtitleElements.length) return;
 
-    const allowedElements = subtitleElements.filter(({ index }) => (
+    const allowedElements = state.subtitleElements.filter(({ index }) => (
         kind === "back" ? index <= currentIdx : index >= currentIdx
     ));
     if (!allowedElements.length) return;
@@ -145,13 +148,13 @@ function updateSubtitleContextDepthFromPointer(kind: SubtitleDepthKind, clientY:
     });
 
     if (kind === "back") {
-        if (activeSubtitleContextDrag?.lastTargetIndex === nearestIndex) return;
-        if (activeSubtitleContextDrag) activeSubtitleContextDrag.lastTargetIndex = nearestIndex;
+        if (activeSubtitleContextDragState.value?.lastTargetIndex === nearestIndex) return;
+        if (activeSubtitleContextDragState.value) activeSubtitleContextDragState.value.lastTargetIndex = nearestIndex;
         setSubtitleContextDepths({ backDepth: Math.max(0, currentIdx - nearestIndex) });
         return;
     }
 
-    if (activeSubtitleContextDrag?.lastTargetIndex === nearestIndex) return;
-    if (activeSubtitleContextDrag) activeSubtitleContextDrag.lastTargetIndex = nearestIndex;
+    if (activeSubtitleContextDragState.value?.lastTargetIndex === nearestIndex) return;
+    if (activeSubtitleContextDragState.value) activeSubtitleContextDragState.value.lastTargetIndex = nearestIndex;
     setSubtitleContextDepths({ forwardDepth: Math.max(0, nearestIndex - currentIdx) });
 }

@@ -1,11 +1,12 @@
-interface SubtitleFormatDetectionInput {
+import { SubtitleFormat } from "./model.js";
+export interface SubtitleFormatDetectionInput {
     format?: SubtitleFormat;
     filename?: string;
     mimeType?: string;
     source?: string;
 }
 
-function detectSubtitleFormat(input: SubtitleFormatDetectionInput): SubtitleFormat {
+export function detectSubtitleFormat(input: SubtitleFormatDetectionInput): SubtitleFormat {
     if (input.format && input.format !== "unknown") return input.format;
 
     const extension = input.filename?.trim().toLowerCase().match(/\.([a-z0-9]+)$/)?.[1];

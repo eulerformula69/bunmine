@@ -14,6 +14,7 @@ _DEPENDENCY_BUILD_INPUTS = (
 )
 _DEPENDENCY_BUILD_STAMP = "dist/.frontend-dependencies.sha256"
 _TYPESCRIPT_BUILD_CONFIG_INPUTS = (
+    "tools/build-frontend.mjs",
     "package.json",
     "package-lock.json",
     "tsconfig.json",
@@ -115,9 +116,10 @@ def _typescript_outputs_exist(project_dir: Path) -> bool:
     if not source_paths:
         return False
 
-    frontend_dir = project_dir / "frontend"
-    dist_dir = project_dir / "dist"
-    return all(
+    frontend_dir = project_dir / "frontend/js"
+    dist_dir = project_dir / "dist/esm"
+    bundles = (project_dir / "dist/js/player.js", project_dir / "dist/js/library.js")
+    return all(path.is_file() for path in bundles) and all(
         (dist_dir / source_path.relative_to(frontend_dir)).with_suffix(".js").is_file()
         for source_path in source_paths
     )
@@ -163,4 +165,5 @@ def build_frontend_on_startup(project_dir: Path, timeout_seconds: int = 600) -> 
     else:
         logging.getLogger(__name__).info("Building changed TypeScript files...")
         _run_npm(project_dir, ["run", "build:ts"], timeout_seconds)
+        _write_dependency_build_stamp(project_dir, fingerprint)
         _write_typescript_build_stamp(project_dir, typescript_fingerprint)

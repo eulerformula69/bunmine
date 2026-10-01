@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
-import vm from "node:vm";
+import { installDom } from "./dom-environment.mjs";
+const dom = installDom();
 
 const fixtureDir = path.resolve("tests/fixtures/subtitles");
 const fixture = (name) => fs.readFileSync(path.join(fixtureDir, name), "utf8");
@@ -17,37 +18,36 @@ class TestVTTCue extends EventTarget {
 }
 
 const context = { console, Event, EventTarget, ReadableStream };
-context.window = context;
+context.window = window;
 context.window.VTTCue = TestVTTCue;
-vm.createContext(context);
+globalThis.VTTCue = TestVTTCue;
+Object.defineProperty(globalThis, "EventTarget", { configurable: true, value: window.EventTarget });
+const { ParseErrorCode, parseText } = await import("media-captions");
+globalThis.MediaCaptions = { ParseErrorCode, parseText };
 
-for (const file of [
-    "dist/js/subtitles/model.js",
-    "dist/js/subtitles/parser-types.js",
-    "dist/js/subtitles/format-detection.js",
-    "dist/js/subtitles/normalization.js",
-    "dist/js/subtitles/parsing.js",
-    "dist/js/subtitles/parsers/legacy-parser.js",
-    "dist/js/subtitles/parsers/external-parser.js",
-    "frontend/libs/media-captions/media-captions.js",
-    "dist/js/subtitles/parsers/media-captions-ass-metadata.js",
-    "dist/js/subtitles/parsers/media-captions-parser.js",
-    "dist/js/subtitles/parser-registry.js",
-    "dist/js/subtitles/parse-subtitle-source.js"
-]) {
-    vm.runInContext(fs.readFileSync(file, "utf8"), context, { filename: file });
-}
+Object.assign(context,
+    await import("../dist/esm/subtitles/model.js"),
+    await import("../dist/esm/subtitles/parser-types.js"),
+    await import("../dist/esm/subtitles/format-detection.js"),
+    await import("../dist/esm/subtitles/normalization.js"),
+    await import("../dist/esm/subtitles/parsing.js"),
+    await import("../dist/esm/subtitles/parsers/legacy-parser.js"),
+    await import("../dist/esm/subtitles/parsers/external-parser.js"),
+    await import("../dist/esm/subtitles/parsers/media-captions-ass-metadata.js"),
+    await import("../dist/esm/subtitles/parsers/media-captions-parser.js"),
+    await import("../dist/esm/subtitles/parser-registry.js"),
+    await import("../dist/esm/subtitles/parse-subtitle-source.js")
+);
 
-const evaluate = (source) => vm.runInContext(source, context);
 
 async function parseFixture(name, format) {
     context.fixtureSource = fixture(name);
     context.fixtureFormat = format;
-    return evaluate("parseSubtitleSource({ source: fixtureSource, format: fixtureFormat })");
+    return (context.parseSubtitleSource({ source: context.fixtureSource, format: context.fixtureFormat }));
 }
 
 assert.deepEqual(
-    Array.from(evaluate('subtitleParserRegistry.resolveAll("srt").map((provider) => provider.id)')),
+    Array.from((context.subtitleParserRegistry.resolveAll("srt").map((provider) => provider.id))),
     ["media-captions", "legacy"]
 );
 
@@ -131,12 +131,12 @@ assert.match(malformedOverridePrefixes.cues[0].rawText, /^\{2\\pos/);
 
 context.malformedOverrideSource = "{2\\pos(960,12)\\fad(0,300)\\clip(m 1 2 l 3 4)\\an8\\fs40}字幕";
 assert.equal(
-    evaluate("normalizeMediaCaptionsAssSource(malformedOverrideSource)"),
+    (context.normalizeMediaCaptionsAssSource(context.malformedOverrideSource)),
     "{\\pos(960,12)\\fad(0,300)\\clip(m 1 2 l 3 4)\\an8\\fs40}字幕",
     "normalization must remove only the numeric prefix before the first ASS tag"
 );
 context.ordinaryAssText = "普通のテキスト 123";
-assert.equal(evaluate("normalizeMediaCaptionsAssSource(ordinaryAssText)"), context.ordinaryAssText);
+assert.equal((context.normalizeMediaCaptionsAssSource(context.ordinaryAssText)), context.ordinaryAssText);
 
 const ssa = await parseFixture("basic.ssa", "ssa");
 assert.equal(ssa.cues.length, 1);
@@ -165,8 +165,8 @@ assert.equal(stableFirst.cues[0].id, stableSecond.cues[0].id);
 for (const [name, format] of [["basic.srt", "srt"], ["basic.vtt", "vtt"]]) {
     context.fixtureSource = fixture(name);
     context.fixtureFormat = format;
-    const external = await evaluate("new MediaCaptionsSubtitleParser().parse({ source: fixtureSource, format: fixtureFormat })");
-    const legacy = await evaluate("new LegacySubtitleParser().parse({ source: fixtureSource, format: fixtureFormat })");
+    const external = await (new context.MediaCaptionsSubtitleParser().parse({ source: context.fixtureSource, format: context.fixtureFormat }));
+    const legacy = await (new context.LegacySubtitleParser().parse({ source: context.fixtureSource, format: context.fixtureFormat }));
     assert.equal(external.cues.length, legacy.cues.length, `${name}: cue count`);
     assert.deepEqual(
         Array.from(external.cues, (cue) => [cue.startTime, cue.endTime, cue.text]),
@@ -184,3 +184,5 @@ const filesWithLibraryTypes = parserSourceFiles.filter((name) => {
 assert.deepEqual(filesWithLibraryTypes, ["media-captions-parser.ts"]);
 
 console.log("Media captions provider fixture and regression tests passed");
+
+dom.window.close();

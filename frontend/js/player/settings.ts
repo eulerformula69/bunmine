@@ -1,6 +1,15 @@
-declare function updateFullscreenButtonText(): void;
+import { ApiPayload } from "../types/api.js";
+import { state } from "../core/state.js";
+import { showToast, updateFullscreenButtonText } from "./ui.js";
+import { apiJson } from "../core/api.js";
+import { video } from "../core/dom.js";
+import { i18n } from "../core/i18n.js";
+import { updateSubtitleSidebarLabels } from "../subtitles/subtitles-sidebar.js";
+import { candidatePanel } from "./candidate-bindings.js";
+import { updateSubtitleSearchPanelLanguage } from "../subtitles/sidebar-actions.js";
 
-interface PlayerSettings {
+
+export interface PlayerSettings {
     language?: string;
     fontSize?: string;
     offsetStart?: string;
@@ -39,19 +48,19 @@ interface PlayerSettings {
     autoAttachNextCardEnabled?: boolean;
 }
 
-interface SaveAnkiHighlightAutoRefreshResponse extends ApiPayload {
+export interface SaveAnkiHighlightAutoRefreshResponse extends ApiPayload {
     error?: string;
 }
 
-function getSettingsInput(id: string): HTMLInputElement {
+export function getSettingsInput(id: string): HTMLInputElement {
     return document.getElementById(id) as HTMLInputElement;
 }
 
-function getSettingsSelect(id: string): HTMLSelectElement {
+export function getSettingsSelect(id: string): HTMLSelectElement {
     return document.getElementById(id) as HTMLSelectElement;
 }
 
-function enableWheelOnSettings(): void {
+export function enableWheelOnSettings(): void {
     const settingsInputs = document.querySelectorAll<HTMLInputElement>("#settingsModal input[type=\"number\"], #settingsModal input[type=\"range\"]");
     settingsInputs.forEach((input) => {
         input.addEventListener("wheel", (e: WheelEvent) => {
@@ -79,9 +88,9 @@ function enableWheelOnSettings(): void {
 
 }
 
-function collectSettings(): PlayerSettings {
+export function collectSettings(): PlayerSettings {
     return {
-        language: currentLang,
+        language: state.currentLang,
         fontSize: getSettingsInput("fontSizeRange").value,
         offsetStart: getSettingsInput("subOffsetStart").value,
         offsetEnd: getSettingsInput("subOffsetEnd").value,
@@ -116,18 +125,18 @@ function collectSettings(): PlayerSettings {
 		showComprehensionI4: getSettingsInput("showComprehensionI4")?.checked ?? true,
 		showComprehensionI5Plus: getSettingsInput("showComprehensionI5Plus")?.checked ?? true,
         autoAttachNextCardEnabled: getSettingsInput("autoAttachNextCardEnabled")?.checked ?? false
-		
+
     };
 }
 
-function saveSettingsLocal({ silent = false }: { silent?: boolean } = {}): PlayerSettings {
+export function saveSettingsLocal({ silent = false }: { silent?: boolean } = {}): PlayerSettings {
     const settings = collectSettings();
     localStorage.setItem("subtitlePlayerSettings", JSON.stringify(settings));
     if (!silent) showToast("Settings saved", "success");
     return settings;
 }
 
-function saveSettings(): void {
+export function saveSettings(): void {
     const settings = saveSettingsLocal({ silent: true });
     saveAnkiHighlightAutoRefreshSettings(settings).catch((err) => {
         console.warn("Failed to save Anki highlight auto-refresh settings:", err);
@@ -136,8 +145,7 @@ function saveSettings(): void {
     showToast("Settings saved", "success");
 }
 
-async function saveAnkiHighlightAutoRefreshSettings(settings: PlayerSettings): Promise<void> {
-    if (typeof apiJson !== "function") return;
+export async function saveAnkiHighlightAutoRefreshSettings(settings: PlayerSettings): Promise<void> {
 
     const decks = String(settings.highlightDeckNames || "")
         .split(/[,\n]/)
@@ -167,19 +175,19 @@ async function saveAnkiHighlightAutoRefreshSettings(settings: PlayerSettings): P
     }
 }
 
-function loadSettings(): void {
+export function loadSettings(): void {
     const saved = localStorage.getItem("subtitlePlayerSettings");
     if (!saved) {
         initLangSelector();
-        applyLanguage(currentLang);
+        applyLanguage(state.currentLang);
         return;
     }
 
     const settings = JSON.parse(saved) as PlayerSettings;
-    if (settings.language) currentLang = settings.language;
+    if (settings.language) state.currentLang = settings.language;
 
     initLangSelector();
-    applyLanguage(currentLang);
+    applyLanguage(state.currentLang);
 
     if (settings.sidebarWidth) {
         const sidebarEl = document.getElementById("sidebar");
@@ -277,7 +285,7 @@ function loadSettings(): void {
     }
 
 	const delayEl = getSettingsInput("globalSubDelay");
-	if (delayEl) globalSubDelay = parseFloat(delayEl.value) || 0;
+	if (delayEl) state.globalSubDelay = parseFloat(delayEl.value) || 0;
 
 	const includeImageSubtitleEl = getSettingsInput("includeImageSubtitle");
 	if (includeImageSubtitleEl) {
@@ -299,34 +307,30 @@ function loadSettings(): void {
 
 }
 
-function applyLanguage(lang: string): void {
-    currentLang = lang;
+export function applyLanguage(lang: string): void {
+    state.currentLang = lang;
     const dictionary = i18n[lang].dict;
     document.querySelectorAll("[data-i18n]").forEach((el) => {
         const key = el.getAttribute("data-i18n");
         if (key && dictionary[key]) el.textContent = dictionary[key];
     });
 
-    if (typeof updateSubtitleSidebarLabels === "function") updateSubtitleSidebarLabels();
+    updateSubtitleSidebarLabels();
     updateImageSubtitleModeButton();
 
-    if (typeof candidatePanel !== "undefined") candidatePanel.render();
+    candidatePanel.render();
 
     const autoOption = document.querySelector<HTMLOptionElement>("#targetNoteSelect option[value='']");
     if (autoOption && dictionary.lastAdded) {
         autoOption.textContent = dictionary.lastAdded;
     }
 
-    if (typeof updateFullscreenButtonText === "function") {
-        updateFullscreenButtonText();
-    }
-		
-	if (typeof updateSubtitleSearchPanelLanguage === "function") {
-		updateSubtitleSearchPanelLanguage();
-	}	
+    updateFullscreenButtonText();
+
+    updateSubtitleSearchPanelLanguage();
 }
 
-function initLangSelector(): void {
+export function initLangSelector(): void {
     const langSelect = getSettingsSelect("interfaceLangSelect");
     if (!langSelect) return;
     langSelect.innerHTML = "";
@@ -336,18 +340,18 @@ function initLangSelector(): void {
         opt.textContent = i18n[langCode].name;
         langSelect.appendChild(opt);
     });
-    langSelect.value = currentLang;
+    langSelect.value = state.currentLang;
     langSelect.onchange = (e) => {
         applyLanguage((e.target as HTMLSelectElement).value);
         queueSettingsAutosave();
     };
 }
 
-let settingsAutosaveTimer: ReturnType<typeof setTimeout> | null = null;
+export const settingsAutosaveTimerState = { value: null as ReturnType<typeof setTimeout> | null };
 
-function queueSettingsAutosave(): void {
-    clearTimeout(settingsAutosaveTimer);
-    settingsAutosaveTimer = setTimeout(() => {
+export function queueSettingsAutosave(): void {
+    clearTimeout(settingsAutosaveTimerState.value);
+    settingsAutosaveTimerState.value = setTimeout(() => {
         try {
             saveSettingsLocal({ silent: true });
         } catch (err) {
@@ -356,11 +360,11 @@ function queueSettingsAutosave(): void {
     }, 250);
 }
 
-let settingsAutosaveInitialized = false;
+export const settingsAutosaveInitializedState = { value: false };
 
-function initSettingsAutosave(): void {
-    if (settingsAutosaveInitialized) return;
-    settingsAutosaveInitialized = true;
+export function initSettingsAutosave(): void {
+    if (settingsAutosaveInitializedState.value) return;
+    settingsAutosaveInitializedState.value = true;
     const imageSubtitleMode = document.getElementById("imageSubtitleMode") as HTMLButtonElement | null;
     imageSubtitleMode?.addEventListener("click", () => {
         imageSubtitleMode.value = imageSubtitleMode.value === "timed" ? "all" : "timed";
@@ -410,13 +414,13 @@ function initSettingsAutosave(): void {
     });
 }
 
-function updateImageSubtitleModeButton(): void {
+export function updateImageSubtitleModeButton(): void {
     const button = document.getElementById("imageSubtitleMode") as HTMLButtonElement | null;
     if (!button) return;
     const timed = button.value === "timed";
     button.dataset.i18n = timed ? "imageSubtitleTimed" : "imageSubtitleAll";
-    button.textContent = i18n[currentLang].dict[button.dataset.i18n];
-    button.title = i18n[currentLang].dict.imageSubtitleModeHelp;
+    button.textContent = i18n[state.currentLang].dict[button.dataset.i18n];
+    button.title = i18n[state.currentLang].dict.imageSubtitleModeHelp;
     button.setAttribute("aria-pressed", String(timed));
     button.disabled = getSettingsInput("includeImageSubtitle")?.checked === false;
 }
@@ -427,9 +431,9 @@ window.addEventListener("load", initSettingsAutosave);
 enableWheelOnSettings();
 
 initLangSelector();
-applyLanguage(currentLang);
+applyLanguage(state.currentLang);
 
-const langSelect = getSettingsSelect("interfaceLangSelect");
+export const langSelect = getSettingsSelect("interfaceLangSelect");
 if (langSelect) {
     langSelect.onchange = (e) => {
         applyLanguage((e.target as HTMLSelectElement).value);
