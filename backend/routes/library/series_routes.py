@@ -13,6 +13,7 @@ from backend.repositories.library_repository import (
 from backend.library_deletion import delete_library_series
 from backend.services.library_service import relink_library_series_files
 from backend.settings import current_settings
+from backend.utils_validation import is_within
 
 library_series_bp = Blueprint("library_series", __name__)
 
@@ -63,6 +64,8 @@ def library_series_relink(series_id):
     from pathlib import Path
 
     target_path = Path(raw_path).expanduser().resolve()
+    if not is_within(current_settings().media_library_dir, target_path):
+        return jsonify({"error": "Path is outside MEDIA_LIBRARY_DIR"}), 400
     if not target_path.exists():
         return jsonify({"error": "Path does not exist"}), 400
 

@@ -4,24 +4,6 @@ from backend.repositories.connection import get_db
 from backend.repositories.episode_file_query import primary_file_id_sql
 
 
-def _mark_missing_files(conn, rows) -> None:
-    missing_ids = [int(row["id"]) for row in rows if not (Path(row["path"]).expanduser().is_file())]
-    if not missing_ids:
-        return
-
-    placeholders = ", ".join("?" for _ in missing_ids)
-    conn.execute(
-        f"""
-        UPDATE library_files
-        SET file_exists = 0,
-            missing_since = COALESCE(missing_since, CURRENT_TIMESTAMP),
-            updated_at = CURRENT_TIMESTAMP
-        WHERE id IN ({placeholders})
-        """,
-        tuple(missing_ids),
-    )
-
-
 def get_library_file_by_id(db_path: Path, file_id: int) -> dict:
     with get_db(db_path) as conn:
         row = conn.execute(
@@ -32,17 +14,6 @@ def get_library_file_by_id(db_path: Path, file_id: int) -> dict:
             """,
             (file_id,),
         ).fetchone()
-        if row and row["file_exists"]:
-            _mark_missing_files(conn, [row])
-            if not Path(row["path"]).expanduser().is_file():
-                row = conn.execute(
-                    """
-                    SELECT id, series_id, episode_id, file_type, path, relative_path, file_exists, is_primary
-                    FROM library_files
-                    WHERE id = ?
-                    """,
-                    (file_id,),
-                ).fetchone()
         return {"found": bool(row), "file": dict(row) if row else None}
 
 

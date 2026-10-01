@@ -60,7 +60,7 @@ def library_db_status():
     return jsonify(get_library_db_status(current_settings().library_db_path))
 
 
-@library_file_bp.route("/library/scan", methods=["GET"])
+@library_file_bp.route("/library/scan", methods=["POST"])
 def library_scan():
     settings = current_settings()
     job = start_job(

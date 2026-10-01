@@ -19,11 +19,7 @@ MIGRATIONS = [
 def run_migrations(db_path: Path) -> None:
     """Run all pending migrations."""
     with get_db(db_path) as conn:
-        has_schema_meta = conn.execute(
-            "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'schema_meta'"
-        ).fetchone()
-        if not has_schema_meta:
-            conn.execute("PRAGMA journal_mode = WAL")
+        conn.execute("PRAGMA journal_mode = WAL")
         conn.execute("BEGIN IMMEDIATE")
         has_schema_meta = conn.execute(
             "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'schema_meta'"

@@ -1,4 +1,5 @@
 import ipaddress
+import http.client
 import re
 import socket
 import urllib.parse
@@ -10,23 +11,60 @@ from backend.utils_validation import is_within
 from backend.http_client import get_bytes
 
 
-def _validate_cover_url(cover_url: str, allowed_hosts: frozenset[str]) -> str:
+def _resolve_cover_url(cover_url: str, allowed_hosts: frozenset[str]) -> tuple[str, list]:
     parsed = urllib.parse.urlparse(cover_url)
     hostname = (parsed.hostname or "").lower()
-    if parsed.scheme != "https" or not hostname or hostname not in allowed_hosts:
+    if (parsed.scheme != "https" or not hostname or hostname not in allowed_hosts
+            or parsed.port not in (None, 443) or parsed.username or parsed.password):
         raise ValueError("Cover URL must use HTTPS and an allowed host")
 
     try:
-        addresses = {item[4][0] for item in socket.getaddrinfo(hostname, 443, type=socket.SOCK_STREAM)}
+        addresses = socket.getaddrinfo(hostname, 443, type=socket.SOCK_STREAM)
     except socket.gaierror as error:
         raise ValueError("Cover host could not be resolved") from error
     if not addresses:
         raise ValueError("Cover host could not be resolved")
     for address in addresses:
-        ip = ipaddress.ip_address(address)
+        ip = ipaddress.ip_address(address[4][0])
         if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved or ip.is_unspecified:
             raise ValueError("Cover host resolved to a non-public address")
-    return hostname
+    return hostname, addresses
+
+
+def _validate_cover_url(cover_url: str, allowed_hosts: frozenset[str]) -> str:
+    return _resolve_cover_url(cover_url, allowed_hosts)[0]
+
+
+class _PinnedHTTPSHandler(urllib.request.HTTPSHandler):
+    def __init__(self, allowed_hosts: frozenset[str]):
+        super().__init__()
+        self.allowed_hosts = allowed_hosts
+
+    def https_open(self, req):
+        hostname, addresses = _resolve_cover_url(req.full_url, self.allowed_hosts)
+
+        def connect_socket(_address, timeout, source_address=None):
+            last_error = None
+            for family, socktype, proto, _, address in addresses:
+                sock = socket.socket(family, socktype, proto)
+                try:
+                    sock.settimeout(timeout)
+                    if source_address:
+                        sock.bind(source_address)
+                    sock.connect(address)
+                    return sock
+                except OSError as error:
+                    sock.close()
+                    last_error = error
+            raise last_error or OSError("Cover host could not be reached")
+
+        def connection(_host, **kwargs):
+            conn = http.client.HTTPSConnection(hostname, **kwargs)
+            # Keep the original hostname for TLS verification and SNI.
+            conn._create_connection = connect_socket
+            return conn
+
+        return self.do_open(connection, req)
 
 
 class _ValidatedRedirectHandler(urllib.request.HTTPRedirectHandler):
@@ -67,7 +105,11 @@ def download_cover_file(
     filename = f"{identity}{_extension_from_url(cover_url)}"
     target_path = covers_dir / filename
 
-    opener = urllib.request.build_opener(_ValidatedRedirectHandler(allowed_hosts))
+    opener = urllib.request.build_opener(
+        urllib.request.ProxyHandler({}),
+        _PinnedHTTPSHandler(allowed_hosts),
+        _ValidatedRedirectHandler(allowed_hosts),
+    )
     data = get_bytes(
         cover_url,
         headers={

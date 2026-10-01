@@ -47,3 +47,21 @@ def test_ass_upload_and_restore_preserve_original_source(tmp_path):
     restored = client.get("/subtitle/episode.ass")
     assert restored.status_code == 200
     assert restored.get_data(as_text=True) == source
+
+
+def test_video_rejects_traversal_and_non_video_files(tmp_path):
+    client, video_dir = make_client(tmp_path)
+    (tmp_path / 'secret.mkv').write_bytes(b'secret')
+    (video_dir / 'secret.txt').write_text('secret')
+    (video_dir / 'valid.mkv').write_bytes(b'video')
+    assert client.get('/video/../secret.mkv').status_code == 400
+    assert client.get('/video/..%5Csecret.mkv').status_code == 400
+    assert client.get('/video/secret.txt').status_code == 400
+    assert client.get('/video/valid.mkv').data == b'video'
+
+
+def test_video_rejects_resolved_path_outside_root(tmp_path, monkeypatch):
+    client, video_dir = make_client(tmp_path)
+    (video_dir / 'link.mkv').write_bytes(b'video')
+    monkeypatch.setattr('backend.routes.media_routes.is_within', lambda *_: False)
+    assert client.get('/video/link.mkv').status_code == 404

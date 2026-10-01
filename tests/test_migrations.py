@@ -50,3 +50,13 @@ def test_migration_reads_version_after_write_lock(tmp_path, monkeypatch):
     runner.run_migrations(path)
     version_read = next(index for index, sql in enumerate(statements) if "SELECT value FROM schema_meta" in sql)
     assert statements.index("BEGIN IMMEDIATE") < version_read
+
+
+def test_existing_delete_journal_database_switches_to_wal(tmp_path):
+    path = tmp_path / 'old.db'
+    init_library_db(path)
+    with get_db(path) as conn:
+        conn.execute('PRAGMA journal_mode = DELETE')
+    init_library_db(path)
+    with get_db(path) as conn:
+        assert conn.execute('PRAGMA journal_mode').fetchone()[0] == 'wal'

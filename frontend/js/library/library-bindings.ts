@@ -18,7 +18,7 @@ scanLibraryBtn.addEventListener("click", async () => {
     scanLibraryBtn.disabled = true;
     scanLibraryBtn.textContent = lt("scanning");
     try {
-        await startAndPollLibraryJob("/library/scan");
+        await startAndPollLibraryJob("/library/scan", { method: "POST" });
         await loadLibrarySeries();
     } catch (error) { showError(error); }
     finally { scanLibraryBtn.disabled = false; scanLibraryBtn.textContent = lt("scanLibrary"); }

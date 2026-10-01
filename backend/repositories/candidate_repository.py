@@ -65,8 +65,7 @@ def create_candidate(db_path, snapshot, identity, episode_id):
 
 
 def change_candidate(db_path, candidate_id, action, token=None, note_id=None, revision=None):
-    with get_db(db_path) as conn:
-        conn.execute("BEGIN IMMEDIATE")
+    with get_db(db_path, immediate=True) as conn:
         now = time.time()
         conn.execute("DELETE FROM mining_acquire WHERE expires < ?", (now,))
         row = conn.execute("SELECT * FROM mining_candidates WHERE id = ?", (candidate_id,)).fetchone()
@@ -115,8 +114,7 @@ def change_candidate(db_path, candidate_id, action, token=None, note_id=None, re
 
 
 def update_context(db_path, candidate_id, revision, transform):
-    with get_db(db_path) as conn:
-        conn.execute("BEGIN IMMEDIATE")
+    with get_db(db_path, immediate=True) as conn:
         row = conn.execute("SELECT * FROM mining_candidates WHERE id = ?", (candidate_id,)).fetchone()
         if not row or row["status"] != "pending":
             raise ValueError("Candidate is no longer pending")

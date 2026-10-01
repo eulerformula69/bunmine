@@ -1,4 +1,5 @@
 from dataclasses import replace
+import pytest
 
 from flask import Flask
 
@@ -252,3 +253,34 @@ def test_library_scan_path_rejects_directory_outside_media_root(tmp_path, tempor
 
     assert response.status_code == 403
     assert response.get_json()["error"] == "Path must be inside MEDIA_LIBRARY_DIR"
+
+
+def test_scan_requires_post(tmp_path, temporary_settings, monkeypatch):
+    client, _, _ = make_client(tmp_path, temporary_settings)
+    calls = []
+    monkeypatch.setattr(file_routes, 'start_job', lambda *args: calls.append(args) or {'id': 'test'})
+    assert client.get('/library/scan').status_code == 405
+    assert calls == []
+    assert client.post('/library/scan').status_code == 202
+    assert len(calls) == 1
+
+
+def test_relink_rejects_existing_path_outside_root(tmp_path, temporary_settings, monkeypatch):
+    client, _, _ = make_client(tmp_path, temporary_settings)
+    monkeypatch.setattr(series_routes, 'relink_library_series_files', lambda **_: pytest.fail('Must not scan'))
+    assert client.post('/library/series/1/relink', json={'path': str(tmp_path)}).status_code == 400
+
+
+def test_file_read_keeps_database_unchanged(tmp_path, temporary_settings):
+    from backend.repositories.playback_repository import get_library_file_by_id
+    client, db, root = make_client(tmp_path, temporary_settings)
+    seed_playable_episode(db, root)
+    with get_db(db) as conn:
+        row = conn.execute("SELECT * FROM library_files WHERE file_type = 'video'").fetchone()
+        before = dict(row)
+    from pathlib import Path
+    Path(before['path']).unlink()
+    assert get_library_file_by_id(db, before['id'])['found']
+    with get_db(db) as conn:
+        assert dict(conn.execute('SELECT * FROM library_files WHERE id = ?', (before['id'],)).fetchone()) == before
+    assert client.post('/library/refresh-files').json['markedMissing'] == 1

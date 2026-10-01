@@ -22,11 +22,15 @@ def candidate_error(error):
     return jsonify(error=str(error)), 409
 
 
-@candidate_bp.route("/mining-candidates", methods=["GET", "POST"])
+@candidate_bp.route("/mining-candidates", methods=["GET"])
 def candidates():
     settings = current_app.config["SETTINGS"]
-    if request.method == "GET":
-        return jsonify(candidates=repository.list_candidates(settings.library_db_path))
+    return jsonify(candidates=repository.list_candidates(settings.library_db_path))
+
+
+@candidate_bp.route("/mining-candidates", methods=["POST"])
+def create_candidate():
+    settings = current_app.config["SETTINGS"]
     data = json_object()
     return jsonify(candidate=capture_candidate(settings, data.get("snapshot"))), 201
 

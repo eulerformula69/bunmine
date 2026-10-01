@@ -161,3 +161,22 @@ def test_routes(setup):
     assert accepted.status_code == 200
     assert accepted.json == {}
     assert client.get('/mining-candidates').json['candidates'] == []
+
+
+def test_concurrent_claim_has_one_winner(setup):
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Barrier
+    settings, snapshot = setup
+    candidate = capture_candidate(settings, snapshot)
+    barrier = Barrier(2)
+    def claim():
+        barrier.wait(timeout=5)
+        try:
+            return repository.change_candidate(settings.library_db_path, candidate['id'], 'claim')
+        except ValueError:
+            return None
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        results = list(pool.map(lambda _: claim(), range(2)))
+    assert sum(result is not None for result in results) == 1
+    with get_db(settings.library_db_path) as conn:
+        assert conn.execute('SELECT COUNT(*) FROM mining_acquire').fetchone()[0] == 1

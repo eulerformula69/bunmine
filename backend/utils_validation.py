@@ -25,7 +25,7 @@ def safe_uploaded_filename(raw_filename: str, allowed_extensions: set[str]) -> s
 
 def safe_media_name(raw_name: str) -> str:
     name = os.path.basename(raw_name or "")
-    if not name or name != raw_name:
+    if not name or name != raw_name or "\\" in name or "/" in name:
         raise ValueError("Некорректное имя файла")
     return name
 

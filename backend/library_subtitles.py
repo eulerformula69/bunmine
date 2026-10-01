@@ -1,6 +1,7 @@
 import json
 import time
 import urllib.parse
+import urllib.request
 from backend.http_client import get_bytes, get_json
 from pathlib import Path
 
@@ -68,11 +69,23 @@ def _cached_http_json_get(
     return data
 
 
-def _http_download(url: str, token: str | None = None, timeout: int = 30) -> bytes:
+class _JimakuRedirectHandler(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        parsed = urllib.parse.urlparse(newurl)
+        if parsed.scheme != "https" or parsed.netloc != "jimaku.cc":
+            raise ValueError("Invalid Jimaku download URL")
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+def _http_download(url: str, token: str | None = None, timeout: int = 30, max_bytes: int = 5 * 1024 * 1024) -> bytes:
+    parsed = urllib.parse.urlparse(url)
+    if parsed.scheme != "https" or parsed.netloc != "jimaku.cc":
+        raise ValueError("Invalid Jimaku download URL")
     headers = {"Accept": "text/plain,application/octet-stream,*/*", "User-Agent": "Bunmine/1.0"}
     if token:
         headers["Authorization"] = token
-    return get_bytes(url, headers=headers, timeout=timeout)
+    opener = urllib.request.build_opener(_JimakuRedirectHandler())
+    return get_bytes(url, headers=headers, timeout=timeout, max_bytes=max_bytes, opener=opener)
 
 
 def _extension_from_filename(filename: str) -> str:
@@ -286,6 +299,8 @@ def download_and_save_jimaku_subtitle(db_path: Path, episode_id: int, payload: d
         raise ValueError("entryId, filename and downloadUrl are required")
     if not _is_jimaku_download_url(str(download_url), entry_id):
         raise ValueError("Invalid Jimaku download URL")
+    if not _extension_from_filename(str(filename)):
+        raise ValueError("Unsupported subtitle format")
 
     context_result = get_episode_subtitle_context(db_path, episode_id)
     if not context_result.get("found"):
@@ -304,8 +319,6 @@ def download_and_save_jimaku_subtitle(db_path: Path, episode_id: int, payload: d
     data = _http_download(str(download_url), token=_auth_token())
     if not data:
         raise ValueError("Downloaded subtitle is empty")
-    if len(data) > 5 * 1024 * 1024:
-        raise ValueError("Downloaded subtitle is too large")
 
     target_path.write_bytes(data)
     relative_path = str(target_path.relative_to(media_library_dir))

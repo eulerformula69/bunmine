@@ -39,3 +39,36 @@ def test_cover_redirect_revalidates_target():
     handler = covers._ValidatedRedirectHandler(frozenset({"s3.anilist.co"}))
     with pytest.raises(ValueError, match="allowed host"):
         handler.redirect_request(None, None, 302, "redirect", {}, "https://localhost/private")
+
+
+def test_cover_download_rejects_oversize_response(tmp_path, monkeypatch):
+    import io
+    class Response(io.BytesIO):
+        headers = {'Content-Type': 'image/png'}
+        def read(self, size=-1):
+            assert size == 11
+            return super().read(size)
+    monkeypatch.setattr(covers.socket, 'getaddrinfo', lambda *a, **k: [(2, 1, 6, '', ('8.8.8.8', 443))])
+    monkeypatch.setattr(covers.urllib.request.OpenerDirector, 'open', lambda *a, **k: Response(b'x' * 20))
+    with pytest.raises(ValueError, match='size limit'):
+        download_cover_file(tmp_path, 1, 'test', 1, 'https://s3.anilist.co/a.png', frozenset({'s3.anilist.co'}), 10)
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_https_connection_uses_validated_address_and_original_tls_host(monkeypatch):
+    from unittest.mock import Mock
+    from urllib.request import Request
+    resolver = Mock(return_value=[(2, 1, 6, '', ('8.8.8.8', 443))])
+    monkeypatch.setattr(covers.socket, 'getaddrinfo', resolver)
+    sock = Mock()
+    monkeypatch.setattr(covers.socket, 'socket', Mock(return_value=sock))
+    handler = covers._PinnedHTTPSHandler(frozenset({'s3.anilist.co'}))
+    def open_connection(factory, request):
+        conn = factory(request.host, timeout=12)
+        assert conn.host == 's3.anilist.co'
+        resolver.side_effect = AssertionError('Must not resolve again')
+        assert conn._create_connection((conn.host, 443), 12) is sock
+        sock.connect.assert_called_once_with(('8.8.8.8', 443))
+    monkeypatch.setattr(handler, 'do_open', open_connection)
+    handler.https_open(Request('https://s3.anilist.co/a.png'))
+    resolver.assert_called_once()

@@ -123,7 +123,17 @@ def list_videos():
 
 @media_bp.route("/video/<path:filename>")
 def serve_video(filename):
-    return send_from_directory(str(_settings().video_dir), filename)
+    settings = _settings()
+    try:
+        safe_name = safe_media_name(filename)
+    except ValueError as err:
+        return _json_error(err, 400, "INVALID_FILENAME")
+    video_path = settings.video_dir / safe_name
+    if video_path.suffix.lower() not in settings.allowed_video_extensions:
+        return legacy_error_response("Invalid video extension", 400, "INVALID_VIDEO_EXTENSION")
+    if not is_within(settings.video_dir, video_path) or not video_path.is_file():
+        return legacy_error_response("File not found", 404, "VIDEO_NOT_FOUND")
+    return send_from_directory(str(settings.video_dir), safe_name)
 
 
 @media_bp.route("/subtitle/<path:filename>")
