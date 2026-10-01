@@ -35,7 +35,19 @@ def create_screenshot(settings: Settings, data: dict) -> dict:
     if cached_filename:
         return {"filename": cached_filename, "reused": True}
 
-    cmd = ["ffmpeg", "-y", "-ss", str(t_val), "-i", str(video_path_obj), "-vframes", "1", "-q:v", "2", str(raw_screenshot)]
+    cmd = [
+        "ffmpeg",
+        "-y",
+        "-ss",
+        str(t_val),
+        "-i",
+        str(video_path_obj),
+        "-vframes",
+        "1",
+        "-q:v",
+        "2",
+        str(raw_screenshot),
+    ]
     run_subprocess(cmd, settings.subprocess_timeout_seconds)
 
     img = Image.open(raw_screenshot)
@@ -107,10 +119,30 @@ def create_animated_webp(settings: Settings, data: dict) -> dict:
     ass_filter_path = str(ass_path).replace("\\", "/").replace(":", "\\:")
     fonts_dir_filter = str(settings.fonts_dir).replace("\\", "/").replace(":", "\\:")
     cmd = [
-        "ffmpeg", "-y", "-ss", str(start_f), "-t", str(duration), "-i", str(video_path_obj),
-        "-vf", f"setpts=PTS-STARTPTS,subtitles='{ass_filter_path}':fontsdir='{fonts_dir_filter}',scale=480:-2:flags=lanczos,fps=10",
-        "-c:v", "libwebp", "-lossless", "0", "-quality", "70", "-compression_level", "6", "-preset", "picture",
-        "-loop", "0", "-an", str(final_path),
+        "ffmpeg",
+        "-y",
+        "-ss",
+        str(start_f),
+        "-t",
+        str(duration),
+        "-i",
+        str(video_path_obj),
+        "-vf",
+        f"setpts=PTS-STARTPTS,subtitles='{ass_filter_path}':fontsdir='{fonts_dir_filter}',scale=480:-2:flags=lanczos,fps=10",
+        "-c:v",
+        "libwebp",
+        "-lossless",
+        "0",
+        "-quality",
+        "70",
+        "-compression_level",
+        "6",
+        "-preset",
+        "picture",
+        "-loop",
+        "0",
+        "-an",
+        str(final_path),
     ]
     try:
         run_subprocess(cmd, settings.subprocess_timeout_seconds)
@@ -152,9 +184,7 @@ def create_audio_clip(settings: Settings, data: dict) -> dict:
         raise ValueError(f"Invalid audio start time: {start_f}")
 
     if duration_f <= 0:
-        raise ValueError(
-            f"Invalid audio interval: start={start_f}, end={end_f}"
-        )
+        raise ValueError(f"Invalid audio interval: start={start_f}, end={end_f}")
 
     audio_payload = {
         "exportVersion": 2,
@@ -181,35 +211,36 @@ def create_audio_clip(settings: Settings, data: dict) -> dict:
     cmd = [
         "ffmpeg",
         "-y",
-
         # Переходим к началу предложения до декодирования файла.
         "-ss",
         str(start_f),
-
         "-i",
         str(video_path_obj),
-
         # Вырезаем длительность предложения.
         "-t",
         str(duration_f),
     ]
 
     if track_str != "default":
-        cmd.extend([
-            "-map",
-            f"0:{track_str}",
-        ])
+        cmd.extend(
+            [
+                "-map",
+                f"0:{track_str}",
+            ]
+        )
 
-    cmd.extend([
-        "-vn",
-        "-af",
-        f"volume={volume_f}",
-        "-c:a",
-        "libmp3lame",
-        "-q:a",
-        "2",
-        str(audio_path),
-    ])
+    cmd.extend(
+        [
+            "-vn",
+            "-af",
+            f"volume={volume_f}",
+            "-c:a",
+            "libmp3lame",
+            "-q:a",
+            "2",
+            str(audio_path),
+        ]
+    )
 
     run_subprocess(cmd, settings.subprocess_timeout_seconds)
 
@@ -220,6 +251,7 @@ def create_audio_clip(settings: Settings, data: dict) -> dict:
         "url": f"/get-temp-audio?filename={audio_filename}",
         "reused": False,
     }
+
 
 class MediaExportError(RuntimeError):
     def __init__(self, message: str, status_code: int = 400):

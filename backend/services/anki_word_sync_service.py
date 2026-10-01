@@ -23,6 +23,7 @@ from backend.services.anki_word_model import (
     _utc_now_iso,
 )
 
+
 def _refresh_known_anki_words_from_anki(payload: dict, settings: Settings | None = None) -> dict:
     anki_url = str(payload.get("ankiUrl") or "").strip()
     deck_names = [str(item).strip() for item in payload.get("decks") or [] if str(item).strip()]
@@ -43,17 +44,22 @@ def _refresh_known_anki_words_from_anki(payload: dict, settings: Settings | None
 
     checked_at = _utc_now_iso()
     saved_settings = _read_anki_highlight_settings(settings)
-    _write_anki_highlight_settings({
-        **saved_settings,
-        "ankiUrl": anki_url,
-        "decks": deck_names,
-        "wordFields": word_fields,
-        "sentenceFields": sentence_fields,
-        "autoRefresh": auto_refresh,
-        "lastManualRefreshAt": checked_at if not payload.get("autoRun") else saved_settings.get("lastManualRefreshAt"),
-        "lastAutoRefreshAt": checked_at if payload.get("autoRun") else saved_settings.get("lastAutoRefreshAt"),
-        "lastAutoRefreshError": None,
-    }, settings)
+    _write_anki_highlight_settings(
+        {
+            **saved_settings,
+            "ankiUrl": anki_url,
+            "decks": deck_names,
+            "wordFields": word_fields,
+            "sentenceFields": sentence_fields,
+            "autoRefresh": auto_refresh,
+            "lastManualRefreshAt": checked_at
+            if not payload.get("autoRun")
+            else saved_settings.get("lastManualRefreshAt"),
+            "lastAutoRefreshAt": checked_at if payload.get("autoRun") else saved_settings.get("lastAutoRefreshAt"),
+            "lastAutoRefreshError": None,
+        },
+        settings,
+    )
 
     previous = _read_known_anki_data(settings)
     previous_words = previous.get("words", {}) if isinstance(previous.get("words"), dict) else {}
@@ -174,13 +180,16 @@ def _refresh_known_anki_words_from_anki(payload: dict, settings: Settings | None
             }
             imported_words += 1
 
-    result_data = _write_known_anki_data({
-        "updatedAt": checked_at,
-        "decks": deck_names,
-        "wordFields": word_fields,
-        "sentenceFields": sentence_fields,
-        "words": next_words,
-    }, settings)
+    result_data = _write_known_anki_data(
+        {
+            "updatedAt": checked_at,
+            "decks": deck_names,
+            "wordFields": word_fields,
+            "sentenceFields": sentence_fields,
+            "words": next_words,
+        },
+        settings,
+    )
 
     return {
         "ok": True,
@@ -204,18 +213,30 @@ def _compact_refresh_result(result: dict) -> dict:
     if not isinstance(result, dict):
         return {"ok": False, "reason": "Invalid refresh result"}
     keep = [
-        "ok", "skipped", "reason", "count", "notesFound", "notesChecked",
-        "cardsChecked", "discoveredWords", "importedWords",
-        "preservedLockedWords", "skippedLockedWords", "updatedAt",
+        "ok",
+        "skipped",
+        "reason",
+        "count",
+        "notesFound",
+        "notesChecked",
+        "cardsChecked",
+        "discoveredWords",
+        "importedWords",
+        "preservedLockedWords",
+        "skippedLockedWords",
+        "updatedAt",
     ]
     return {key: result.get(key) for key in keep if key in result}
 
 
 def refresh_known_anki_words_auto(settings: Settings | None = None) -> dict:
-    payload = _merge_refresh_payload_with_saved_settings({
-        "fullRebuild": False,
-        "autoRun": True,
-    }, settings)
+    payload = _merge_refresh_payload_with_saved_settings(
+        {
+            "fullRebuild": False,
+            "autoRun": True,
+        },
+        settings,
+    )
     if not payload.get("ankiUrl") or not payload.get("decks") or not payload.get("wordFields"):
         result = {
             "ok": False,
@@ -223,27 +244,36 @@ def refresh_known_anki_words_auto(settings: Settings | None = None) -> dict:
             "reason": "Run Refresh Highlight Words once manually to save Anki URL, decks and word fields.",
         }
         saved_settings = _read_anki_highlight_settings(settings)
-        _write_anki_highlight_settings({
-            **saved_settings,
-            "lastAutoRefreshResult": _compact_refresh_result(result),
-        }, settings)
+        _write_anki_highlight_settings(
+            {
+                **saved_settings,
+                "lastAutoRefreshResult": _compact_refresh_result(result),
+            },
+            settings,
+        )
         return result
     try:
         result = _refresh_known_anki_words_from_anki(payload, settings)
         saved_settings = _read_anki_highlight_settings(settings)
-        _write_anki_highlight_settings({
-            **saved_settings,
-            "lastAutoRefreshError": None,
-            "lastAutoRefreshResult": _compact_refresh_result(result),
-        }, settings)
+        _write_anki_highlight_settings(
+            {
+                **saved_settings,
+                "lastAutoRefreshError": None,
+                "lastAutoRefreshResult": _compact_refresh_result(result),
+            },
+            settings,
+        )
         return result
     except Exception as err:
         saved_settings = _read_anki_highlight_settings(settings)
-        _write_anki_highlight_settings({
-            **saved_settings,
-            "lastAutoRefreshError": str(err),
-            "lastAutoRefreshResult": {"ok": False, "error": str(err)},
-        }, settings)
+        _write_anki_highlight_settings(
+            {
+                **saved_settings,
+                "lastAutoRefreshError": str(err),
+                "lastAutoRefreshResult": {"ok": False, "error": str(err)},
+            },
+            settings,
+        )
         raise
 
 
@@ -259,20 +289,26 @@ def refresh_known_anki_words_if_stale(context: str = "startup", settings: Settin
     if not _is_auto_refresh_stale(saved_settings):
         result = {"ok": True, "skipped": True, "reason": "Auto-refresh is not stale."}
         latest_settings = _read_anki_highlight_settings(settings)
-        _write_anki_highlight_settings({
-            **latest_settings,
-            check_result_key: _compact_refresh_result(result),
-        }, settings)
+        _write_anki_highlight_settings(
+            {
+                **latest_settings,
+                check_result_key: _compact_refresh_result(result),
+            },
+            settings,
+        )
         return result
 
     result = refresh_known_anki_words_auto(settings)
     result[f"{context}StaleCheck"] = True
 
     latest_settings = _read_anki_highlight_settings(settings)
-    _write_anki_highlight_settings({
-        **latest_settings,
-        check_result_key: _compact_refresh_result(result),
-    }, settings)
+    _write_anki_highlight_settings(
+        {
+            **latest_settings,
+            check_result_key: _compact_refresh_result(result),
+        },
+        settings,
+    )
     return result
 
 
@@ -345,12 +381,14 @@ def _refresh_single_known_anki_word_from_anki(payload: dict) -> dict:
         updated_words.append(word)
 
     saved_settings = _read_anki_highlight_settings()
-    data = _write_known_anki_data({
-        "updatedAt": checked_at,
-        "decks": data.get("decks") or saved_settings.get("decks") or [],
-        "wordFields": data.get("wordFields") or word_fields,
-        "words": known_words,
-    })
+    data = _write_known_anki_data(
+        {
+            "updatedAt": checked_at,
+            "decks": data.get("decks") or saved_settings.get("decks") or [],
+            "wordFields": data.get("wordFields") or word_fields,
+            "words": known_words,
+        }
+    )
 
     return {
         "ok": True,
@@ -362,4 +400,3 @@ def _refresh_single_known_anki_word_from_anki(payload: dict) -> dict:
         "status": status,
         "cardsChecked": cards_checked,
     }
-

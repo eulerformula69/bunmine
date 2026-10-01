@@ -78,7 +78,8 @@ def upload_subtitle():
 def current_video():
     settings = _settings()
     videos = [
-        path for path in settings.video_dir.iterdir()
+        path
+        for path in settings.video_dir.iterdir()
         if path.is_file() and path.suffix.lower() in settings.allowed_video_extensions
     ]
     if not videos:
@@ -102,15 +103,20 @@ def list_videos():
         if not path.is_file() or path.suffix.lower() not in settings.allowed_video_extensions:
             continue
         subtitle_candidate = next(
-            (settings.video_dir / f"{path.stem}{extension}" for extension in settings.allowed_subtitle_extensions
-             if (settings.video_dir / f"{path.stem}{extension}").exists()),
+            (
+                settings.video_dir / f"{path.stem}{extension}"
+                for extension in settings.allowed_subtitle_extensions
+                if (settings.video_dir / f"{path.stem}{extension}").exists()
+            ),
             None,
         )
-        videos.append({
-            "filename": path.name,
-            "subtitleFilename": subtitle_candidate.name if subtitle_candidate else None,
-            "modifiedTime": path.stat().st_mtime,
-        })
+        videos.append(
+            {
+                "filename": path.name,
+                "subtitleFilename": subtitle_candidate.name if subtitle_candidate else None,
+                "modifiedTime": path.stat().st_mtime,
+            }
+        )
     videos.sort(key=lambda item: item["modifiedTime"], reverse=True)
     return jsonify({"ok": True, "videos": videos})
 

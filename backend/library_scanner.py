@@ -1,6 +1,5 @@
 import re
 from pathlib import Path
-from typing import Optional
 
 from backend.repositories.connection import get_db
 from backend.repositories.library_repository import refresh_library_file_existence
@@ -11,8 +10,7 @@ def normalize_title(value: str) -> str:
     text = re.sub(r"\[[^\]]*\]", " ", text)
     text = re.sub(r"\([^\)]*\)", " ", text)
     text = re.sub(r"[^a-z0-9а-яё一-龯ぁ-んァ-ン]+", " ", text, flags=re.IGNORECASE)
-    text = re.sub(r"\s+", " ", text).strip()
-    return text
+    return re.sub(r"\s+", " ", text).strip()
 
 
 def clean_series_title(value: str) -> str:
@@ -20,16 +18,32 @@ def clean_series_title(value: str) -> str:
     text = re.sub(r"\[[^\]]*\]", " ", text)
     text = re.sub(r"\([^\)]*\)", " ", text)
     for pattern in [
-        r"\bBDRip\b", r"\bBluRay\b", r"\bWEBRip\b", r"\bWEB-DL\b", r"\bDVDRip\b", r"\bHDTV\b",
-        r"\bHEVC\b", r"\bH\.?264\b", r"\bx264\b", r"\bx265\b", r"\bAVC\b", r"\bAAC\b",
-        r"\bFLAC\b", r"\bTrueHD\b", r"\bOpus\b", r"\b10bit\b", r"\b8bit\b", r"\b\d{3,4}p\b", r"\b\d{3,4}x\d{3,4}\b",
+        r"\bBDRip\b",
+        r"\bBluRay\b",
+        r"\bWEBRip\b",
+        r"\bWEB-DL\b",
+        r"\bDVDRip\b",
+        r"\bHDTV\b",
+        r"\bHEVC\b",
+        r"\bH\.?264\b",
+        r"\bx264\b",
+        r"\bx265\b",
+        r"\bAVC\b",
+        r"\bAAC\b",
+        r"\bFLAC\b",
+        r"\bTrueHD\b",
+        r"\bOpus\b",
+        r"\b10bit\b",
+        r"\b8bit\b",
+        r"\b\d{3,4}p\b",
+        r"\b\d{3,4}x\d{3,4}\b",
     ]:
         text = re.sub(pattern, " ", text, flags=re.IGNORECASE)
     text = re.sub(r"\s+", " ", text).strip(" ._-")
     return text or "Unknown Series"
 
 
-def detect_episode(path: Path) -> tuple[Optional[int], Optional[float]]:
+def detect_episode(path: Path) -> tuple[int | None, float | None]:
     name = path.stem
     sxe = re.search(r"[Ss](\d{1,2})[Ee](\d{1,3})(?:\D|$)", name)
     if sxe:
@@ -51,7 +65,19 @@ def detect_episode(path: Path) -> tuple[Optional[int], Optional[float]]:
 
 def infer_series_title(media_root: Path, path: Path) -> str:
     relative = path.relative_to(media_root)
-    ignored_folder_names = {"anime", "videos", "video", "series", "shows", "completed", "watching", "downloaded", "downloads", "subs", "subtitles"}
+    ignored_folder_names = {
+        "anime",
+        "videos",
+        "video",
+        "series",
+        "shows",
+        "completed",
+        "watching",
+        "downloaded",
+        "downloads",
+        "subs",
+        "subtitles",
+    }
     for part in list(relative.parts[:-1]):
         normalized_part = normalize_title(part)
         if normalized_part.isdigit() or normalized_part in ignored_folder_names:
@@ -69,7 +95,7 @@ def infer_series_title(media_root: Path, path: Path) -> str:
     return clean_series_title(name)
 
 
-def build_episode_title(episode_number: Optional[float]) -> str:
+def build_episode_title(episode_number: float | None) -> str:
     if episode_number is None:
         return "Episode Unknown"
     if episode_number.is_integer():
@@ -77,7 +103,9 @@ def build_episode_title(episode_number: Optional[float]) -> str:
     return f"Episode {episode_number:g}"
 
 
-def build_normalized_episode_key(normalized_series_title: str, season_number: Optional[int], episode_number: Optional[float], path: Path) -> str:
+def build_normalized_episode_key(
+    normalized_series_title: str, season_number: int | None, episode_number: float | None, path: Path
+) -> str:
     season_part = str(season_number or 1)
     if episode_number is None:
         return f"{normalized_series_title}|unknown|{normalize_title(path.stem)}"
@@ -88,17 +116,26 @@ def get_or_create_series(conn, title: str) -> int:
     normalized_title = normalize_title(title)
     row = conn.execute("SELECT id FROM series WHERE normalized_title = ?", (normalized_title,)).fetchone()
     if row:
-        conn.execute("UPDATE series SET title = ?, sort_title = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", (title, normalized_title, row["id"]))
+        conn.execute(
+            "UPDATE series SET title = ?, sort_title = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+            (title, normalized_title, row["id"]),
+        )
         return int(row["id"])
-    cur = conn.execute("INSERT INTO series(title, normalized_title, sort_title) VALUES(?, ?, ?)", (title, normalized_title, normalized_title))
+    cur = conn.execute(
+        "INSERT INTO series(title, normalized_title, sort_title) VALUES(?, ?, ?)",
+        (title, normalized_title, normalized_title),
+    )
     return int(cur.lastrowid)
 
 
-def get_or_create_episode(conn, series_id: int, normalized_key: str, episode_number: Optional[float], season_number: Optional[int], title: str) -> int:
+def get_or_create_episode(
+    conn, series_id: int, normalized_key: str, episode_number: float | None, season_number: int | None, title: str
+) -> int:
     row = conn.execute("SELECT id FROM episodes WHERE normalized_key = ?", (normalized_key,)).fetchone()
     if row:
         conn.execute(
-            "UPDATE episodes SET series_id = ?, episode_number = ?, season_number = ?, title = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+            "UPDATE episodes SET series_id = ?, episode_number = ?, season_number = ?, title = ?, "
+            "updated_at = CURRENT_TIMESTAMP WHERE id = ?",
             (series_id, episode_number, season_number, title, row["id"]),
         )
         return int(row["id"])
@@ -109,7 +146,9 @@ def get_or_create_episode(conn, series_id: int, normalized_key: str, episode_num
     return int(cur.lastrowid)
 
 
-def upsert_library_file(conn, series_id: int, episode_id: int, file_type: str, path: Path, relative_path: str, is_primary: bool) -> int:
+def upsert_library_file(
+    conn, series_id: int, episode_id: int, file_type: str, path: Path, relative_path: str, is_primary: bool
+) -> int:
     absolute_path = str(path)
     row = conn.execute("SELECT id FROM library_files WHERE path = ?", (absolute_path,)).fetchone()
     if row:
@@ -125,7 +164,9 @@ def upsert_library_file(conn, series_id: int, episode_id: int, file_type: str, p
         return int(row["id"])
     cur = conn.execute(
         """
-        INSERT INTO library_files(series_id, episode_id, file_type, path, relative_path, file_exists, is_primary, linked_at)
+        INSERT INTO library_files(
+            series_id, episode_id, file_type, path, relative_path, file_exists, is_primary, linked_at
+        )
         VALUES(?, ?, ?, ?, ?, 1, ?, CURRENT_TIMESTAMP)
         """,
         (series_id, episode_id, file_type, absolute_path, relative_path, 1 if is_primary else 0),
@@ -141,7 +182,9 @@ def scan_library(db_path: Path, media_root: Path, video_extensions: set[str], su
         return {"ok": False, "error": f"MEDIA_LIBRARY_DIR is not a directory: {media_root}"}
 
     allowed_extensions = {ext.lower() for ext in video_extensions | subtitle_extensions}
-    found_files = [path.resolve() for path in media_root.rglob("*") if path.is_file() and path.suffix.lower() in allowed_extensions]
+    found_files = [
+        path.resolve() for path in media_root.rglob("*") if path.is_file() and path.suffix.lower() in allowed_extensions
+    ]
     found_files.sort(key=lambda item: str(item).lower())
 
     summary = {
@@ -175,7 +218,9 @@ def scan_library(db_path: Path, media_root: Path, video_extensions: set[str], su
             normalized_key = build_normalized_episode_key(normalized_series_title, season_number, episode_number, path)
 
             series_id = get_or_create_series(conn, series_title)
-            episode_id = get_or_create_episode(conn, series_id, normalized_key, episode_number, season_number, episode_title)
+            episode_id = get_or_create_episode(
+                conn, series_id, normalized_key, episode_number, season_number, episode_title
+            )
             relative_path = str(path.relative_to(media_root))
             upsert_library_file(conn, series_id, episode_id, file_type, path, relative_path, is_primary=True)
 
@@ -183,20 +228,20 @@ def scan_library(db_path: Path, media_root: Path, video_extensions: set[str], su
             touched_episode_ids.add(episode_id)
 
             if len(summary["sample"]) < 20:
-                summary["sample"].append({
-                    "series": series_title,
-                    "episode": episode_title,
-                    "fileType": file_type,
-                    "relativePath": relative_path,
-                })
+                summary["sample"].append(
+                    {
+                        "series": series_title,
+                        "episode": episode_title,
+                        "fileType": file_type,
+                        "relativePath": relative_path,
+                    }
+                )
 
-        missing_row = conn.execute("SELECT COUNT(*) AS count FROM library_files WHERE file_exists = 0 AND file_type IN ('video', 'subtitle')").fetchone()
+        missing_row = conn.execute(
+            "SELECT COUNT(*) AS count FROM library_files WHERE file_exists = 0 AND file_type IN ('video', 'subtitle')"
+        ).fetchone()
         summary["missingFilesMarked"] = int(missing_row["count"])
 
     summary["seriesTouched"] = len(touched_series_ids)
     summary["episodesTouched"] = len(touched_episode_ids)
     return summary
-
-
-
-

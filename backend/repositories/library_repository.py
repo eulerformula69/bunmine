@@ -37,7 +37,9 @@ def get_library_db_status(db_path: Path) -> dict:
     return status
 
 
-def refresh_library_file_existence(db_path: Path, file_types: list[str] | tuple[str, ...] | set[str] | None = None) -> dict:
+def refresh_library_file_existence(
+    db_path: Path, file_types: list[str] | tuple[str, ...] | set[str] | None = None
+) -> dict:
     """Mark DB file records as missing when the file disappeared from disk."""
     filters = []
     params: list[object] = []
@@ -69,7 +71,7 @@ def refresh_library_file_existence(db_path: Path, file_types: list[str] | tuple[
 
     with get_db(db_path) as conn:
         for offset in range(0, len(missing_ids), 500):
-            batch = missing_ids[offset:offset + 500]
+            batch = missing_ids[offset : offset + 500]
             placeholders = ", ".join("?" for _ in batch)
             conn.execute(
                 f"""
@@ -152,23 +154,25 @@ def get_library_series_list(db_path: Path) -> list[dict]:
             episodes_count = int(row["episodes_count"])
             episodes_with_video = int(row["episodes_with_video"])
             episodes_with_subtitle = int(row["episodes_with_subtitle"])
-            result.append({
-                "id": row["id"],
-                "title": row["title"],
-                "coverUrl": f"/library/cover/{row['id']}" if row["cover_file_id"] else None,
-                "episodesCount": episodes_count,
-                "episodesWithVideo": episodes_with_video,
-                "episodesWithSubtitle": episodes_with_subtitle,
-                "completedEpisodes": int(row["completed_episodes"]),
-                "inProgressEpisodes": int(row["in_progress_episodes"]),
-                "watchedSeconds": float(row["watched_seconds"] or 0),
-                "currentTimeSeconds": float(row["latest_current_time_seconds"] or 0),
-                "lastWatchedAt": row["last_watched_at"],
-                "createdAt": row["created_at"],
-                "cardsCount": int(row["cards_count"]),
-                "minedWordsCount": int(row["mined_words_count"]),
-                "linkStatus": _series_link_status(episodes_count, episodes_with_video, episodes_with_subtitle),
-            })
+            result.append(
+                {
+                    "id": row["id"],
+                    "title": row["title"],
+                    "coverUrl": f"/library/cover/{row['id']}" if row["cover_file_id"] else None,
+                    "episodesCount": episodes_count,
+                    "episodesWithVideo": episodes_with_video,
+                    "episodesWithSubtitle": episodes_with_subtitle,
+                    "completedEpisodes": int(row["completed_episodes"]),
+                    "inProgressEpisodes": int(row["in_progress_episodes"]),
+                    "watchedSeconds": float(row["watched_seconds"] or 0),
+                    "currentTimeSeconds": float(row["latest_current_time_seconds"] or 0),
+                    "lastWatchedAt": row["last_watched_at"],
+                    "createdAt": row["created_at"],
+                    "cardsCount": int(row["cards_count"]),
+                    "minedWordsCount": int(row["mined_words_count"]),
+                    "linkStatus": _series_link_status(episodes_count, episodes_with_video, episodes_with_subtitle),
+                }
+            )
         return result
 
 
@@ -212,7 +216,8 @@ def get_library_series_detail(db_path: Path, series_id: int) -> dict:
             LEFT JOIN library_files video_file ON video_file.id = ({primary_file_id_sql("video")})
             LEFT JOIN library_files subtitle_file ON subtitle_file.id = ({primary_file_id_sql("subtitle")})
             LEFT JOIN library_files video_name ON video_name.id = ({primary_file_id_sql("video", existing=False)})
-            LEFT JOIN library_files subtitle_name ON subtitle_name.id = ({primary_file_id_sql("subtitle", existing=False)})
+            LEFT JOIN library_files subtitle_name
+                ON subtitle_name.id = ({primary_file_id_sql("subtitle", existing=False)})
             LEFT JOIN episode_card_stats ecs ON ecs.episode_id = e.id
             WHERE e.series_id = ?
             ORDER BY COALESCE(e.season_number, 1), e.episode_number IS NULL, e.episode_number, e.title
@@ -232,26 +237,28 @@ def get_library_series_detail(db_path: Path, series_id: int) -> dict:
                 episodes_with_video += 1
             if has_subtitle:
                 episodes_with_subtitle += 1
-            episodes.append({
-                "id": row["id"],
-                "title": row["title"],
-                "episodeNumber": row["episode_number"],
-                "seasonNumber": row["season_number"],
-                "durationSeconds": row["duration_seconds"],
-                "hasVideo": has_video,
-                "hasSubtitle": has_subtitle,
-                "videoFileId": row["video_file_id"],
-                "subtitleFileId": row["subtitle_file_id"],
-                "videoFilename": row["video_filename"],
-                "subtitleFilename": row["subtitle_filename"],
-                "currentTimeSeconds": float(row["current_time_seconds"] or 0),
-                "watchedSeconds": float(row["watched_seconds"] or 0),
-                "completed": bool(row["completed"]),
-                "lastWatchedAt": row["last_watched_at"],
-                "cardsCount": int(row["cards_count"]),
-                "minedWordsCount": int(row["mined_words_count"]),
-                "linkStatus": _episode_link_status(has_video, has_subtitle),
-            })
+            episodes.append(
+                {
+                    "id": row["id"],
+                    "title": row["title"],
+                    "episodeNumber": row["episode_number"],
+                    "seasonNumber": row["season_number"],
+                    "durationSeconds": row["duration_seconds"],
+                    "hasVideo": has_video,
+                    "hasSubtitle": has_subtitle,
+                    "videoFileId": row["video_file_id"],
+                    "subtitleFileId": row["subtitle_file_id"],
+                    "videoFilename": row["video_filename"],
+                    "subtitleFilename": row["subtitle_filename"],
+                    "currentTimeSeconds": float(row["current_time_seconds"] or 0),
+                    "watchedSeconds": float(row["watched_seconds"] or 0),
+                    "completed": bool(row["completed"]),
+                    "lastWatchedAt": row["last_watched_at"],
+                    "cardsCount": int(row["cards_count"]),
+                    "minedWordsCount": int(row["mined_words_count"]),
+                    "linkStatus": _episode_link_status(has_video, has_subtitle),
+                }
+            )
 
         series = {
             "id": series_row["id"],
@@ -357,8 +364,6 @@ def get_library_series_files_debug(db_path: Path, series_id: int) -> dict:
         ).fetchall()
 
         return {"found": True, "series": dict(series), "files": [dict(row) for row in rows]}
-
-
 
 
 def _episode_link_status(has_video: bool, has_subtitle: bool) -> str:

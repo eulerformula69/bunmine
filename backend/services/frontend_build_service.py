@@ -47,12 +47,14 @@ def _frontend_dependencies_installed(project_dir: Path) -> bool:
     executable_name = "tsc.cmd" if os.name == "nt" else "tsc"
     esbuild_name = "esbuild.cmd" if os.name == "nt" else "esbuild"
     node_modules = project_dir / "node_modules"
-    return all((
-        (node_modules / ".bin" / executable_name).exists(),
-        (node_modules / ".bin" / esbuild_name).exists(),
-        (node_modules / "media-captions" / "package.json").exists(),
-        (node_modules / "kuromoji" / "package.json").exists(),
-    ))
+    return all(
+        (
+            (node_modules / ".bin" / executable_name).exists(),
+            (node_modules / ".bin" / esbuild_name).exists(),
+            (node_modules / "media-captions" / "package.json").exists(),
+            (node_modules / "kuromoji" / "package.json").exists(),
+        )
+    )
 
 
 def _dependency_build_fingerprint(project_dir: Path) -> str:
@@ -89,11 +91,7 @@ def _typescript_source_paths(project_dir: Path) -> list[Path]:
     source_dir = project_dir / "frontend" / "js"
     if not source_dir.exists():
         return []
-    return sorted(
-        path
-        for path in source_dir.rglob("*.ts")
-        if path.is_file() and not path.name.endswith(".d.ts")
-    )
+    return sorted(path for path in source_dir.rglob("*.ts") if path.is_file() and not path.name.endswith(".d.ts"))
 
 
 def _typescript_build_fingerprint(project_dir: Path) -> str:
@@ -120,8 +118,7 @@ def _typescript_outputs_exist(project_dir: Path) -> bool:
     dist_dir = project_dir / "dist/esm"
     bundles = (project_dir / "dist/js/player.js", project_dir / "dist/js/library.js")
     return all(path.is_file() for path in bundles) and all(
-        (dist_dir / source_path.relative_to(frontend_dir)).with_suffix(".js").is_file()
-        for source_path in source_paths
+        (dist_dir / source_path.relative_to(frontend_dir)).with_suffix(".js").is_file() for source_path in source_paths
     )
 
 
@@ -165,5 +162,6 @@ def build_frontend_on_startup(project_dir: Path, timeout_seconds: int = 600) -> 
     else:
         logging.getLogger(__name__).info("Building changed TypeScript files...")
         _run_npm(project_dir, ["run", "build:ts"], timeout_seconds)
+        _run_npm(project_dir, ["run", "build:bundle"], timeout_seconds)
         _write_dependency_build_stamp(project_dir, fingerprint)
         _write_typescript_build_stamp(project_dir, typescript_fingerprint)

@@ -23,8 +23,8 @@ export function libraryStartJob(
     return apiJson<JobResponse>(requestPath, requestOptions);
 }
 
-export function libraryGetJobStatus(jobId: string): Promise<ApiResult<LibraryJobStatusResponse>> {
-    return apiJson<LibraryJobStatusResponse>(`/library/jobs/${encodeURIComponent(jobId)}`);
+export function libraryGetJobStatus(jobId: string, signal?: AbortSignal): Promise<ApiResult<LibraryJobStatusResponse>> {
+    return apiJson<LibraryJobStatusResponse>(`/library/jobs/${encodeURIComponent(jobId)}`, {signal});
 }
 
 export function libraryGetSeries(seriesId: string | number): Promise<ApiResult<LibrarySeriesDetailResponse>> {
@@ -91,12 +91,13 @@ export function librarySearchEpisodeSubtitles(
 
 export function librarySelectEpisodeSubtitle(
     episodeId: string | number,
-    payload: Record<string, unknown>
+    payload: Record<string, unknown>,
+    signal?: AbortSignal
 ): Promise<ApiResult<LibraryMutationResponse>> {
     return apiJson<LibraryMutationResponse>(`/library/episodes/${encodeURIComponent(episodeId)}/subtitles/select`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload), signal
     });
 }
 

@@ -14,7 +14,9 @@ def exception_response(error: Exception, status: int | None = None, code: str = 
     logger.error("Request %s failed", request_id, exc_info=(type(error), error, error.__traceback__))
     if status is None:
         status = 400 if isinstance(error, ValueError) else 502 if isinstance(error, urllib.error.HTTPError) else 500
-    message = "Invalid request" if status < 500 else "External service request failed" if status == 502 else "Request failed"
+    message = (
+        "Invalid request" if status < 500 else "External service request failed" if status == 502 else "Request failed"
+    )
     response, status = legacy_error_response(message, status, code, requestId=request_id)
     response.headers["X-Request-ID"] = request_id
     return response, status

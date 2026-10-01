@@ -13,6 +13,7 @@ import { libraryChooseFolder,libraryDeleteMissingEpisode,libraryDeleteSeries,lib
 import { sleep } from "../core/api.js";
 
 import { createLibrarySubtitleController } from "./library-subtitle-controller.js";
+import { pollLibraryJob } from "./job-polling.js";
 
 import { createLibraryCoverController } from "./library-cover-controller.js";
 
@@ -190,7 +191,7 @@ export function renderEpisodeRow(episode: LibraryEpisodeView) {
 export function renderFileRow(episode: LibraryEpisodeView) {
     const row = document.createElement("article");
     row.className = "file-row";
-    row.innerHTML = `<div><h3>${escapeHtml(lt("episodeLabel", { number: episodeNumber(episode) }))}</h3><p>${escapeHtml(episode.videoFilename || lt("missingVideo"))}</p><p>${escapeHtml(episode.subtitleFilename || lt("missingSubtitles"))}</p></div><div class="file-actions"><button class="button small subtitle-file-action" type="button" ${episode.hasVideo ? "" : "disabled"}>${escapeHtml(episode.hasSubtitle ? lt("changeJpSubs") : lt("findJpSubs"))}</button>${!episode.hasVideo && !episode.hasSubtitle ? `<button class="button small danger delete-missing-episode-btn" type="button">${escapeHtml(lt("deleteMissingEpisode"))}</button>` : ""}</div>`;
+    row.innerHTML = `<div><h3>${escapeHtml(lt("episodeLabel", { number: episodeNumber(episode) }))}</h3><p>${escapeHtml(episode.videoFilename || lt("missingVideo"))}</p><p class="subtitle-filename">${escapeHtml(episode.subtitleFilename || lt("missingSubtitles"))}</p></div><div class="file-actions"><button class="button small subtitle-file-action" type="button" ${episode.hasVideo ? "" : "disabled"}>${escapeHtml(episode.hasSubtitle ? lt("changeJpSubs") : lt("findJpSubs"))}</button>${!episode.hasVideo && !episode.hasSubtitle ? `<button class="button small danger delete-missing-episode-btn" type="button">${escapeHtml(lt("deleteMissingEpisode"))}</button>` : ""}</div>`;
     row.querySelector<HTMLButtonElement>(".subtitle-file-action")?.addEventListener("click", () => openSubtitleSearchModal(episode, row));
     row.querySelector<HTMLButtonElement>(".delete-missing-episode-btn")?.addEventListener("click", () => deleteMissingEpisode(episode));
     return row;
@@ -280,14 +281,7 @@ export async function startAndPollLibraryJob(requestPath: string, requestOptions
     if (!response.ok || data.error) throw new Error(String(data.error || failureMessage));
     const jobId = (data as LibraryJobData).job?.id;
     if (!jobId) return data;
-    while (true) {
-        const result = await libraryGetJobStatus(jobId);
-        const job = (result.data as LibraryJobData).job;
-        if (!result.response.ok || result.data.error) throw new Error(String(result.data.error || failureMessage));
-        if (job?.status === "completed") return job.result;
-        if (job?.status === "failed") throw new Error(job.error || job.result?.error || failureMessage);
-        await sleep(700);
-    }
+    return pollLibraryJob(jobId, {failureMessage, signal: requestOptions.signal || undefined});
 }
 
 export async function addAnimeFromPath() {

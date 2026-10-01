@@ -22,6 +22,7 @@ JIMAKU_API_BASE_URL = f"{JIMAKU_BASE_URL}/api"
 JIMAKU_CACHE_TTL_SECONDS = 7 * 24 * 60 * 60
 JIMAKU_SERIES_ENTRY_LIMIT = 6
 
+
 def _http_json_get(url: str, token: str | None = None, timeout: int = 12) -> object:
     headers = {"Accept": "application/json", "User-Agent": "Bunmine/1.0"}
     if token:
@@ -29,9 +30,9 @@ def _http_json_get(url: str, token: str | None = None, timeout: int = 12) -> obj
     return get_json(url, headers=headers, timeout=timeout)
 
 
-
-
-def _cached_http_json_get(db_path: Path, url: str, token: str | None = None, timeout: int = 12, ttl_seconds: int = JIMAKU_CACHE_TTL_SECONDS) -> object:
+def _cached_http_json_get(
+    db_path: Path, url: str, token: str | None = None, timeout: int = 12, ttl_seconds: int = JIMAKU_CACHE_TTL_SECONDS
+) -> object:
     """GET Jimaku JSON with a tiny SQLite cache.
 
     Jimaku rate-limits fairly quickly. Bulk subtitle analysis should therefore
@@ -72,11 +73,6 @@ def _http_download(url: str, token: str | None = None, timeout: int = 30) -> byt
     if token:
         headers["Authorization"] = token
     return get_bytes(url, headers=headers, timeout=timeout)
-
-
-
-
-
 
 
 def _extension_from_filename(filename: str) -> str:
@@ -163,17 +159,23 @@ def _search_jimaku_entries(series_title: str, db_path: Path | None = None) -> di
     return entries_by_id
 
 
-def _get_jimaku_entry_files(entry_id: int, token: str, db_path: Path | None = None, episode_number: float | int | None = None) -> list[dict]:
+def _get_jimaku_entry_files(
+    entry_id: int, token: str, db_path: Path | None = None, episode_number: float | int | None = None
+) -> list[dict]:
     files_url = f"{JIMAKU_API_BASE_URL}/entries/{entry_id}/files"
     if episode_number is not None:
         episode_query = int(episode_number) if float(episode_number).is_integer() else episode_number
         files_url += f"?episode={urllib.parse.quote(str(episode_query))}"
 
-    files = _cached_http_json_get(db_path, files_url, token=token) if db_path else _http_json_get(files_url, token=token)
+    files = (
+        _cached_http_json_get(db_path, files_url, token=token) if db_path else _http_json_get(files_url, token=token)
+    )
     return files if isinstance(files, list) else []
 
 
-def _candidate_from_jimaku_file(file_item: dict, entry_id: int, entry: dict, series_title: str, episode_number: float | int | None = None) -> dict | None:
+def _candidate_from_jimaku_file(
+    file_item: dict, entry_id: int, entry: dict, series_title: str, episode_number: float | int | None = None
+) -> dict | None:
     name = str(file_item.get("name") or "")
     download_url = str(file_item.get("url") or "")
     ext = _extension_from_filename(name)
@@ -228,7 +230,7 @@ def get_missing_subtitle_episode_contexts(db_path: Path, series_id: int, limit: 
 
     episodes = [dict(row) for row in rows]
     if limit is not None:
-        episodes = episodes[:max(0, int(limit))]
+        episodes = episodes[: max(0, int(limit))]
     return {"found": True, "series": dict(series), "episodes": episodes}
 
 
@@ -256,7 +258,8 @@ def search_jimaku_subtitles(series_title: str, episode_number: float | int | Non
     results.sort(key=lambda item: _score_subtitle_candidate(item, episode_number))
     return results[:30]
 
-def _target_subtitle_path(video_path: Path, source: str, entry_id: int | str, original_filename: str) -> Path:
+
+def _target_subtitle_path(video_path: Path, original_filename: str) -> Path:
     ext = _extension_from_filename(original_filename)
     if not ext:
         raise ValueError("Unsupported subtitle format")
@@ -297,7 +300,7 @@ def download_and_save_jimaku_subtitle(db_path: Path, episode_id: int, payload: d
     if not video_path.exists() or not is_within(media_library_dir, video_path):
         raise ValueError("Video file is missing or outside MEDIA_LIBRARY_DIR")
 
-    target_path = _target_subtitle_path(video_path, source, entry_id, str(filename))
+    target_path = _target_subtitle_path(video_path, str(filename))
     data = _http_download(str(download_url), token=_auth_token())
     if not data:
         raise ValueError("Downloaded subtitle is empty")
@@ -323,7 +326,9 @@ def download_and_save_jimaku_subtitle(db_path: Path, episode_id: int, payload: d
         else:
             cur = conn.execute(
                 """
-                INSERT INTO library_files(series_id, episode_id, file_type, path, relative_path, file_exists, is_primary, linked_at)
+                INSERT INTO library_files(
+                    series_id, episode_id, file_type, path, relative_path, file_exists, is_primary, linked_at
+                )
                 VALUES(?, ?, 'subtitle', ?, ?, 1, 1, CURRENT_TIMESTAMP)
                 """,
                 (context["series_id"], episode_id, str(target_path), relative_path),
@@ -334,11 +339,9 @@ def download_and_save_jimaku_subtitle(db_path: Path, episode_id: int, payload: d
         "found": True,
         "subtitleFileId": subtitle_file_id,
         "subtitlePath": str(target_path),
+        "subtitleFilename": target_path.name,
         "subtitleUrl": f"/library/file/{subtitle_file_id}",
     }
-
-
-
 
 
 def build_episode_jimaku_subtitle_plan(db_path: Path, episode_id: int, query: str | None = None) -> dict:
@@ -389,7 +392,9 @@ def build_episode_jimaku_subtitle_plan(db_path: Path, episode_id: int, query: st
     return {"found": True, "item": item}
 
 
-def build_series_jimaku_subtitle_analysis(db_path: Path, series_id: int, query: str | None = None, limit: int | None = None) -> dict:
+def build_series_jimaku_subtitle_analysis(
+    db_path: Path, series_id: int, query: str | None = None, limit: int | None = None
+) -> dict:
     """Analyze missing subtitles for a whole series with fewer Jimaku requests.
 
     Instead of searching Jimaku once per episode, this does one series search,
@@ -483,7 +488,3 @@ def build_series_jimaku_subtitle_analysis(db_path: Path, series_id: int, query: 
         "cacheTtlSeconds": JIMAKU_CACHE_TTL_SECONDS,
         "mode": "series-analyze",
     }
-
-
-
-

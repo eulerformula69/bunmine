@@ -6,7 +6,7 @@ from backend.http_client import post_json
 
 def chunked(items: list, size: int) -> Iterator[list]:
     for index in range(0, len(items), size):
-        yield items[index:index + size]
+        yield items[index : index + size]
 
 
 def request(anki_url: str, action: str, params: dict | None = None):
@@ -28,6 +28,7 @@ def request(anki_url: str, action: str, params: dict | None = None):
 def build_deck_query(deck_names: list[str]) -> str:
     def escape(value: str) -> str:
         return str(value or "").replace("\\", "\\\\").replace('"', '\\"')
+
     return " OR ".join(f'deck:"{escape(deck)}"' for deck in deck_names if deck)
 
 

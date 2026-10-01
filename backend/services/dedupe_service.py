@@ -2,7 +2,6 @@ import hashlib
 import json
 import logging
 from pathlib import Path
-from typing import Optional
 
 from backend.app_state import dedupe_lock
 from backend.settings import Settings
@@ -41,7 +40,7 @@ def make_dedupe_key(kind: str, payload: dict) -> str:
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
-def get_cached_media(settings: Settings, kind: str, dedupe_key: str) -> Optional[str]:
+def get_cached_media(settings: Settings, kind: str, dedupe_key: str) -> str | None:
     with dedupe_lock:
         index_data = load_dedupe_index(settings)
         filename = index_data.get(kind, {}).get(dedupe_key)
@@ -67,7 +66,3 @@ def clean_srt_text_file(path: Path) -> None:
     text = path.read_text(encoding="utf-8-sig", errors="replace")
     text = strip_html(text, preserve_newlines=True)
     path.write_text(text, encoding="utf-8")
-
-
-
-

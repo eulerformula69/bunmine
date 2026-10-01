@@ -110,17 +110,15 @@ def score_candidate(
         numeric_episode = float(episode_number)
         episode_label = f"{int(numeric_episode):02d}" if numeric_episode.is_integer() else f"{numeric_episode:g}"
     episode_raw = episode_label.lstrip("0") or episode_label
-    episode_score = 0 if episode_label != "unknown" and re.search(
-        rf"(?<!\d){re.escape(episode_raw)}(?!\d)", name
-    ) else 1
+    episode_score = (
+        0 if episode_label != "unknown" and re.search(rf"(?<!\d){re.escape(episode_raw)}(?!\d)", name) else 1
+    )
 
     video_score = 0
     if video_filename:
         candidate_tokens = set(release_tokens(str(item.get("filename") or ""), str(item.get("entryTitle") or "")))
         video_tokens = set(release_tokens(video_filename))
-        shared = {compact_token(token) for token in candidate_tokens} & {
-            compact_token(token) for token in video_tokens
-        }
+        shared = {compact_token(token) for token in candidate_tokens} & {compact_token(token) for token in video_tokens}
         video_score = -len([token for token in shared if token])
 
     return video_score, episode_score, format_score, name

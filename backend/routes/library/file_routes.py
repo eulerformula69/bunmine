@@ -1,7 +1,7 @@
-from backend.repositories.playback_repository import get_library_file_by_id
 """Library file routes."""
 
 from pathlib import Path
+from backend.repositories.playback_repository import get_library_file_by_id
 
 from backend.api_response import exception_response
 
@@ -44,13 +44,15 @@ def _choose_folder_dialog(initial_dir: Path) -> str | None:
 @library_file_bp.route("/library/config", methods=["GET"])
 def library_config():
     settings = current_settings()
-    return jsonify({
-        "mediaLibraryDir": str(settings.media_library_dir),
-        "exists": settings.media_library_dir.exists(),
-        "isDirectory": settings.media_library_dir.is_dir(),
-        "videoExtensions": sorted(settings.allowed_video_extensions),
-        "subtitleExtensions": sorted(settings.allowed_subtitle_extensions),
-    })
+    return jsonify(
+        {
+            "mediaLibraryDir": str(settings.media_library_dir),
+            "exists": settings.media_library_dir.exists(),
+            "isDirectory": settings.media_library_dir.is_dir(),
+            "videoExtensions": sorted(settings.allowed_video_extensions),
+            "subtitleExtensions": sorted(settings.allowed_subtitle_extensions),
+        }
+    )
 
 
 @library_file_bp.route("/library/db/status", methods=["GET"])

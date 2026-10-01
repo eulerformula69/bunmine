@@ -30,12 +30,10 @@ def run_subprocess(cmd: list[str], timeout_seconds: int = 600) -> subprocess.Com
             text=True,
             timeout=timeout_seconds,
         )
-    except FileNotFoundError:
-        raise RuntimeError("FFmpeg/FFprobe is not installed or not available in PATH.")
+    except FileNotFoundError as err:
+        raise RuntimeError("FFmpeg/FFprobe is not installed or not available in PATH.") from err
     except subprocess.CalledProcessError as err:
         details = err.stderr.strip() if err.stderr else str(err)
-        raise RuntimeError(make_friendly_ffmpeg_error(details))
+        raise RuntimeError(make_friendly_ffmpeg_error(details)) from err
     except subprocess.TimeoutExpired as err:
         raise RuntimeError(f"FFmpeg timed out after {timeout_seconds} seconds.") from err
-
-

@@ -72,5 +72,5 @@ def create_app(settings: Settings | None = None, initialize: bool = True) -> Fla
         response.set_data(json.dumps(payload, ensure_ascii=False))
         response.headers["Content-Type"] = "application/json"
         return response
-    return app
 
+    return app

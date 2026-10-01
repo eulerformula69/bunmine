@@ -16,15 +16,24 @@ const controller = context.createLibrarySubtitleController({
         queryUsed = query;
         return { response: { ok: true }, data: { results: [{ filename: "Anime 01.srt", sizeBytes: 1024 }] } };
     },
-    select: async () => ({ response: { ok: true }, data: {} }), refreshSeriesStatus: () => {},
+    select: async () => ({ response: { ok: true }, data: {subtitleFileId: 5, subtitleFilename: "Anime 01.srt"} }), refreshSeriesStatus: () => {},
 });
 
-await controller.open({ id: 4, episodeNumber: 1, hasSubtitle: false }, element());
+const {renderFileRow} = await import("../dist/esm/library/library.js");
+const episode = { id: 4, episodeNumber: 1, hasSubtitle: false, hasVideo: true };
+const row = renderFileRow(episode);
+await controller.open(episode, row);
 assert.equal(title.textContent, "findJapaneseSubtitles");
 assert.equal(subtitle.textContent, "Anime · episodeLabel:1");
 await controller.search();
 assert.equal(queryUsed, "Anime");
 assert.equal(results.children.length, 1);
+results.children[0].click();
+await new Promise(resolve => setImmediate(resolve));
+assert.equal(episode.hasSubtitle, true);
+assert.equal(episode.subtitleFileId, 5);
+assert.equal(row.querySelector(".subtitle-file-action").textContent, "changeJpSubs");
+assert.equal(row.querySelector(".subtitle-filename").textContent, "Anime 01.srt");
 controller.close();
 assert.ok(modal.classList.contains("hidden"));
 

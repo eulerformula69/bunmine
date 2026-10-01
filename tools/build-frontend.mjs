@@ -9,6 +9,7 @@ if (process.argv.includes("--compile")) {
     rmSync(output, { recursive: true, force: true });
     const result = spawnSync(process.execPath, ["node_modules/typescript/bin/tsc", "-p", "tsconfig.json"], { stdio: "inherit" });
     if (result.status !== 0) process.exit(result.status || 1);
+    process.exit(0);
 }
 await build({
     entryPoints: { player: "dist/esm/bootstrap.js", library: "dist/esm/library-bootstrap.js" },

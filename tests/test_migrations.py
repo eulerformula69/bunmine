@@ -1,4 +1,5 @@
 import pytest
+from contextlib import contextmanager
 
 from backend.migrations import runner
 from backend.repositories.connection import get_db
@@ -34,3 +35,18 @@ def test_failed_migration_rolls_back_schema_and_version(tmp_path, monkeypatch):
     with get_db(path) as conn:
         assert conn.execute("SELECT value FROM schema_meta WHERE key='schema_version'").fetchone()[0] == "5"
         assert not conn.execute("SELECT 1 FROM sqlite_master WHERE name='should_rollback'").fetchone()
+
+
+def test_migration_reads_version_after_write_lock(tmp_path, monkeypatch):
+    path = tmp_path / "library.db"
+    init_library_db(path)
+    statements = []
+    @contextmanager
+    def traced_db(db_path):
+        with get_db(db_path) as conn:
+            conn.set_trace_callback(statements.append)
+            yield conn
+    monkeypatch.setattr(runner, "get_db", traced_db)
+    runner.run_migrations(path)
+    version_read = next(index for index, sql in enumerate(statements) if "SELECT value FROM schema_meta" in sql)
+    assert statements.index("BEGIN IMMEDIATE") < version_read

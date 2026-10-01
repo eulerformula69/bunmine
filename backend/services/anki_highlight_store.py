@@ -115,7 +115,6 @@ def enrich_cached_word_metadata(info: dict, card_ids: list[int], fields: dict) -
     }
 
 
-
 def _default_known_anki_data():
     return {
         "updatedAt": None,

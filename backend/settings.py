@@ -45,12 +45,14 @@ class Settings:
     anki_highlight_auto_refresh: str
     anki_highlight_auto_refresh_hour: int
     anki_highlight_auto_refresh_minute: int
-    cover_allowed_hosts: frozenset[str] = frozenset({
-        "s3.anilist.co",
-        "media.kitsu.app",
-        "s3.kitsu.app",
-        "kitsu.app",
-    })
+    cover_allowed_hosts: frozenset[str] = frozenset(
+        {
+            "s3.anilist.co",
+            "media.kitsu.app",
+            "s3.kitsu.app",
+            "kitsu.app",
+        }
+    )
     cover_max_bytes: int = 10 * 1024 * 1024
     subprocess_timeout_seconds: int = 600
 

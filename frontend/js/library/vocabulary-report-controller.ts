@@ -1,6 +1,7 @@
 import { lt } from "./library-i18n.js";
 
-import { libraryGetJobStatus,libraryStartJob } from "./library-api.js";
+import { libraryStartJob } from "./library-api.js";
+import { pollLibraryJob } from "./job-polling.js";
 
 import { LibraryJobData } from "./library-types.js";
 
@@ -25,24 +26,19 @@ export function vocabularyReportFilename(contentDisposition: string): string {
     return (regularName?.[1] || regularName?.[2] || "vocabulary_report.xlsx").trim();
 }
 
-export async function downloadVocabularyReport(seriesId: string | number, root: ParentNode = document) {
+export async function downloadVocabularyReport(seriesId: string | number, root: ParentNode = document, signal?: AbortSignal) {
     const button = root.querySelector<HTMLButtonElement>("#confirmVocabularyReportBtn");
     const status = root.querySelector<HTMLElement>("#vocabularyReportStatus");
     if (!button || button.disabled) return;
     button.disabled = true; button.textContent = lt("preparingReport");
     if (status) status.textContent = lt("preparingReport");
     try {
-        const started = await libraryStartJob(`/library/series/${encodeURIComponent(seriesId)}/vocabulary-report`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(buildVocabularyReportPayload(root)) });
+        const started = await libraryStartJob(`/library/series/${encodeURIComponent(seriesId)}/vocabulary-report`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(buildVocabularyReportPayload(root)), signal });
         const startedJob = started.data.job as LibraryJobData["job"];
         if (!started.response.ok || !startedJob?.id) throw new Error(getApiErrorMessage(started.data, lt("reportFailed")));
         const jobId = startedJob.id;
-        while (true) {
-            await new Promise(resolve => setTimeout(resolve, 500));
-            const current = await libraryGetJobStatus(jobId); const job = current.data.job as LibraryJobData["job"];
-            if (job?.status === "failed") throw new Error(job.error || job.result?.error || lt("reportFailed"));
-            if (job?.status === "completed") break;
-        }
-        const response = await fetch(`/library/vocabulary-report/${encodeURIComponent(jobId)}/download`);
+        await pollLibraryJob(jobId, {failureMessage: lt("reportFailed"), interval: 500, signal});
+        const response = await fetch(`/library/vocabulary-report/${encodeURIComponent(jobId)}/download`, {signal});
         if (!response.ok) throw new Error(lt("reportFailed"));
         const blob = await response.blob(); const disposition = response.headers.get("Content-Disposition") || "";
         const filename = vocabularyReportFilename(disposition);
@@ -55,9 +51,15 @@ export async function downloadVocabularyReport(seriesId: string | number, root: 
 
 export function bindVocabularyReportController() {
     const modal = document.getElementById("vocabularyReportModal"); const open = document.getElementById("exportVocabularyBtn");
-    const close = () => modal?.classList.add("hidden");
+    let controller: AbortController | null = null;
+    const close = () => { controller?.abort(); modal?.classList.add("hidden"); };
     open?.addEventListener("click", () => modal?.classList.remove("hidden"));
     document.getElementById("closeVocabularyReportBtn")?.addEventListener("click", close);
     document.getElementById("cancelVocabularyReportBtn")?.addEventListener("click", close);
-    document.getElementById("confirmVocabularyReportBtn")?.addEventListener("click", () => { if (currentOpenedSeriesState.value) downloadVocabularyReport(currentOpenedSeriesState.value.id).catch(() => undefined); });
+    document.getElementById("confirmVocabularyReportBtn")?.addEventListener("click", () => {
+        if (!currentOpenedSeriesState.value) return;
+        controller?.abort();
+        controller = new AbortController();
+        void downloadVocabularyReport(currentOpenedSeriesState.value.id, document, controller.signal).catch(() => undefined);
+    });
 }

@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, UTC
 from backend.text_processing import strip_html
 
 STATUS_PRIORITY = {
@@ -12,7 +12,7 @@ STATUS_PRIORITY = {
 
 
 def _utc_now_iso() -> str:
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    return datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
 def _parse_utc_iso(value: str | None):
@@ -25,10 +25,7 @@ def _parse_utc_iso(value: str | None):
 
 
 def _settings_refresh_anchor(settings: dict):
-    auto_at = _parse_utc_iso(settings.get("lastAutoRefreshAt"))
-    manual_at = _parse_utc_iso(settings.get("lastManualRefreshAt"))
-    candidates = [item for item in [auto_at, manual_at] if item is not None]
-    return max(candidates) if candidates else None
+    return _parse_utc_iso(settings.get("lastAutoRefreshAt"))
 
 
 def _is_auto_refresh_stale(settings: dict) -> bool:
@@ -44,9 +41,9 @@ def _is_auto_refresh_stale(settings: dict) -> bool:
         return True
 
     interval = timedelta(days=7 if mode == "weekly" else 1)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     if anchor.tzinfo is None:
-        anchor = anchor.replace(tzinfo=timezone.utc)
+        anchor = anchor.replace(tzinfo=UTC)
     return now - anchor >= interval
 
 
@@ -78,4 +75,3 @@ def _card_status(card: dict) -> str:
         interval = 0
 
     return "mature" if interval >= 21 else "young"
-

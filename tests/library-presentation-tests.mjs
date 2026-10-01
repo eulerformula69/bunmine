@@ -8,6 +8,7 @@ assert.equal(presentation.formatTime(0), "0m");
 assert.equal(presentation.formatTime(3720), "1h 2m");
 assert.equal(presentation.formatBytes(1536), "2 KB");
 assert.equal(presentation.escapeHtml('<a title="x">&'), "&lt;a title=&quot;x&quot;&gt;&amp;");
+assert.equal(presentation.escapeHtml("it's"), "it&#39;s");
 assert.equal(presentation.linkStatus([]), "missing");
 assert.equal(presentation.linkStatus([{ hasVideo: true, hasSubtitle: false }]), "partial");
 assert.equal(presentation.linkStatus([{ hasVideo: true, hasSubtitle: true }]), "linked");

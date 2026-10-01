@@ -47,5 +47,3 @@ def serve_frontend_build(path):
 def serve_file(path):
     frontend_dir = current_app.config["SETTINGS"].frontend_dir
     return send_from_directory(str(frontend_dir), path)
-
-

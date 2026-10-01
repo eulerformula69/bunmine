@@ -38,8 +38,7 @@ def clip_subtitle_cues(data, start, duration):
     if cues is None:
         return [{"start": 0, "end": duration, "text": data.get("text", "").strip()}]
     return [
-        {"start": max(0, cue["start"] - start),
-         "end": min(duration, cue["end"] - start), "text": cue["text"]}
+        {"start": max(0, cue["start"] - start), "end": min(duration, cue["end"] - start), "text": cue["text"]}
         for cue in cues
         if cue["text"] and cue["start"] < start + duration and cue["end"] > start
     ]
@@ -54,6 +53,10 @@ def ass_timestamp(seconds):
 
 
 def subtitle_ass(cues, font_size):
+    style_format = (
+        "Format: Name, Fontname, Fontsize, PrimaryColour, OutlineColour, BorderStyle, "
+        "Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding"
+    )
     header = f"""[Script Info]
 ScriptType: v4.00+
 PlayResX: 1920
@@ -61,7 +64,7 @@ PlayResY: 1080
 ScaledBorderAndShadow: yes
 
 [V4+ Styles]
-Format: Name, Fontname, Fontsize, PrimaryColour, OutlineColour, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+{style_format}
 Style: Default,Noto Sans JP,{font_size},&H00FFFFFF,&H00000000,1,12,0,2,40,40,90,1
 
 [Events]

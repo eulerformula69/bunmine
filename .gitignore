@@ -20,14 +20,13 @@ __pycache__/
 *.mov
 ankiplayer.bat
 miningplayer.bat
-bunmine.bat
 miningplayer.md
 miningplayer.xml
 futuremining.txt
 dedupe_index.json
 known-basic-words.json
+# Local planning notes are not part of the application.
 NEXT.md
 library.sqlite3
 library.backup.db
 repomix-output.xml
-.tmp_pytest_cache/

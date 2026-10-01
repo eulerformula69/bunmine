@@ -95,8 +95,8 @@ bulkSubtitleList.addEventListener("change", (event) => {
     renderBulkSubtitlePlan(currentBulkSubtitlePlanState.value);
 });
 
-for (const modal of [coverModal, subtitleModal, bulkSubtitleModal]) {
-    modal.addEventListener("click", (event) => { if (event.target === modal) modal.classList.add("hidden"); });
+for (const [modal, close] of [[coverModal, closeCoverModal], [subtitleModal, closeSubtitleModal], [bulkSubtitleModal, closeBulkSubtitleModal]] as const) {
+    modal.addEventListener("click", (event) => { if (event.target === modal) close(); });
 }
 
 document.addEventListener("keydown", (event) => {

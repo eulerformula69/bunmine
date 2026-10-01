@@ -34,13 +34,15 @@ def library_episode_subtitle_search(episode_id):
     except Exception as err:
         return exception_response(err)
 
-    return jsonify({
-        "episodeId": episode_id,
-        "seriesTitle": context["series_title"],
-        "episodeNumber": context.get("episode_number"),
-        "query": query,
-        "results": results,
-    })
+    return jsonify(
+        {
+            "episodeId": episode_id,
+            "seriesTitle": context["series_title"],
+            "episodeNumber": context.get("episode_number"),
+            "query": query,
+            "results": results,
+        }
+    )
 
 
 @library_subtitle_bp.route("/library/episodes/<int:episode_id>/subtitles/select", methods=["POST"])
@@ -65,8 +67,6 @@ def library_episode_subtitle_select(episode_id):
     if not result.get("found"):
         return jsonify({"error": "Episode not found"}), 404
     return jsonify({"ok": True, **result})
-
-
 
 
 @library_subtitle_bp.route("/library/series/<int:series_id>/subtitles/analyze", methods=["POST"])
@@ -119,7 +119,3 @@ def library_episode_subtitle_plan(episode_id):
     if not result.get("found"):
         return jsonify({"error": "Episode not found"}), 404
     return jsonify({"ok": True, **result})
-
-
-
-

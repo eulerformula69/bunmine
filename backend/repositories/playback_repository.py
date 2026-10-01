@@ -5,11 +5,7 @@ from backend.repositories.episode_file_query import primary_file_id_sql
 
 
 def _mark_missing_files(conn, rows) -> None:
-    missing_ids = [
-        int(row["id"])
-        for row in rows
-        if not (Path(row["path"]).expanduser().is_file())
-    ]
+    missing_ids = [int(row["id"]) for row in rows if not (Path(row["path"]).expanduser().is_file())]
     if not missing_ids:
         return
 
@@ -72,23 +68,31 @@ def get_episode_playback(db_path: Path, episode_id: int) -> dict:
             return {"found": True, "playback": None, "error": "Video file is missing for this episode"}
 
         subtitle_file_id = row["subtitle_file_id"]
-        return {"found": True, "playback": {
-            "episodeId": row["episode_id"],
-            "seriesId": row["series_id"],
-            "seriesTitle": row["series_title"],
-            "episodeTitle": row["episode_title"],
-            "durationSeconds": row["duration_seconds"],
-            "currentTimeSeconds": float(row["current_time_seconds"] or 0),
-            "videoFileId": row["video_file_id"],
-            "subtitleFileId": subtitle_file_id,
-            "videoUrl": f"/library/file/{row['video_file_id']}",
-            "subtitleUrl": f"/library/file/{subtitle_file_id}" if subtitle_file_id else None,
-        }}
+        return {
+            "found": True,
+            "playback": {
+                "episodeId": row["episode_id"],
+                "seriesId": row["series_id"],
+                "seriesTitle": row["series_title"],
+                "episodeTitle": row["episode_title"],
+                "durationSeconds": row["duration_seconds"],
+                "currentTimeSeconds": float(row["current_time_seconds"] or 0),
+                "videoFileId": row["video_file_id"],
+                "subtitleFileId": subtitle_file_id,
+                "videoUrl": f"/library/file/{row['video_file_id']}",
+                "subtitleUrl": f"/library/file/{subtitle_file_id}" if subtitle_file_id else None,
+            },
+        }
 
 
-def save_episode_progress(db_path: Path, episode_id: int, current_time_seconds: float,
-                          duration_seconds: float | None, watched_delta_seconds: float,
-                          completed: bool) -> dict:
+def save_episode_progress(
+    db_path: Path,
+    episode_id: int,
+    current_time_seconds: float,
+    duration_seconds: float | None,
+    watched_delta_seconds: float,
+    completed: bool,
+) -> dict:
     current_time_seconds = max(0.0, float(current_time_seconds or 0))
     watched_delta_seconds = max(0.0, float(watched_delta_seconds or 0))
     duration_seconds = None if duration_seconds is None else max(0.0, float(duration_seconds or 0))
@@ -97,7 +101,9 @@ def save_episode_progress(db_path: Path, episode_id: int, current_time_seconds: 
             return {"found": False, "progress": None}
         conn.execute(
             """
-            INSERT INTO watch_progress(episode_id, current_time_seconds, duration_seconds, watched_seconds, completed, last_watched_at)
+            INSERT INTO watch_progress(
+                episode_id, current_time_seconds, duration_seconds, watched_seconds, completed, last_watched_at
+            )
             VALUES(?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
             ON CONFLICT(episode_id) DO UPDATE SET
                 current_time_seconds = excluded.current_time_seconds,
@@ -108,7 +114,11 @@ def save_episode_progress(db_path: Path, episode_id: int, current_time_seconds: 
             """,
             (episode_id, current_time_seconds, duration_seconds, watched_delta_seconds, int(completed)),
         )
-        row = conn.execute("SELECT episode_id, current_time_seconds, duration_seconds, watched_seconds, completed, last_watched_at FROM watch_progress WHERE episode_id = ?", (episode_id,)).fetchone()
+        row = conn.execute(
+            "SELECT episode_id, current_time_seconds, duration_seconds, watched_seconds, completed, last_watched_at "
+            "FROM watch_progress WHERE episode_id = ?",
+            (episode_id,),
+        ).fetchone()
         return {"found": True, "progress": dict(row)}
 
 
@@ -119,11 +129,17 @@ def set_episode_completed(db_path: Path, episode_id: int, completed: bool) -> di
             return {"found": False, "progress": None}
         conn.execute(
             """
-            INSERT INTO watch_progress(episode_id, current_time_seconds, duration_seconds, watched_seconds, completed, last_watched_at)
+            INSERT INTO watch_progress(
+                episode_id, current_time_seconds, duration_seconds, watched_seconds, completed, last_watched_at
+            )
             VALUES(?, 0, ?, 0, ?, CURRENT_TIMESTAMP)
             ON CONFLICT(episode_id) DO UPDATE SET completed = excluded.completed, last_watched_at = CURRENT_TIMESTAMP
             """,
             (episode_id, episode["duration_seconds"], int(completed)),
         )
-        row = conn.execute("SELECT episode_id, current_time_seconds, duration_seconds, watched_seconds, completed, last_watched_at FROM watch_progress WHERE episode_id = ?", (episode_id,)).fetchone()
+        row = conn.execute(
+            "SELECT episode_id, current_time_seconds, duration_seconds, watched_seconds, completed, last_watched_at "
+            "FROM watch_progress WHERE episode_id = ?",
+            (episode_id,),
+        ).fetchone()
         return {"found": True, "progress": dict(row)}

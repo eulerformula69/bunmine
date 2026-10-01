@@ -24,19 +24,21 @@ def search_kitsu_covers(query: str) -> list[dict]:
         if not cover_url:
             continue
         titles = attributes.get("titles") or {}
-        results.append({
-            "source": "kitsu",
-            "externalId": item["id"],
-            "title": titles.get("en_jp") or attributes.get("canonicalTitle") or "",
-            "englishTitle": titles.get("en") or titles.get("en_us"),
-            "nativeTitle": titles.get("ja_jp"),
-            "preferredTitle": attributes.get("canonicalTitle"),
-            "coverUrl": cover_url,
-            "siteUrl": f"https://kitsu.app/anime/{item['id']}",
-            "format": attributes.get("subtype"),
-            "seasonYear": (attributes.get("startDate") or "")[:4] or None,
-            "episodes": attributes.get("episodeCount"),
-        })
+        results.append(
+            {
+                "source": "kitsu",
+                "externalId": item["id"],
+                "title": titles.get("en_jp") or attributes.get("canonicalTitle") or "",
+                "englishTitle": titles.get("en") or titles.get("en_us"),
+                "nativeTitle": titles.get("ja_jp"),
+                "preferredTitle": attributes.get("canonicalTitle"),
+                "coverUrl": cover_url,
+                "siteUrl": f"https://kitsu.app/anime/{item['id']}",
+                "format": attributes.get("subtype"),
+                "seasonYear": (attributes.get("startDate") or "")[:4] or None,
+                "episodes": attributes.get("episodeCount"),
+            }
+        )
     return results
 
 
@@ -106,19 +108,19 @@ def search_anilist_covers(query: str) -> list[dict]:
         cover_url = cover.get("extraLarge") or cover.get("large")
         if not cover_url:
             continue
-        results.append({
-            "source": "anilist",
-            "externalId": item.get("id"),
-            "title": title.get("romaji") or title.get("userPreferred") or title.get("english") or "",
-            "englishTitle": title.get("english"),
-            "nativeTitle": title.get("native"),
-            "preferredTitle": title.get("userPreferred"),
-            "coverUrl": cover_url,
-            "siteUrl": item.get("siteUrl"),
-            "format": item.get("format"),
-            "seasonYear": item.get("seasonYear"),
-            "episodes": item.get("episodes"),
-        })
+        results.append(
+            {
+                "source": "anilist",
+                "externalId": item.get("id"),
+                "title": title.get("romaji") or title.get("userPreferred") or title.get("english") or "",
+                "englishTitle": title.get("english"),
+                "nativeTitle": title.get("native"),
+                "preferredTitle": title.get("userPreferred"),
+                "coverUrl": cover_url,
+                "siteUrl": item.get("siteUrl"),
+                "format": item.get("format"),
+                "seasonYear": item.get("seasonYear"),
+                "episodes": item.get("episodes"),
+            }
+        )
     return results
-
-

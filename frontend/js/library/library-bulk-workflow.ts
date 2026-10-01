@@ -23,7 +23,8 @@ export function openBulkSubtitleModal() {
 }
 
 export function closeBulkSubtitleModal() {
-    if (isBulkSubtitleDownloadingState.value || isBulkSubtitlePreparingState.value) return;
+    if (isBulkSubtitlePreparingState.value) return;
+    bulkDownloadController?.abort();
     bulkSubtitleModal.classList.add("hidden");
     document.body.classList.remove("modal-open");
     currentBulkSubtitlePlanState.value = null;
@@ -185,14 +186,15 @@ export async function prepareBulkSubtitlePlanGradually(plan) {
     updateBulkSubtitleConfirmState();
 }
 
-export async function postSubtitleDownloadWithBackoff(item) {
+export async function postSubtitleDownloadWithBackoff(item, signal?: AbortSignal) {
     const selected = item.selected;
     const data = await retryOnRateLimit(() => librarySelectEpisodeSubtitle(item.episodeId, {
             source: selected.source,
             entryId: selected.entryId,
             filename: selected.filename,
             downloadUrl: selected.downloadUrl
-        }), {
+        }, signal), {
+        signal,
         failureMessage: lt("couldNotSaveSubtitle"), exhaustedMessage: lt("jimakuRetryReached"),
         onWait: waitMs => {
         const stateEl = bulkSubtitleList.querySelector(`[data-bulk-state-for="${String(item.episodeId)}"]`);
@@ -202,14 +204,20 @@ export async function postSubtitleDownloadWithBackoff(item) {
     return data;
 }
 
+let bulkDownloadController: AbortController | null = null;
+
 export async function downloadSelectedBulkSubtitles() {
+    if (isBulkSubtitleDownloadingState.value) return;
     const items = getSelectedBulkSubtitleItems();
     if (!items.length) return;
+    const controller = new AbortController();
+    bulkDownloadController = controller;
+    const seriesId = currentOpenedSeriesState.value?.id;
 
     isBulkSubtitleDownloadingState.value = true;
     confirmBulkSubtitleDownloadBtn.disabled = true;
-    cancelBulkSubtitleDownloadBtn.disabled = true;
-    closeBulkSubtitleModalBtn.disabled = true;
+    cancelBulkSubtitleDownloadBtn.disabled = false;
+    closeBulkSubtitleModalBtn.disabled = false;
     bulkSubtitleList.querySelectorAll<HTMLInputElement | HTMLSelectElement>("input, select").forEach((input) => {
         input.disabled = true;
     });
@@ -218,8 +226,8 @@ export async function downloadSelectedBulkSubtitles() {
     let failed = 0;
     let nextIndex = 0;
 
-    async function worker(workerId) {
-        while (nextIndex < items.length) {
+    async function worker() {
+        while (nextIndex < items.length && !controller.signal.aborted) {
             const index = nextIndex;
             nextIndex += 1;
             const item = items[index];
@@ -229,10 +237,11 @@ export async function downloadSelectedBulkSubtitles() {
             if (stateEl) stateEl.textContent = lt("downloadingState");
 
             try {
-                await postSubtitleDownloadWithBackoff(item);
+                await postSubtitleDownloadWithBackoff(item, controller.signal);
                 downloaded += 1;
                 if (stateEl) stateEl.textContent = lt("downloadedState");
             } catch (err) {
+                if (controller.signal.aborted) return;
                 failed += 1;
                 if (stateEl) stateEl.textContent = lt("failedState", { message: err.message });
             }
@@ -243,11 +252,13 @@ export async function downloadSelectedBulkSubtitles() {
 
     try {
         const workerCount = Math.min(JIMAKU_DOWNLOAD_CONCURRENCY, items.length);
-        await Promise.all(Array.from({ length: workerCount }, (_, index) => worker(index)));
+        await Promise.all(Array.from({ length: workerCount }, () => worker()));
+        if (controller.signal.aborted) return;
         bulkSubtitleStatus.textContent = lt("finishedDownloads", { downloaded, failed });
-        await openSeries(currentOpenedSeriesState.value.id);
+        if (seriesId !== undefined) await openSeries(seriesId);
         await loadLibrarySeries();
     } finally {
+        bulkDownloadController = null;
         isBulkSubtitleDownloadingState.value = false;
         cancelBulkSubtitleDownloadBtn.disabled = false;
         closeBulkSubtitleModalBtn.disabled = false;

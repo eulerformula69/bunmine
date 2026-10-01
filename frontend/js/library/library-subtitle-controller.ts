@@ -47,13 +47,11 @@ export function createLibrarySubtitleController(options: LibrarySubtitleControll
             episode.hasSubtitle = true;
             episode.subtitleFileId = (data as LibraryMutationResponse & { subtitleFileId?: number | null }).subtitleFileId;
             episode.linkStatus = episode.hasVideo ? "linked" : "partial";
-            const meta = row.querySelector(".episode-meta");
-            if (meta) {
-                const watched = row.querySelector("[data-episode-watched-text]")?.outerHTML || "";
-                meta.innerHTML = `${episode.hasVideo ? t("videoYes") : t("videoNo")} <span>·</span> <span>${t("subtitlesYes")}</span> <button class="find-subtitles-btn find-subtitles-btn-inline" type="button" ${episode.hasVideo ? "" : "disabled"} data-episode-id="${options.escapeHtml(episode.id)}">${t("changeJpSubs")}</button> <span>·</span> ${watched}`;
-            }
-            const button = row.querySelector(".find-subtitles-btn");
+            const button = row.querySelector(".subtitle-file-action");
             if (button) button.textContent = t("changeJpSubs");
+            if (typeof data.subtitleFilename === "string") episode.subtitleFilename = data.subtitleFilename;
+            const filename = row.querySelector(".subtitle-filename");
+            if (filename) filename.textContent = episode.subtitleFilename || t("subtitlesYes");
             options.refreshSeriesStatus();
 
         },

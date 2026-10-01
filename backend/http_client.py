@@ -1,10 +1,12 @@
 """Bounded HTTP requests shared by external integrations."""
+
 import json
 import urllib.request
 
 
-def _request(url, *, payload=None, headers=None, timeout=12, max_bytes=16 * 1024 * 1024,
-             opener=None, content_type=None):
+def _request(
+    url, *, payload=None, headers=None, timeout=12, max_bytes=16 * 1024 * 1024, opener=None, content_type=None
+):
     if max_bytes <= 0:
         raise ValueError("Response size limit must be positive")
     request_headers = {"User-Agent": "Bunmine/1.0", "Accept": "application/json", **(headers or {})}
@@ -12,8 +14,9 @@ def _request(url, *, payload=None, headers=None, timeout=12, max_bytes=16 * 1024
     if payload is not None:
         body = json.dumps(payload).encode("utf-8")
         request_headers["Content-Type"] = "application/json"
-    request = urllib.request.Request(url, data=body, headers=request_headers,
-                                     method="POST" if body is not None else "GET")
+    request = urllib.request.Request(
+        url, data=body, headers=request_headers, method="POST" if body is not None else "GET"
+    )
     open_request = opener.open if opener is not None else urllib.request.urlopen
     with open_request(request, timeout=timeout) as response:
         if content_type and not response.headers.get("Content-Type", "").startswith(content_type):

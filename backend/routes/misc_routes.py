@@ -27,21 +27,6 @@ from backend.settings import current_settings
 misc_bp = Blueprint("misc", __name__)
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 @misc_bp.route("/anki-highlight-cache/<cache_key>", methods=["GET"])
 def get_anki_highlight_cache(cache_key):
     try:
@@ -105,13 +90,15 @@ def add_known_basic_word():
         words = _read_words_file(words_path) if words_path.exists() else []
         before = {str(item).strip() for item in words if str(item).strip()}
         normalized_words = _write_words_file(words_path, [*words, word])
-        return jsonify({
-            "ok": True,
-            "word": word,
-            "added": word not in before,
-            "count": len(normalized_words),
-            "source": words_path.name,
-        })
+        return jsonify(
+            {
+                "ok": True,
+                "word": word,
+                "added": word not in before,
+                "count": len(normalized_words),
+                "source": words_path.name,
+            }
+        )
     except ValueError as err:
         return exception_response(err)
     except Exception as err:
@@ -171,7 +158,9 @@ def save_known_anki_auto_refresh_settings():
     if "wordFields" in payload:
         merged["wordFields"] = [str(item).strip() for item in payload.get("wordFields") or [] if str(item).strip()]
     if "sentenceFields" in payload:
-        merged["sentenceFields"] = [str(item).strip() for item in payload.get("sentenceFields") or [] if str(item).strip()]
+        merged["sentenceFields"] = [
+            str(item).strip() for item in payload.get("sentenceFields") or [] if str(item).strip()
+        ]
     if "autoRefresh" in payload:
         merged["autoRefresh"] = str(payload.get("autoRefresh") or "off").strip().lower()
 
@@ -182,14 +171,6 @@ def save_known_anki_auto_refresh_settings():
         return jsonify({"ok": True, "settings": safe_settings, "source": _anki_highlight_settings_path().name})
     except Exception as err:
         return exception_response(err)
-
-
-
-
-
-
-
-
 
 
 @misc_bp.route("/known-anki-words/stale-check", methods=["POST"])
@@ -209,8 +190,6 @@ def stale_check_known_anki_words():
         return jsonify(refresh_known_anki_words_if_stale(context))
     except Exception as err:
         return exception_response(err)
-
-
 
 
 @misc_bp.route("/known-anki-words/refresh-note", methods=["POST"])
@@ -241,4 +220,3 @@ def refresh_known_anki_words():
         return exception_response(err)
     except Exception as err:
         return exception_response(err)
-

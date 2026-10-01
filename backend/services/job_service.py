@@ -2,8 +2,8 @@ import threading
 import uuid
 import time
 import logging
-from datetime import datetime, timezone
-from typing import Callable
+from datetime import datetime, UTC
+from collections.abc import Callable
 
 
 _jobs: dict[str, dict] = {}
@@ -27,7 +27,7 @@ def _prune_jobs(*, reserve: int = 0) -> None:
 
 
 def _now_iso() -> str:
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    return datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
 def start_job(kind: str, worker: Callable[[], dict]) -> dict:

@@ -22,17 +22,18 @@ def run_migrations(db_path: Path) -> None:
         has_schema_meta = conn.execute(
             "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'schema_meta'"
         ).fetchone()
+        if not has_schema_meta:
+            conn.execute("PRAGMA journal_mode = WAL")
+        conn.execute("BEGIN IMMEDIATE")
+        has_schema_meta = conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'schema_meta'"
+        ).fetchone()
         current_version = 0
         if has_schema_meta:
-            row = conn.execute(
-                "SELECT value FROM schema_meta WHERE key = 'schema_version'"
-            ).fetchone()
+            row = conn.execute("SELECT value FROM schema_meta WHERE key = 'schema_version'").fetchone()
             if row:
                 current_version = int(row["value"])
 
-        if current_version < 1:
-            conn.execute("PRAGMA journal_mode = WAL")
-        conn.execute("BEGIN IMMEDIATE")
         for version, _name, migrate_func in MIGRATIONS:
             if version <= current_version:
                 continue

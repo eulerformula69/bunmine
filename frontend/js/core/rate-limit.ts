@@ -1,5 +1,5 @@
 import { ApiPayload } from "../types/api.js";
-import { sleep } from "./api.js";
+import { abortableDelay } from "./async-work.js";
 
 export function retryAfterToMs(value: unknown, fallback = 12000, now = Date.now()): number {
     const raw = String(value || "").trim();
@@ -18,9 +18,11 @@ export async function retryOnRateLimit<T extends ApiPayload>(
         onWait(milliseconds: number): void;
         retries?: number;
         wait?: (milliseconds: number) => Promise<void>;
+        signal?: AbortSignal;
     }
 ): Promise<T> {
     for (let attempt = 0; attempt <= (options.retries ?? 4); attempt++) {
+        options.signal?.throwIfAborted();
         const {response, data} = await request();
         if (response.status !== 429) {
             if (!response.ok || data.error) throw new Error(String(data.error || options.failureMessage));
@@ -28,7 +30,8 @@ export async function retryOnRateLimit<T extends ApiPayload>(
         }
         const delay = retryAfterToMs(data.retryAfter);
         options.onWait(delay);
-        await (options.wait || sleep)(delay);
+        if (options.wait) await options.wait(delay);
+        else await abortableDelay(delay, options.signal);
     }
     throw new Error(options.exhaustedMessage);
 }

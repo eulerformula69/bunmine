@@ -61,6 +61,7 @@ def library_series_relink(series_id):
         return jsonify({"error": "path is required"}), 400
 
     from pathlib import Path
+
     target_path = Path(raw_path).expanduser().resolve()
     if not target_path.exists():
         return jsonify({"error": "Path does not exist"}), 400

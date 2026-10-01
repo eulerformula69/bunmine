@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import Optional
 
 from backend.repositories.playback_repository import get_library_file_by_id
 from backend.settings import Settings
@@ -9,7 +8,7 @@ from backend.utils_validation import is_within, safe_media_name
 def resolve_video_path_from_payload(
     data: dict,
     settings: Settings,
-) -> tuple[Optional[Path], Optional[dict], Optional[tuple]]:
+) -> tuple[Path | None, dict | None, tuple | None]:
     if not isinstance(data, dict):
         return None, None, ({"error": "Invalid JSON payload"}, 400)
 
@@ -35,11 +34,15 @@ def resolve_video_path_from_payload(
         if not video_path.exists() or not video_path.is_file():
             return None, None, ({"error": "Video file is missing"}, 404)
 
-        return video_path, {
-            "source": "library",
-            "videoFileId": file_id,
-            "path": str(video_path),
-        }, None
+        return (
+            video_path,
+            {
+                "source": "library",
+                "videoFileId": file_id,
+                "path": str(video_path),
+            },
+            None,
+        )
 
     filename = data.get("filename")
     if not filename:
@@ -56,11 +59,12 @@ def resolve_video_path_from_payload(
     if not video_path.exists() or not video_path.is_file():
         return None, None, ({"error": "Video file not found"}, 404)
 
-    return video_path, {
-        "source": "uploaded",
-        "filename": safe_filename,
-        "path": str(video_path),
-    }, None
-
-
-
+    return (
+        video_path,
+        {
+            "source": "uploaded",
+            "filename": safe_filename,
+            "path": str(video_path),
+        },
+        None,
+    )

@@ -8,10 +8,17 @@ def convert_ass_to_srt(source_path: Path, target_path: Path) -> Path:
     target_path.parent.mkdir(parents=True, exist_ok=True)
     temporary_path = target_path.with_name(f"{target_path.stem}.tmp.srt")
     try:
-        run_subprocess([
-            "ffmpeg", "-y", "-i", str(source_path),
-            "-c:s", "srt", str(temporary_path),
-        ])
+        run_subprocess(
+            [
+                "ffmpeg",
+                "-y",
+                "-i",
+                str(source_path),
+                "-c:s",
+                "srt",
+                str(temporary_path),
+            ]
+        )
         temporary_path.replace(target_path)
     finally:
         if temporary_path.exists():

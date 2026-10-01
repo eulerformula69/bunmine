@@ -98,6 +98,22 @@ def seed_playable_episode(db_path, media_root):
     return series_id, episode_id, file_id, video_path
 
 
+def test_jimaku_download_returns_filename_and_preserves_path(tmp_path, temporary_settings, monkeypatch):
+    from backend import library_subtitles
+    client, db_path, media_root = make_client(tmp_path, temporary_settings)
+    _, episode_id, _, video_path = seed_playable_episode(db_path, media_root)
+    monkeypatch.setattr(library_subtitles, "_http_download", lambda *_args, **_kwargs: b"1\n00:00:01,000 --> 00:00:02,000\nTest")
+    response = client.post(f"/library/episodes/{episode_id}/subtitles/select", json={
+        "source": "jimaku", "entryId": 7, "filename": "Release 01.srt",
+        "downloadUrl": "https://jimaku.cc/entry/7/download/subtitle.srt",
+    })
+    assert response.status_code == 200
+    assert response.json["subtitleFilename"] == video_path.with_suffix(".srt").name
+    assert response.json["subtitlePath"] == str(video_path.with_suffix(".srt"))
+    assert str(media_root) not in response.get_data(as_text=True)
+    assert video_path.with_suffix(".srt").exists()
+
+
 def test_library_series_endpoint_returns_normalized_ok_payload(tmp_path, temporary_settings):
     client, db_path, media_root = make_client(tmp_path, temporary_settings)
     seed_playable_episode(db_path, media_root)

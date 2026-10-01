@@ -46,12 +46,14 @@ def relink_library_series_files(db_path: Path, series_id: int, new_base: Path, m
                     break
 
             if not matched_path:
-                unresolved.append({
-                    "fileId": row["id"],
-                    "fileType": row["file_type"],
-                    "oldPath": row["path"],
-                    "relativePath": row["relative_path"],
-                })
+                unresolved.append(
+                    {
+                        "fileId": row["id"],
+                        "fileType": row["file_type"],
+                        "oldPath": row["path"],
+                        "relativePath": row["relative_path"],
+                    }
+                )
                 continue
 
             try:
@@ -67,12 +69,14 @@ def relink_library_series_files(db_path: Path, series_id: int, new_base: Path, m
                 """,
                 (str(matched_path), relative, row["id"]),
             )
-            relinked.append({
-                "fileId": row["id"],
-                "fileType": row["file_type"],
-                "oldPath": row["path"],
-                "newPath": str(matched_path),
-            })
+            relinked.append(
+                {
+                    "fileId": row["id"],
+                    "fileType": row["file_type"],
+                    "oldPath": row["path"],
+                    "newPath": str(matched_path),
+                }
+            )
 
     return {
         "found": True,
@@ -107,5 +111,3 @@ def _path_candidates_for_relink(new_base: Path, stored_path: Path, relative_path
         seen.add(key)
         unique.append(resolved)
     return unique
-
-

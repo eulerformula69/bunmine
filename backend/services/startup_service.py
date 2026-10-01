@@ -69,6 +69,7 @@ def cleanup_on_startup(settings: Settings) -> None:
         except Exception:
             logger.exception("Could not delete dedupe index")
 
+
 def initialize_backend(settings: Settings) -> None:
     ensure_directories(settings)
     migrate_legacy_data_paths(settings)

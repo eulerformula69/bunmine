@@ -63,7 +63,8 @@ def download_cover_file(
 ) -> Path:
     _validate_cover_url(cover_url, allowed_hosts)
     covers_dir.mkdir(parents=True, exist_ok=True)
-    filename = f"series_{series_id}_{_safe_cover_name(source)}_{_safe_cover_name(str(external_id))}{_extension_from_url(cover_url)}"
+    identity = f"series_{series_id}_{_safe_cover_name(source)}_{_safe_cover_name(str(external_id))}"
+    filename = f"{identity}{_extension_from_url(cover_url)}"
     target_path = covers_dir / filename
 
     opener = urllib.request.build_opener(_ValidatedRedirectHandler(allowed_hosts))
@@ -124,7 +125,9 @@ def save_series_cover(
         else:
             cur = conn.execute(
                 """
-                INSERT INTO library_files(series_id, episode_id, file_type, path, relative_path, file_exists, is_primary, linked_at)
+                INSERT INTO library_files(
+                    series_id, episode_id, file_type, path, relative_path, file_exists, is_primary, linked_at
+                )
                 VALUES(?, NULL, 'cover', ?, ?, 1, 1, CURRENT_TIMESTAMP)
                 """,
                 (series_id, str(cover_path), relative_path),
@@ -153,6 +156,7 @@ def get_series_cover_file(db_path: Path, series_id: int) -> dict:
         if not row:
             return {"found": False, "file": None}
         return {"found": True, "file": dict(row)}
+
 
 def resolve_cover_file_path(covers_dir: Path, file_info: dict) -> Path | None:
     """Resolve both current and legacy cover DB records to a safe path under LibraryCovers."""
