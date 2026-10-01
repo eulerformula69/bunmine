@@ -2,6 +2,8 @@ import json
 import time
 from datetime import datetime, timedelta, timezone
 
+from backend.api_response import exception_response
+
 from flask import Blueprint, jsonify, request
 
 from backend import app_state
@@ -287,7 +289,7 @@ def _refresh_known_anki_words_from_anki(payload: dict, settings: Settings | None
     return {
         "ok": True,
         "updatedAt": checked_at,
-        "source": str(_known_anki_words_path(settings)),
+        "source": _known_anki_words_path(settings).name,
         "count": len(result_data["words"]),
         "notesFound": len(note_ids),
         "notesChecked": status_checked_notes,
@@ -307,7 +309,7 @@ def get_anki_highlight_cache(cache_key):
     try:
         safe_key = safe_cache_key(cache_key)
     except ValueError as err:
-        return jsonify({"error": str(err)}), 400
+        return exception_response(err)
 
     cache_path = current_settings().anki_highlight_dir / f"{safe_key}.json"
     if not cache_path.exists():
@@ -317,7 +319,7 @@ def get_anki_highlight_cache(cache_key):
         data = json.loads(cache_path.read_text(encoding="utf-8"))
         return jsonify({"found": True, "data": data})
     except Exception as err:
-        return jsonify({"error": str(err)}), 500
+        return exception_response(err)
 
 
 @misc_bp.route("/anki-highlight-cache/<cache_key>", methods=["POST"])
@@ -325,7 +327,7 @@ def save_anki_highlight_cache(cache_key):
     try:
         safe_key = safe_cache_key(cache_key)
     except ValueError as err:
-        return jsonify({"error": str(err)}), 400
+        return exception_response(err)
 
     data = request.get_json()
     if not isinstance(data, dict):
@@ -341,14 +343,14 @@ def save_anki_highlight_cache(cache_key):
 def get_known_basic_words():
     words_path = _known_basic_words_path()
     if not words_path.exists():
-        return jsonify({"words": [], "source": str(words_path), "exists": False})
+        return jsonify({"words": [], "source": words_path.name, "exists": False})
 
     try:
-        return jsonify({"words": _read_words_file(words_path), "source": str(words_path), "exists": True})
+        return jsonify({"words": _read_words_file(words_path), "source": words_path.name, "exists": True})
     except ValueError as err:
-        return jsonify({"error": str(err)}), 400
+        return exception_response(err)
     except Exception as err:
-        return jsonify({"error": str(err)}), 500
+        return exception_response(err)
 
 
 @misc_bp.route("/known-basic-words/add", methods=["POST"])
@@ -370,12 +372,12 @@ def add_known_basic_word():
             "word": word,
             "added": word not in before,
             "count": len(normalized_words),
-            "source": str(words_path),
+            "source": words_path.name,
         })
     except ValueError as err:
-        return jsonify({"error": str(err)}), 400
+        return exception_response(err)
     except Exception as err:
-        return jsonify({"error": str(err)}), 500
+        return exception_response(err)
 
 
 @misc_bp.route("/known-anki-words", methods=["GET"])
@@ -384,11 +386,11 @@ def get_known_anki_words():
         data = _read_known_anki_data()
         if not _known_anki_words_path().exists():
             data = _write_known_anki_data(data)
-        return jsonify({"found": True, "data": data, "source": str(_known_anki_words_path())})
+        return jsonify({"found": True, "data": data, "source": _known_anki_words_path().name})
     except ValueError as err:
-        return jsonify({"error": str(err)}), 400
+        return exception_response(err)
     except Exception as err:
-        return jsonify({"error": str(err)}), 500
+        return exception_response(err)
 
 
 @misc_bp.route("/known-anki-words", methods=["POST"])
@@ -399,9 +401,9 @@ def save_known_anki_words():
 
     try:
         saved = _write_known_anki_data(data)
-        return jsonify({"ok": True, "source": str(_known_anki_words_path()), "count": len(saved.get("words", {}))})
+        return jsonify({"ok": True, "source": _known_anki_words_path().name, "count": len(saved.get("words", {}))})
     except Exception as err:
-        return jsonify({"error": str(err)}), 500
+        return exception_response(err)
 
 
 @misc_bp.route("/known-anki-words/auto-refresh-settings", methods=["GET"])
@@ -410,9 +412,9 @@ def get_known_anki_auto_refresh_settings():
         settings = _read_anki_highlight_settings()
         safe_settings = {key: value for key, value in settings.items() if key != "ankiUrl"}
         safe_settings["hasAnkiUrl"] = bool(settings.get("ankiUrl"))
-        return jsonify({"ok": True, "settings": safe_settings, "source": str(_anki_highlight_settings_path())})
+        return jsonify({"ok": True, "settings": safe_settings, "source": _anki_highlight_settings_path().name})
     except Exception as err:
-        return jsonify({"error": str(err)}), 500
+        return exception_response(err)
 
 
 @misc_bp.route("/known-anki-words/auto-refresh-settings", methods=["POST"])
@@ -439,9 +441,9 @@ def save_known_anki_auto_refresh_settings():
         settings = _write_anki_highlight_settings(merged)
         safe_settings = {key: value for key, value in settings.items() if key != "ankiUrl"}
         safe_settings["hasAnkiUrl"] = bool(settings.get("ankiUrl"))
-        return jsonify({"ok": True, "settings": safe_settings, "source": str(_anki_highlight_settings_path())})
+        return jsonify({"ok": True, "settings": safe_settings, "source": _anki_highlight_settings_path().name})
     except Exception as err:
-        return jsonify({"error": str(err)}), 500
+        return exception_response(err)
 
 
 def _compact_refresh_result(result: dict) -> dict:
@@ -541,7 +543,7 @@ def stale_check_known_anki_words():
     try:
         return jsonify(refresh_known_anki_words_if_stale(context))
     except Exception as err:
-        return jsonify({"ok": False, "error": str(err)}), 500
+        return exception_response(err)
 
 
 def _refresh_single_known_anki_word_from_anki(payload: dict) -> dict:
@@ -619,7 +621,7 @@ def _refresh_single_known_anki_word_from_anki(payload: dict) -> dict:
     return {
         "ok": True,
         "updatedAt": checked_at,
-        "source": str(_known_anki_words_path()),
+        "source": _known_anki_words_path().name,
         "count": len(data.get("words", {})),
         "noteId": note_id,
         "words": updated_words,
@@ -637,9 +639,9 @@ def refresh_known_anki_word_from_note():
     try:
         return jsonify(_refresh_single_known_anki_word_from_anki(payload))
     except ValueError as err:
-        return jsonify({"error": str(err)}), 400
+        return exception_response(err)
     except Exception as err:
-        return jsonify({"error": str(err)}), 500
+        return exception_response(err)
 
 
 @misc_bp.route("/known-anki-words/refresh", methods=["POST"])
@@ -653,6 +655,6 @@ def refresh_known_anki_words():
     try:
         return jsonify(_refresh_known_anki_words_from_anki(payload))
     except ValueError as err:
-        return jsonify({"error": str(err)}), 400
+        return exception_response(err)
     except Exception as err:
-        return jsonify({"error": str(err)}), 500
+        return exception_response(err)

@@ -17,6 +17,7 @@ from backend.routes.static_routes import static_bp
 from backend.routes.candidate_routes import candidate_bp
 from backend.services.startup_service import initialize_backend
 from backend.settings import Settings, load_settings
+from backend.api_response import register_error_handlers
 
 
 def create_app(settings: Settings | None = None, initialize: bool = True) -> Flask:
@@ -25,6 +26,7 @@ def create_app(settings: Settings | None = None, initialize: bool = True) -> Fla
         initialize_backend(settings)
     app = Flask(__name__, static_folder=str(settings.frontend_dir))
     app.config["SETTINGS"] = settings
+    register_error_handlers(app)
 
     if settings.allowed_origin:
         CORS(app, resources={r"/*": {"origins": [settings.allowed_origin]}})

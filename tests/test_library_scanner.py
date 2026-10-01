@@ -83,3 +83,17 @@ def test_infer_series_title_uses_nearest_meaningful_folder(tmp_path):
     episode_path.write_bytes(b"video")
 
     assert infer_series_title(media_root, episode_path) == "Example Show"
+
+
+def test_scanning_one_folder_preserves_other_existing_files(tmp_path):
+    db_path = tmp_path / "library.sqlite3"
+    media_root = tmp_path / "media"
+    for title in ("Alpha", "Beta"):
+        folder = media_root / title
+        folder.mkdir(parents=True)
+        (folder / f"{title} - 01.mkv").write_bytes(b"video")
+    init_library_db(db_path)
+    scan_library(db_path, media_root, {".mkv"}, {".srt"})
+    scan_library(db_path, media_root / "Alpha", {".mkv"}, {".srt"})
+    with sqlite3.connect(db_path) as conn:
+        assert conn.execute("SELECT COUNT(*) FROM library_files WHERE file_exists = 1").fetchone()[0] == 2

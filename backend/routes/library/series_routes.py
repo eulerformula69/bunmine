@@ -1,6 +1,8 @@
 """Library series routes."""
 
-from flask import Blueprint, jsonify
+from backend.api_response import exception_response
+
+from flask import Blueprint, jsonify, request
 
 from backend.repositories.library_repository import (
     get_library_series_debug,
@@ -44,7 +46,7 @@ def library_series_delete(series_id):
     try:
         result = delete_library_series(current_settings().library_db_path, series_id)
     except Exception as err:
-        return jsonify({"error": str(err)}), 500
+        return exception_response(err)
 
     if not result.get("found"):
         return jsonify({"error": "Series not found"}), 404
@@ -53,7 +55,6 @@ def library_series_delete(series_id):
 
 @library_series_bp.route("/library/series/<int:series_id>/relink", methods=["POST"])
 def library_series_relink(series_id):
-    from flask import request
     data = request.get_json(silent=True) or {}
     raw_path = str(data.get("path") or "").strip()
     if not raw_path:
@@ -72,7 +73,7 @@ def library_series_relink(series_id):
             media_root=current_settings().media_library_dir,
         )
     except Exception as err:
-        return jsonify({"error": str(err)}), 500
+        return exception_response(err)
 
     if not result.get("found"):
         return jsonify({"error": "Series not found"}), 404

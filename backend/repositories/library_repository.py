@@ -7,6 +7,7 @@ Business logic belongs in backend/services/library_service.py.
 from pathlib import Path
 
 from backend.repositories.connection import get_db
+from backend.repositories.episode_file_query import primary_file_id_sql
 
 
 def init_library_db(db_path: Path) -> None:
@@ -59,15 +60,17 @@ def refresh_library_file_existence(db_path: Path, file_types: list[str] | tuple[
             tuple(params),
         ).fetchall()
 
-        for row in rows:
-            checked += 1
-            file_path = Path(row["path"]).expanduser()
-            if file_path.exists() and file_path.is_file():
-                continue
-            missing_ids.append(int(row["id"]))
+    for row in rows:
+        checked += 1
+        file_path = Path(row["path"]).expanduser()
+        if file_path.is_file():
+            continue
+        missing_ids.append(int(row["id"]))
 
-        if missing_ids:
-            placeholders = ", ".join("?" for _ in missing_ids)
+    with get_db(db_path) as conn:
+        for offset in range(0, len(missing_ids), 500):
+            batch = missing_ids[offset:offset + 500]
+            placeholders = ", ".join("?" for _ in batch)
             conn.execute(
                 f"""
                 UPDATE library_files
@@ -76,7 +79,7 @@ def refresh_library_file_existence(db_path: Path, file_types: list[str] | tuple[
                     updated_at = CURRENT_TIMESTAMP
                 WHERE id IN ({placeholders})
                 """,
-                tuple(missing_ids),
+                tuple(batch),
             )
             marked_missing = len(missing_ids)
 
@@ -85,7 +88,6 @@ def refresh_library_file_existence(db_path: Path, file_types: list[str] | tuple[
 
 def get_library_series_list(db_path: Path) -> list[dict]:
     """Get list of all series with aggregated statistics."""
-    refresh_library_file_existence(db_path, {"video", "subtitle", "cover"})
     with get_db(db_path) as conn:
         rows = conn.execute(
             """
@@ -172,33 +174,14 @@ def get_library_series_list(db_path: Path) -> list[dict]:
 
 def get_library_series_detail(db_path: Path, series_id: int) -> dict:
     """Get detailed information about a specific series."""
-    refresh_library_file_existence(db_path, {"video", "subtitle", "cover"})
     with get_db(db_path) as conn:
         series_row = conn.execute("SELECT id, title, cover_file_id FROM series WHERE id = ?", (series_id,)).fetchone()
         if not series_row:
             return {"found": False, "series": None, "episodes": []}
 
         episode_rows = conn.execute(
-            """
-            WITH ranked_files AS (
-                SELECT
-                    id,
-                    episode_id,
-                    file_type,
-                    relative_path,
-                    file_exists,
-                    ROW_NUMBER() OVER (
-                        PARTITION BY episode_id, file_type
-                        ORDER BY file_exists DESC, is_primary DESC, id ASC
-                    ) AS available_rank,
-                    ROW_NUMBER() OVER (
-                        PARTITION BY episode_id, file_type
-                        ORDER BY is_primary DESC, id ASC
-                    ) AS filename_rank
-                FROM library_files
-                WHERE file_type IN ('video', 'subtitle')
-            ),
-            episode_card_stats AS (
+            f"""
+            WITH episode_card_stats AS (
                 SELECT
                     episode_id,
                     COUNT(id) AS cards_count,
@@ -226,24 +209,10 @@ def get_library_series_detail(db_path: Path, series_id: int) -> dict:
                 COALESCE(ecs.mined_words_count, 0) AS mined_words_count
             FROM episodes e
             LEFT JOIN watch_progress wp ON wp.episode_id = e.id
-            LEFT JOIN ranked_files video_file
-                ON video_file.episode_id = e.id
-                AND video_file.file_type = 'video'
-                AND video_file.file_exists = 1
-                AND video_file.available_rank = 1
-            LEFT JOIN ranked_files subtitle_file
-                ON subtitle_file.episode_id = e.id
-                AND subtitle_file.file_type = 'subtitle'
-                AND subtitle_file.file_exists = 1
-                AND subtitle_file.available_rank = 1
-            LEFT JOIN ranked_files video_name
-                ON video_name.episode_id = e.id
-                AND video_name.file_type = 'video'
-                AND video_name.filename_rank = 1
-            LEFT JOIN ranked_files subtitle_name
-                ON subtitle_name.episode_id = e.id
-                AND subtitle_name.file_type = 'subtitle'
-                AND subtitle_name.filename_rank = 1
+            LEFT JOIN library_files video_file ON video_file.id = ({primary_file_id_sql("video")})
+            LEFT JOIN library_files subtitle_file ON subtitle_file.id = ({primary_file_id_sql("subtitle")})
+            LEFT JOIN library_files video_name ON video_name.id = ({primary_file_id_sql("video", existing=False)})
+            LEFT JOIN library_files subtitle_name ON subtitle_name.id = ({primary_file_id_sql("subtitle", existing=False)})
             LEFT JOIN episode_card_stats ecs ON ecs.episode_id = e.id
             WHERE e.series_id = ?
             ORDER BY COALESCE(e.season_number, 1), e.episode_number IS NULL, e.episode_number, e.title
@@ -298,7 +267,6 @@ def get_library_series_detail(db_path: Path, series_id: int) -> dict:
 
 def get_library_series_debug(db_path: Path) -> list[dict]:
     """Get debug information about all series."""
-    refresh_library_file_existence(db_path, {"video", "subtitle", "cover"})
     with get_db(db_path) as conn:
         rows = conn.execute(
             """
@@ -362,7 +330,6 @@ def get_library_series_debug(db_path: Path) -> list[dict]:
 
 def get_library_series_files_debug(db_path: Path, series_id: int) -> dict:
     """Get debug information about files in a specific series."""
-    refresh_library_file_existence(db_path, {"video", "subtitle", "cover"})
     with get_db(db_path) as conn:
         series = conn.execute("SELECT id, title FROM series WHERE id = ?", (series_id,)).fetchone()
         if not series:

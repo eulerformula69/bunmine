@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from backend.repositories.connection import get_db
+from backend.repositories.episode_file_query import primary_file_id_sql
 
 
 def _mark_missing_files(conn, rows) -> None:
@@ -23,20 +24,6 @@ def _mark_missing_files(conn, rows) -> None:
         """,
         tuple(missing_ids),
     )
-
-
-def _refresh_episode_files(conn, episode_id: int) -> None:
-    rows = conn.execute(
-        """
-        SELECT id, path
-        FROM library_files
-        WHERE episode_id = ?
-          AND file_type IN ('video', 'subtitle')
-          AND file_exists = 1
-        """,
-        (episode_id,),
-    ).fetchall()
-    _mark_missing_files(conn, rows)
 
 
 def get_library_file_by_id(db_path: Path, file_id: int) -> dict:
@@ -65,14 +52,13 @@ def get_library_file_by_id(db_path: Path, file_id: int) -> dict:
 
 def get_episode_playback(db_path: Path, episode_id: int) -> dict:
     with get_db(db_path) as conn:
-        _refresh_episode_files(conn, episode_id)
         row = conn.execute(
-            """
+            f"""
             SELECT e.id AS episode_id, e.title AS episode_title, e.duration_seconds,
                    s.id AS series_id, s.title AS series_title,
                    COALESCE(wp.current_time_seconds, 0) AS current_time_seconds,
-                   (SELECT vf.id FROM library_files vf WHERE vf.episode_id = e.id AND vf.file_type = 'video' AND vf.file_exists = 1 ORDER BY vf.is_primary DESC, vf.id ASC LIMIT 1) AS video_file_id,
-                   (SELECT sf.id FROM library_files sf WHERE sf.episode_id = e.id AND sf.file_type = 'subtitle' AND sf.file_exists = 1 ORDER BY sf.is_primary DESC, sf.id ASC LIMIT 1) AS subtitle_file_id
+                   ({primary_file_id_sql("video")}) AS video_file_id,
+                   ({primary_file_id_sql("subtitle")}) AS subtitle_file_id
             FROM episodes e
             JOIN series s ON s.id = e.series_id
             LEFT JOIN watch_progress wp ON wp.episode_id = e.id

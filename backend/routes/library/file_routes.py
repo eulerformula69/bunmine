@@ -2,18 +2,26 @@
 
 from pathlib import Path
 
+from backend.api_response import exception_response
+
 from flask import Blueprint, jsonify, request, send_from_directory
 
 from backend.library_scanner import scan_library
 from backend.repositories.library_repository import (
     get_library_db_status,
     get_library_file_by_id,
+    refresh_library_file_existence,
 )
 from backend.services.job_service import get_job, start_job
 from backend.settings import current_settings
 from backend.utils_validation import is_within
 
 library_file_bp = Blueprint("library_file", __name__)
+
+
+@library_file_bp.post("/library/refresh-files")
+def library_refresh_files():
+    return jsonify({"ok": True, **refresh_library_file_existence(current_settings().library_db_path)})
 
 
 def _choose_folder_dialog(initial_dir: Path) -> str | None:
@@ -87,7 +95,7 @@ def library_choose_folder_dialog():
     try:
         selected = _choose_folder_dialog(initial_path)
     except Exception as err:
-        return jsonify({"error": str(err)}), 500
+        return exception_response(err)
 
     if not selected:
         return jsonify({"cancelled": True, "path": None})

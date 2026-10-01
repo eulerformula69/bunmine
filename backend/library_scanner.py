@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Optional
 
 from backend.repositories.connection import get_db
+from backend.repositories.library_repository import refresh_library_file_existence
 
 
 def normalize_title(value: str) -> str:
@@ -156,16 +157,9 @@ def scan_library(db_path: Path, media_root: Path, video_extensions: set[str], su
     }
     touched_series_ids = set()
     touched_episode_ids = set()
+    refresh_library_file_existence(db_path)
 
     with get_db(db_path) as conn:
-        conn.execute(
-            """
-            UPDATE library_files
-            SET file_exists = 0, missing_since = COALESCE(missing_since, CURRENT_TIMESTAMP), updated_at = CURRENT_TIMESTAMP
-            WHERE file_type IN ('video', 'subtitle')
-            """
-        )
-
         for path in found_files:
             suffix = path.suffix.lower()
             file_type = "video" if suffix in video_extensions else "subtitle"

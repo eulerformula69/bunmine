@@ -1,5 +1,7 @@
 """Library cover routes."""
 
+from backend.api_response import exception_response
+
 from flask import Blueprint, jsonify, request, send_from_directory
 
 from backend.library_covers import get_series_cover_file, resolve_cover_file_path, save_series_cover
@@ -20,7 +22,7 @@ def library_series_cover_search(series_id):
     try:
         results = search_covers(query)
     except Exception as err:
-        return jsonify({"error": str(err)}), 502
+        return exception_response(err)
 
     return jsonify({"seriesId": series_id, "query": query, "results": results})
 
@@ -50,7 +52,7 @@ def library_series_cover_select(series_id):
             max_bytes=settings.cover_max_bytes,
         )
     except Exception as err:
-        return jsonify({"error": str(err)}), 500
+        return exception_response(err)
 
     if not result.get("found"):
         return jsonify({"error": "Series not found"}), 404

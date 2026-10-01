@@ -5,6 +5,7 @@ from datetime import date
 from pathlib import Path
 
 from backend.repositories.connection import get_db
+from backend.repositories.episode_file_query import primary_file_id_sql
 from backend.services.anki_highlight_store import read_anki_highlight_settings, read_known_anki_data, read_words_file, known_basic_words_path
 from backend.services.vocabulary_report_model import STATUSES, build_report_rows, pick_sentence
 from backend.services.vocabulary_report_workbook import create_workbook
@@ -24,8 +25,8 @@ def _series_files(settings: Settings, series_id: int):
     with get_db(settings.library_db_path) as conn:
         series = conn.execute("SELECT id, title FROM series WHERE id=?", (series_id,)).fetchone()
         if not series: raise VocabularyReportError("Series not found")
-        episodes = conn.execute("""SELECT e.id, e.title, e.episode_number, lf.path FROM episodes e
-            LEFT JOIN library_files lf ON lf.id=(SELECT id FROM library_files WHERE episode_id=e.id AND file_type='subtitle' AND file_exists=1 ORDER BY is_primary DESC,id LIMIT 1)
+        episodes = conn.execute(f"""SELECT e.id, e.title, e.episode_number, lf.path FROM episodes e
+            LEFT JOIN library_files lf ON lf.id=({primary_file_id_sql("subtitle")})
             WHERE e.series_id=? ORDER BY COALESCE(e.season_number,1), e.episode_number, e.id""", (series_id,)).fetchall()
     if not episodes: raise VocabularyReportError("Series has no episodes")
     files = [{"episodeId": row["id"], "episode": row["title"] or f"Episode {row['episode_number']}", "path": row["path"]} for row in episodes if row["path"] and Path(row["path"]).is_file()]

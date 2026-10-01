@@ -2,6 +2,8 @@
 
 import urllib.error
 
+from backend.api_response import exception_response
+
 from flask import Blueprint, jsonify, request
 
 from backend.library_subtitles import (
@@ -33,7 +35,7 @@ def library_episode_subtitle_search(episode_id):
     except urllib.error.HTTPError as err:
         return jsonify({"error": f"Jimaku request failed: HTTP {err.code}"}), 502
     except Exception as err:
-        return jsonify({"error": str(err)}), 502
+        return exception_response(err)
 
     return jsonify({
         "episodeId": episode_id,
@@ -61,7 +63,7 @@ def library_episode_subtitle_select(episode_id):
             payload["retryAfter"] = retry_after
         return jsonify(payload), err.code if err.code == 429 else 502
     except Exception as err:
-        return jsonify({"error": str(err)}), 500
+        return exception_response(err)
 
     if not result.get("found"):
         return jsonify({"error": "Episode not found"}), 404
@@ -80,7 +82,7 @@ def library_series_missing_subtitles(series_id):
             limit=limit,
         )
     except Exception as err:
-        return jsonify({"error": str(err)}), 500
+        return exception_response(err)
 
     if not result.get("found"):
         return jsonify({"error": "Series not found"}), 404
@@ -107,7 +109,7 @@ def library_series_subtitles_analyze(series_id):
             payload["retryAfter"] = retry_after
         return jsonify(payload), err.code if err.code == 429 else 502
     except Exception as err:
-        return jsonify({"error": str(err)}), 500
+        return exception_response(err)
 
     if not result.get("found"):
         return jsonify({"error": "Series not found"}), 404
@@ -132,7 +134,7 @@ def library_episode_subtitle_plan(episode_id):
             payload["retryAfter"] = retry_after
         return jsonify(payload), err.code if err.code == 429 else 502
     except Exception as err:
-        return jsonify({"error": str(err)}), 500
+        return exception_response(err)
 
     if not result.get("found"):
         return jsonify({"error": "Episode not found"}), 404
@@ -155,7 +157,7 @@ def library_series_subtitles_download_plan(series_id):
     except urllib.error.HTTPError as err:
         return jsonify({"error": f"Jimaku request failed: HTTP {err.code}"}), 502
     except Exception as err:
-        return jsonify({"error": str(err)}), 500
+        return exception_response(err)
 
     if not result.get("found"):
         return jsonify({"error": "Series not found"}), 404
@@ -176,7 +178,7 @@ def library_series_subtitles_download_missing(series_id):
             limit=limit,
         )
     except Exception as err:
-        return jsonify({"error": str(err)}), 500
+        return exception_response(err)
 
     if not result.get("found"):
         return jsonify({"error": "Series not found"}), 404

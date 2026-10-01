@@ -1,5 +1,7 @@
 """Library episode routes."""
 
+from backend.api_response import exception_response
+
 from flask import Blueprint, jsonify, request
 
 from backend.repositories.playback_repository import (
@@ -29,7 +31,7 @@ def library_episode_delete(episode_id):
     try:
         result = delete_missing_library_episode(current_settings().library_db_path, episode_id)
     except Exception as err:
-        return jsonify({"error": str(err)}), 500
+        return exception_response(err)
 
     if not result.get("found"):
         return jsonify({"error": "Episode not found"}), 404

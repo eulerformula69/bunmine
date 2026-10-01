@@ -2,7 +2,7 @@ import os
 
 from flask import Blueprint, current_app, jsonify, request, send_from_directory
 
-from backend.api_response import legacy_error_response, ok_response
+from backend.api_response import exception_response, legacy_error_response, ok_response
 from backend.services.dedupe_service import clean_srt_text_file
 from backend.services.media_export_service import (
     MediaExportError,
@@ -21,7 +21,7 @@ def _settings() -> Settings:
 
 
 def _json_error(err: Exception, status: int = 500, code: str = "MEDIA_ERROR"):
-    return legacy_error_response(str(err), status, code)
+    return exception_response(err, status if status != 500 else None, code)
 
 
 @media_bp.route("/upload-video", methods=["POST"])

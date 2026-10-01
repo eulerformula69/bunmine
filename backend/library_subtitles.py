@@ -6,6 +6,7 @@ import urllib.request
 from pathlib import Path
 
 from backend.repositories.connection import get_db
+from backend.repositories.episode_file_query import primary_file_id_sql
 from backend.repositories.library_repository import get_library_series_detail
 from backend.library_scanner import normalize_title
 from backend.subtitles.jimaku_release import (
@@ -137,7 +138,7 @@ def _auth_token() -> str | None:
 def get_episode_subtitle_context(db_path: Path, episode_id: int) -> dict:
     with get_db(db_path) as conn:
         row = conn.execute(
-            """
+            f"""
             SELECT
                 e.id AS episode_id,
                 e.title AS episode_title,
@@ -151,16 +152,10 @@ def get_episode_subtitle_context(db_path: Path, episode_id: int) -> dict:
             FROM episodes e
             JOIN series s ON s.id = e.series_id
             LEFT JOIN library_files vf ON vf.id = (
-                SELECT id FROM library_files
-                WHERE episode_id = e.id AND file_type = 'video' AND file_exists = 1
-                ORDER BY is_primary DESC, id ASC
-                LIMIT 1
+                {primary_file_id_sql("video")}
             )
             LEFT JOIN library_files sf ON sf.id = (
-                SELECT id FROM library_files
-                WHERE episode_id = e.id AND file_type = 'subtitle' AND file_exists = 1
-                ORDER BY is_primary DESC, id ASC
-                LIMIT 1
+                {primary_file_id_sql("subtitle")}
             )
             WHERE e.id = ?
             """,
@@ -243,7 +238,7 @@ def get_missing_subtitle_episode_contexts(db_path: Path, series_id: int, limit: 
             return {"found": False, "series": None, "episodes": []}
 
         rows = conn.execute(
-            """
+            f"""
             SELECT
                 e.id AS episode_id,
                 e.title AS episode_title,
@@ -253,16 +248,10 @@ def get_missing_subtitle_episode_contexts(db_path: Path, series_id: int, limit: 
                 vf.path AS video_path
             FROM episodes e
             JOIN library_files vf ON vf.id = (
-                SELECT id FROM library_files
-                WHERE episode_id = e.id AND file_type = 'video' AND file_exists = 1
-                ORDER BY is_primary DESC, id ASC
-                LIMIT 1
+                {primary_file_id_sql("video")}
             )
             LEFT JOIN library_files sf ON sf.id = (
-                SELECT id FROM library_files
-                WHERE episode_id = e.id AND file_type = 'subtitle' AND file_exists = 1
-                ORDER BY is_primary DESC, id ASC
-                LIMIT 1
+                {primary_file_id_sql("subtitle")}
             )
             WHERE e.series_id = ? AND sf.id IS NULL
             ORDER BY COALESCE(e.season_number, 1), e.episode_number IS NULL, e.episode_number, e.title

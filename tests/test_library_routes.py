@@ -4,6 +4,7 @@ from flask import Flask
 
 from backend.repositories.connection import get_db
 from backend.repositories.library_repository import init_library_db
+from backend.repositories.library_repository import refresh_library_file_existence
 from backend.routes.library import (
     cover_routes,
     episode_routes,
@@ -33,6 +34,27 @@ def make_client(tmp_path, temporary_settings):
     app.register_blueprint(cover_routes.library_cover_bp)
     app.register_blueprint(file_routes.library_file_bp)
     return app.test_client(), db_path, media_root
+
+
+def test_get_does_not_refresh_missing_files(tmp_path, temporary_settings):
+    client, db_path, media_root = make_client(tmp_path, temporary_settings)
+    _, _, _, video_path = seed_playable_episode(db_path, media_root)
+    video_path.unlink()
+    assert client.get("/library/series").json["series"][0]["episodesWithVideo"] == 1
+    response = client.post("/library/refresh-files")
+    assert response.status_code == 200
+    assert response.json["markedMissing"] == 1
+    assert client.get("/library/series").json["series"][0]["episodesWithVideo"] == 0
+
+
+def test_refresh_handles_more_than_one_batch(tmp_path, temporary_settings):
+    _, db_path, _ = make_client(tmp_path, temporary_settings)
+    with get_db(db_path) as conn:
+        conn.executemany(
+            "INSERT INTO library_files(file_type, path, relative_path) VALUES('video', ?, ?)",
+            [(str(tmp_path / f"missing-{index}.mkv"), f"{index}.mkv") for index in range(1201)],
+        )
+    assert refresh_library_file_existence(db_path) == {"checked": 1201, "markedMissing": 1201}
 
 
 def test_kitsu_cover_can_be_selected(tmp_path, monkeypatch, temporary_settings):
