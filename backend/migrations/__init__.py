@@ -1,4 +1,4 @@
 """Database migrations package."""
 
 
-CURRENT_SCHEMA_VERSION = 4
+CURRENT_SCHEMA_VERSION = 5

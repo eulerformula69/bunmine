@@ -1,14 +1,9 @@
 """Initial migration - create all tables."""
 
-from backend.migrations import CURRENT_SCHEMA_VERSION
-from backend.repositories.connection import get_db
 
-
-def migrate(db_path) -> None:
+def migrate(conn) -> None:
     """Apply initial migration."""
-    with get_db(db_path) as conn:
-        conn.executescript(
-            """
+    schema = """
             CREATE TABLE IF NOT EXISTS schema_meta (
                 key TEXT PRIMARY KEY,
                 value TEXT NOT NULL
@@ -77,6 +72,9 @@ def migrate(db_path) -> None:
             CREATE INDEX IF NOT EXISTS idx_library_files_file_exists
                 ON library_files(file_exists);
 
+            CREATE INDEX IF NOT EXISTS idx_library_files_episode_type
+                ON library_files(episode_id, file_type, file_exists, is_primary);
+
             CREATE TABLE IF NOT EXISTS watch_progress (
                 episode_id INTEGER PRIMARY KEY,
                 current_time_seconds REAL NOT NULL DEFAULT 0,
@@ -119,17 +117,15 @@ def migrate(db_path) -> None:
                 response_json TEXT NOT NULL,
                 created_at INTEGER NOT NULL
             );
-            """
-        )
+        """
+    for statement in schema.split(";"):
+        if statement.strip():
+            conn.execute(statement)
 
-        from backend.repositories.candidate_repository import migrate_candidates
-        migrate_candidates(conn)
-
-        conn.execute(
-            """
-            INSERT INTO schema_meta(key, value)
-            VALUES('schema_version', ?)
-            ON CONFLICT(key) DO UPDATE SET value = excluded.value
-            """,
-            (str(CURRENT_SCHEMA_VERSION),),
-        )
+    conn.execute(
+        """
+        INSERT INTO schema_meta(key, value)
+        VALUES('schema_version', '1')
+        ON CONFLICT(key) DO NOTHING
+        """
+    )

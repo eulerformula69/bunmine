@@ -4,6 +4,7 @@ import pytest
 from flask import Flask
 
 from backend.repositories.library_repository import init_library_db
+from backend.migrations import CURRENT_SCHEMA_VERSION
 from backend.repositories import candidate_repository as repository
 from backend.repositories.connection import get_db
 from backend.routes.candidate_routes import candidate_bp
@@ -12,9 +13,11 @@ from backend.services.candidate_service import capture_candidate, check_source
 
 def test_migration_from_version_two(tmp_path):
     db = tmp_path / 'old.db'
+    init_library_db(db)
     with get_db(db) as conn:
-        conn.execute('CREATE TABLE schema_meta(key TEXT PRIMARY KEY, value TEXT NOT NULL)')
-        conn.execute("INSERT INTO schema_meta VALUES ('schema_version', '2')")
+        conn.execute('DROP TABLE mining_candidates')
+        conn.execute('DROP TABLE mining_acquire')
+        conn.execute("UPDATE schema_meta SET value = '2' WHERE key = 'schema_version'")
     init_library_db(db)
     init_library_db(db)
     assert repository.list_candidates(db) == []
@@ -43,7 +46,7 @@ def test_capture_survives_restart_and_schema_upgrade(setup):
     assert restored == [candidate]
     assert restored[0]['snapshot'] == snapshot
     with get_db(settings.library_db_path) as conn:
-        assert conn.execute("SELECT value FROM schema_meta WHERE key = 'schema_version'").fetchone()[0] == '4'
+        assert conn.execute("SELECT value FROM schema_meta WHERE key = 'schema_version'").fetchone()[0] == str(CURRENT_SCHEMA_VERSION)
         assert conn.execute('SELECT COUNT(*) FROM cards').fetchone()[0] == 0
 
 
