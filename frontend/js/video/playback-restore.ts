@@ -167,7 +167,7 @@ export async function loadLibraryEpisodeFromUrl(): Promise<boolean> {
         return true;
     } catch (err) {
         console.error("Library episode load failed:", err);
-        showToast(`Could not load library episode: ${err.message}`, "error", 6000);
+        showToast(`Could not load library episode: ${(err instanceof Error ? err.message : String(err))}`, "error", 6000);
         dropzone.classList.remove("hidden");
         return false;
     }
@@ -177,8 +177,8 @@ export async function loadLibraryEpisodePlayback(
     playback: LibraryPlaybackPayload,
     restoreSubtitle = restoreLibrarySubtitle
 ): Promise<void> {
-    state.currentLibraryEpisodeId = playback.episodeId;
-    state.currentLibraryVideoFileId = playback.videoFileId;
+    state.currentLibraryEpisodeId = playback.episodeId ?? null;
+    state.currentLibraryVideoFileId = playback.videoFileId ?? null;
     state.currentLibrarySubtitleFileId = playback.subtitleFileId || null;
     void updateEpisodeNavigation(playback);
 
@@ -297,6 +297,6 @@ export async function restoreLibrarySubtitle(subtitleUrl: string): Promise<void>
             text: ""
         });
 
-        showToast(`Could not load subtitles: ${err.message}`, "error", 6000);
+        showToast(`Could not load subtitles: ${(err instanceof Error ? err.message : String(err))}`, "error", 6000);
     }
 }

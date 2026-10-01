@@ -44,7 +44,7 @@ export async function uploadVideoInBackground(videoFile: File, subtitleFile: Fil
 
     } catch (e) {
         console.error("Upload failed:", e);
-        showToast(t("toastVideoUploadFailed", { message: e.message }), "error", 5000);
+        showToast(t("toastVideoUploadFailed", { message: (e instanceof Error ? e.message : String(e)) }), "error", 5000);
     }
 }
 
@@ -73,7 +73,7 @@ export async function uploadSubtitleInBackground(subtitleFile: File, videoFilena
 
     } catch (err) {
         console.error("Subtitle upload failed:", err);
-        showToast(t("toastSubtitleUploadFailed", { message: err.message }), "error", 5000);
+        showToast(t("toastSubtitleUploadFailed", { message: (err instanceof Error ? err.message : String(err)) }), "error", 5000);
     }
 }
 

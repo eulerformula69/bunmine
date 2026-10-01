@@ -7,7 +7,7 @@ import { lt } from "./library-i18n.js";
 
 import { getSelectedBulkSubtitleItems,renderBulkSubtitlePlan,updateBulkSubtitleConfirmState } from "./bulk-subtitle-view.js";
 
-import { BulkSubtitlePlan } from "./library-types.js";
+import { BulkSubtitlePlan, BulkSubtitlePlanItem, SubtitleCandidate } from "./library-types.js";
 
 import { formatBytes,JIMAKU_DOWNLOAD_CONCURRENCY,JIMAKU_PLAN_REQUEST_DELAY_MS,loadLibrarySeries,openSeries } from "./library.js";
 
@@ -87,7 +87,7 @@ export async function analyzeMissingSubtitlesForCurrentSeries() {
             : lt("analysisReadyNone", { skipped, entries: data.entriesChecked || 0 });
     } catch (err) {
         bulkSubtitleStatus.classList.add("error");
-        bulkSubtitleStatus.textContent = err.message;
+        bulkSubtitleStatus.textContent = (err instanceof Error ? err.message : String(err));
     } finally {
         isBulkSubtitlePreparingState.value = false;
         cancelBulkSubtitleDownloadBtn.disabled = false;
@@ -101,7 +101,7 @@ export async function analyzeMissingSubtitlesForCurrentSeries() {
     }
 }
 
-export async function requestSeriesSubtitleAnalysisWithBackoff(seriesId, query): Promise<BulkSubtitlePlan> {
+export async function requestSeriesSubtitleAnalysisWithBackoff(seriesId: string | number, query: string): Promise<BulkSubtitlePlan> {
     const data = await retryOnRateLimit(() => libraryAnalyzeSeriesSubtitles(seriesId, query), {
         failureMessage: lt("couldNotAnalyzeJimaku"), exhaustedMessage: lt("jimakuRetryReached"),
         onWait: waitMs => {
@@ -111,20 +111,22 @@ export async function requestSeriesSubtitleAnalysisWithBackoff(seriesId, query):
     return data as BulkSubtitlePlan;
 }
 
-export function candidateKey(candidate) {
+export function candidateKey(candidate: SubtitleCandidate | null | undefined) {
     return LibraryBulkModel.candidateKey(candidate);
 }
 
-export function formatSubtitleCandidate(candidate) {
+export function formatSubtitleCandidate(candidate: SubtitleCandidate | null | undefined) {
     return LibraryBulkModel.formatCandidate(candidate, formatBytes);
 }
 
-export function getBulkSubtitleSets(plan) {
+export function getBulkSubtitleSets(plan: BulkSubtitlePlan | null | undefined) {
     return LibraryBulkModel.getSets(plan, lt);
 }
 
-export async function requestEpisodeSubtitlePlanWithBackoff(item) {
-    const data = await retryOnRateLimit(() => libraryPlanEpisodeSubtitle(item.episodeId, currentOpenedSeriesState.value.title), {
+export async function requestEpisodeSubtitlePlanWithBackoff(item: BulkSubtitlePlanItem) {
+    const series = currentOpenedSeriesState.value;
+    if (!series) return;
+    const data = await retryOnRateLimit(() => libraryPlanEpisodeSubtitle(item.episodeId, series.title), {
         failureMessage: lt("couldNotSearchEpisodeJimaku"), exhaustedMessage: lt("jimakuRetryReached"),
         onWait: waitMs => {
         item.status = "rate-limited";
@@ -135,7 +137,7 @@ export async function requestEpisodeSubtitlePlanWithBackoff(item) {
     return data.item;
 }
 
-export async function prepareBulkSubtitlePlanGradually(plan) {
+export async function prepareBulkSubtitlePlanGradually(plan: BulkSubtitlePlan) {
     const items = Array.isArray(plan.items) ? plan.items : [];
     if (!items.length) {
         bulkSubtitleStatus.textContent = lt("noMissingSubtitleEpisodes");
@@ -163,7 +165,7 @@ export async function prepareBulkSubtitlePlanGradually(plan) {
             }
         } catch (err) {
             item.status = "failed";
-            item.message = err.message;
+            item.message = (err instanceof Error ? err.message : String(err));
             item.selected = null;
             item.candidates = [];
             item.alternativesCount = 0;
@@ -186,8 +188,9 @@ export async function prepareBulkSubtitlePlanGradually(plan) {
     updateBulkSubtitleConfirmState();
 }
 
-export async function postSubtitleDownloadWithBackoff(item, signal?: AbortSignal) {
+export async function postSubtitleDownloadWithBackoff(item: BulkSubtitlePlanItem, signal?: AbortSignal) {
     const selected = item.selected;
+    if (!selected) throw new Error(lt("noSubtitleSelected"));
     const data = await retryOnRateLimit(() => librarySelectEpisodeSubtitle(item.episodeId, {
             source: selected.source,
             entryId: selected.entryId,
@@ -243,7 +246,7 @@ export async function downloadSelectedBulkSubtitles() {
             } catch (err) {
                 if (controller.signal.aborted) return;
                 failed += 1;
-                if (stateEl) stateEl.textContent = lt("failedState", { message: err.message });
+                if (stateEl) stateEl.textContent = lt("failedState", { message: (err instanceof Error ? err.message : String(err)) });
             }
 
             bulkSubtitleStatus.textContent = lt("downloadingSummary", { done: downloaded + failed, total: items.length, downloaded, failed });

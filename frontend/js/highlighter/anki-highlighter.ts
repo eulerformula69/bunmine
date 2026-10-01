@@ -121,7 +121,7 @@ export function findAnkiMatchesInText(text: string): AnkiTextMatch[] {
     const spans = buildJapaneseHighlightSpans(tokens);
 
     for (const span of spans) {
-        let bestMatch = null;
+        let bestMatch: AnkiTextMatch | null = null;
 
         for (const candidate of span.candidates) {
             const info = ankiRuntimeWordStatusMap.get(candidate);
@@ -130,7 +130,7 @@ export function findAnkiMatchesInText(text: string): AnkiTextMatch[] {
             bestMatch = {
                 start: span.start,
                 end: span.end,
-                status: info.status
+                status: info.status ?? "unknown"
             };
 
             break;
@@ -187,7 +187,7 @@ export const ankiSubtitleHighlighter = {
         return getSubtitleHighlightSettings().statusSettings;
     },
 
-    getStatusForTextToken(token) {
+    getStatusForTextToken(token: string) {
         const clean = String(token || "")
             .trim()
             .replace(/[.,!?;:()[\]'"「」『』。、！？]/g, "");
@@ -195,11 +195,11 @@ export const ankiSubtitleHighlighter = {
         return ankiRuntimeWordStatusMap.get(clean)?.status || "unknown";
     },
 
-    findMatchesInText(text) {
+    findMatchesInText(text: string) {
         return findAnkiMatchesInText(text);
     },
 
-    getUnknownKanjiTokenCount(text) {
+    getUnknownKanjiTokenCount(text: string) {
         return getUnknownKanjiTokenCountForText(text);
     }
 };

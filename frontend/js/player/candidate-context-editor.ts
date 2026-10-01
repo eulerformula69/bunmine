@@ -192,10 +192,11 @@ export function createCandidateContextEditor(options: {
                 start = context.start;
                 end = context.end;
                 paintedStart = paintedEnd = -1;
+                const anchor = context.anchor;
                 rows = context.cues.map((cue, index) => {
                     const row = document.createElement("div");
                     row.className = "candidate-cue";
-                    row.classList.toggle("anchor", index === context.anchor);
+                    row.classList.toggle("anchor", index === anchor);
                     const times = createSubtitleTimeContainer(cue.start, cue.end);
                     times.className = "candidate-cue-times";
                     const text = document.createElement("div");

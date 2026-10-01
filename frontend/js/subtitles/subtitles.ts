@@ -1,15 +1,20 @@
+import { RuntimeSubtitleCue } from "./model.js";
+import { SubtitleComprehensionLevel } from "./comprehension-level.js";
+import { AnkiWordStatus } from "../highlighter/word-status-store.js";
+import { SubtitleHighlightStatusSetting } from "../highlighter/subtitles-highlighter.js";
+import { SubtitleOverlayHighlighter, SubtitleOverlayOptions } from "./overlay-types.js";
 import { getActiveSubtitleEntries,getActiveSubtitles,getPrimarySubtitleIndex,selectPrimarySubtitle } from "./timing.js";
 
 import { getSubtitleComprehensionLevel,shouldShowSubtitleForComprehensionLevel } from "./comprehension-level.js";
 
 // overlay rendering
 
-export function clearSubtitleOverlay(overlayEl) {
+export function clearSubtitleOverlay(overlayEl: HTMLElement | null) {
     if (!overlayEl) return;
     overlayEl.textContent = "";
 }
 
-export function updateSubtitleComprehensionBadge(level) {
+export function updateSubtitleComprehensionBadge(level: SubtitleComprehensionLevel | null) {
     const badge = document.getElementById("comprehensionLevelBadge");
 
     if (!badge) return;
@@ -24,16 +29,16 @@ export function updateSubtitleComprehensionBadge(level) {
     badge.classList.remove("hidden");
 }
 
-export function getSubtitleStatusSettings(highlighter, status) {
+export function getSubtitleStatusSettings(highlighter: SubtitleOverlayHighlighter | null, status: AnkiWordStatus) {
     if (!highlighter || !highlighter.statusSettings) return null;
     return highlighter.statusSettings[status] || null;
 }
 
-export function appendPlainSubtitleText(overlayEl, text) {
+export function appendPlainSubtitleText(overlayEl: HTMLElement, text: string) {
     overlayEl.textContent = text || "";
 }
 
-export function appendHighlightedToken(overlayEl, token, status, settings) {
+export function appendHighlightedToken(overlayEl: HTMLElement, token: string, status: AnkiWordStatus, settings: SubtitleHighlightStatusSetting | null) {
     const span = document.createElement("span");
     span.className = `subtitle-word subtitle-word-${status || "unknown"}`;
     span.textContent = token;
@@ -45,11 +50,11 @@ export function appendHighlightedToken(overlayEl, token, status, settings) {
     overlayEl.appendChild(span);
 }
 
-export function tokenizeSubtitleForHighlighting(text) {
+export function tokenizeSubtitleForHighlighting(text: string) {
     return String(text || "").match(/(\s+|[^\s]+)/g) || [];
 }
 
-export function renderHighlightedSubtitleOverlay(overlayEl, text, highlighter) {
+export function renderHighlightedSubtitleOverlay(overlayEl: HTMLElement, text: string, highlighter: SubtitleOverlayHighlighter) {
     if (typeof highlighter.findMatchesInText === "function") {
         renderMatchedSubtitleOverlay(overlayEl, text, highlighter);
         return;
@@ -77,8 +82,8 @@ export function renderHighlightedSubtitleOverlay(overlayEl, text, highlighter) {
     }
 }
 
-export function renderMatchedSubtitleOverlay(overlayEl, text, highlighter) {
-    const matches = highlighter.findMatchesInText(text) || [];
+export function renderMatchedSubtitleOverlay(overlayEl: HTMLElement, text: string, highlighter: SubtitleOverlayHighlighter) {
+    const matches = highlighter.findMatchesInText?.(text) || [];
 
     if (!matches.length) {
         appendPlainSubtitleText(overlayEl, text);
@@ -118,7 +123,7 @@ export function renderMatchedSubtitleOverlay(overlayEl, text, highlighter) {
     }
 }
 
-export function renderSubtitleOverlay(options, dependencies = {
+export function renderSubtitleOverlay(options: SubtitleOverlayOptions, dependencies = {
     getPrimarySubtitleIndex, selectPrimarySubtitle, getActiveSubtitles,
     getActiveSubtitleEntries, getSubtitleComprehensionLevel, shouldShowSubtitleForComprehensionLevel
 }) {
@@ -128,7 +133,7 @@ export function renderSubtitleOverlay(options, dependencies = {
     const cueEntries = Array.isArray(options.cues)
         ? options.cues.map((cue, position) => ({
             cue,
-            index: Number.isInteger(options.cueIndices?.[position]) ? options.cueIndices[position] : -1
+            index: Number.isInteger(options.cueIndices?.[position]) ? options.cueIndices?.[position] ?? -1 : -1
         }))
         : [];
     const texts = cueEntries.length
@@ -198,7 +203,7 @@ export function renderSubtitleOverlay(options, dependencies = {
     }
 }
 
-export function applySubtitleCueStyle(line, cue) {
+export function applySubtitleCueStyle(line: HTMLElement, cue?: RuntimeSubtitleCue) {
     if (!cue) return;
     if (cue.fontName) line.style.fontFamily = `"${cue.fontName}", "NotoSansJP", sans-serif`;
     if (cue.fontSize) line.style.fontSize = `${Math.max(0.6, Math.min(2.5, cue.fontSize / 40))}em`;
@@ -207,7 +212,7 @@ export function applySubtitleCueStyle(line, cue) {
     if (cue.italic) line.style.fontStyle = "italic";
 }
 
-export function getSubtitleRegionKey(cue) {
+export function getSubtitleRegionKey(cue?: RuntimeSubtitleCue) {
     if (cue?.positionX !== undefined && cue?.positionY !== undefined) return `positioned-${cue.positionX}-${cue.positionY}`;
     const alignment = Number(cue?.alignment || 2);
     if (alignment >= 7) return "top";
@@ -215,7 +220,7 @@ export function getSubtitleRegionKey(cue) {
     return "bottom";
 }
 
-export function applyPositionedSubtitleRegion(region, cue) {
+export function applyPositionedSubtitleRegion(region: HTMLElement, cue?: RuntimeSubtitleCue) {
     if (cue?.positionX === undefined || cue?.positionY === undefined) return;
     const x = Math.max(0, Math.min(100, cue.positionX / Number(cue.playResX || 384) * 100));
     const y = Math.max(0, Math.min(100, cue.positionY / Number(cue.playResY || 288) * 100));
@@ -228,7 +233,7 @@ export function applyPositionedSubtitleRegion(region, cue) {
     region.style.transform = `translate(${translateX}, ${translateY})`;
 }
 
-export function renderSubtitleOverlayLine(overlayEl, text, highlighter) {
+export function renderSubtitleOverlayLine(overlayEl: HTMLElement, text: string, highlighter: SubtitleOverlayHighlighter | null) {
     if (!highlighter || highlighter.enabled !== true) {
         appendPlainSubtitleText(overlayEl, text);
         return;

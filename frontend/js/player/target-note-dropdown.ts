@@ -1,3 +1,4 @@
+import { AnkiNoteInfo } from "../anki/notes.js";
 export interface TargetNoteDropdownControllerOptions {
     select: HTMLSelectElement;
     getAnkiUrl(): string;
@@ -5,8 +6,8 @@ export interface TargetNoteDropdownControllerOptions {
     getLastAddedLabel(): string;
     getLastAddedTitle(): string;
     fetchDeckNoteIds(ankiUrl: string, deckName: string): Promise<number[]>;
-    fetchNotesInfo(ankiUrl: string, noteIds: number[]): Promise<any[]>;
-    pickNotePreviewText(note: any): string;
+    fetchNotesInfo(ankiUrl: string, noteIds: number[]): Promise<AnkiNoteInfo[]>;
+    pickNotePreviewText(note: AnkiNoteInfo | undefined): string;
 }
 
 export interface TargetNoteDropdownElements {

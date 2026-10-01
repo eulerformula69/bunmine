@@ -1,4 +1,4 @@
-function requiredElement<T>(element: T | null): T {
+export function requiredElement<T>(element: T | null): T {
     if (element === null) throw new Error("Required player element is missing");
     return element;
 }

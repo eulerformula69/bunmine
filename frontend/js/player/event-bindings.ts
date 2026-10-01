@@ -29,6 +29,7 @@ ankiAllBtn.onclick = async () => {
 };
 
 deleteVideoBtn.onclick = async () => {
+    if (!state.currentVideoFile) return;
     await fetch(buildApiUrl(`/delete-video?filename=${encodeURIComponent(state.currentVideoFile)}`), {
         method: "DELETE"
     });
@@ -93,7 +94,7 @@ fontSizeRange.addEventListener("input", (e) => {
 
 const globalSubDelayInput = document.getElementById("globalSubDelay");
 
-globalSubDelayInput.addEventListener("input", (e) => {
+globalSubDelayInput?.addEventListener("input", (e) => {
     state.globalSubDelay = parseFloat((e.target as HTMLInputElement).value) || 0;
     state.lastRuntimeSubtitleText = "";
     state.runtimePrefetchAllRunId += 1;
@@ -112,7 +113,7 @@ const highlightDeckNamesInput = document.getElementById("highlightDeckNames");
 
 [ankiUrlInput, deckNameInput].forEach((input) => {
     input?.addEventListener("input", () => {
-        clearTimeout(state.deckNoteRefreshTimer);
+        clearTimeout(state.deckNoteRefreshTimer ?? undefined);
 
         state.deckNoteRefreshTimer = setTimeout(() => {
             refreshTargetNoteList({ preserveSelection: true });

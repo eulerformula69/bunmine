@@ -36,10 +36,10 @@ export function normalizeSubtitleContextDepth(value: unknown): number {
 }
 
 export function getSubtitleContextRange(currentIdx: number | null = null): SubtitleContextRange {
-    const resolvedCurrentIdx = Number.isInteger(currentIdx)
+    const resolvedCurrentIdx = currentIdx !== null && Number.isInteger(currentIdx)
         ? currentIdx
         : (
-            Number.isInteger(state.lastClickedSubtitleIdx) &&
+            state.lastClickedSubtitleIdx !== null && Number.isInteger(state.lastClickedSubtitleIdx) &&
             state.lastClickedSubtitleIdx >= 0 &&
             state.lastClickedSubtitleIdx < state.subtitles.length
                 ? state.lastClickedSubtitleIdx

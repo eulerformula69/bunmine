@@ -32,12 +32,12 @@ export function getJapaneseTokenizer() {
     return japaneseTokenizerPromiseState.value;
 }
 
-export async function tokenizeJapaneseText(text) {
+export async function tokenizeJapaneseText(text: string) {
     const tokenizer = await getJapaneseTokenizer();
     return tokenizer.tokenize(String(text || ""));
 }
 
-export function tokenizeJapaneseTextSync(text) {
+export function tokenizeJapaneseTextSync(text: string) {
     if (!japaneseTokenizerInstanceState.value) return null;
     return japaneseTokenizerInstanceState.value.tokenize(String(text || ""));
 }

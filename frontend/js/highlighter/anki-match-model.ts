@@ -39,7 +39,7 @@ export function getJapaneseTokenCandidates(token: JapaneseToken): string[] {
     }
 
 	function addGodanPotentialCandidates(value: string) {
-		const eToDictionary = {
+		const eToDictionary: Record<string, string> = {
 			え: "う",
 			け: "く",
 			げ: "ぐ",
@@ -77,7 +77,7 @@ export function getJapaneseTokenCandidates(token: JapaneseToken): string[] {
 
         const stem = value.slice(0, -2);
 
-        const eToDictionary = {
+        const eToDictionary: Record<string, string> = {
             え: "う",
             け: "く",
             げ: "ぐ",

@@ -79,7 +79,7 @@ bulkSubtitleSearchInput.addEventListener("keydown", (event) => { if (event.key =
 
 bulkSubtitleSets.addEventListener("click", (event) => {
     const button = (event.target as HTMLElement).closest<HTMLButtonElement>(".bulk-subtitle-set-btn");
-    if (button && !button.disabled) applyBulkSubtitleSet(button.dataset.releaseKey);
+    if (button && !button.disabled && button.dataset.releaseKey) applyBulkSubtitleSet(button.dataset.releaseKey);
 });
 
 bulkSubtitleList.addEventListener("change", (event) => {

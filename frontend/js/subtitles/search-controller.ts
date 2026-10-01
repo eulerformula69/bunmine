@@ -78,7 +78,7 @@ export function initSubtitleSearchPanel() {
 
                 const seconds = parseSearchTime(value);
 
-                if (!Number.isFinite(seconds)) {
+                if (seconds === null || !Number.isFinite(seconds)) {
                     state.subtitleSearchTimeSeconds = null;
                     clearSearchMatches();
                     return;
@@ -163,7 +163,7 @@ export function getSubtitleSearchHaystack(text: string): string {
 }
 
 export function parseSearchTime(value: string | undefined): number | null {
-    return parseSubtitleSearchTime(value);
+    return parseSubtitleSearchTime(value ?? "");
 }
 
 export function findSubtitleByTime(seconds: number): number {
@@ -178,7 +178,7 @@ export function activateTimeSearch({ commit = false } = {}) {
     const timeInput = document.getElementById("subtitleTimeSearchInput") as HTMLInputElement | null;
     const seconds = parseSearchTime(timeInput?.value);
 
-    if (!Number.isFinite(seconds)) return;
+    if (seconds === null || !Number.isFinite(seconds)) return;
 
     state.subtitleSearchMode = "time";
     state.subtitleSearchTimeSeconds = seconds;
@@ -201,7 +201,7 @@ export function getCurrentSearchMatch() {
     return state.subtitleSearchMatches[state.subtitleSearchIndex] || null;
 }
 
-export function scrollToSearchMatch(match) {
+export function scrollToSearchMatch(match: SubtitleSearchResult | null) {
     if (!match) return;
 
     const el = sidebar.querySelector(
@@ -228,7 +228,7 @@ export function goToSearchMatch(direction = 1) {
             const timeInput = document.getElementById("subtitleTimeSearchInput") as HTMLInputElement | null;
             const seconds = parseSearchTime(timeInput?.value);
 
-            if (Number.isFinite(seconds)) {
+            if (seconds !== null && Number.isFinite(seconds)) {
                 state.subtitleSearchTimeSeconds = seconds;
                 state.subtitleSearchMatches = buildTimeSearchMatches(seconds);
             }

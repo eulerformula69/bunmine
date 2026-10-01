@@ -1,3 +1,4 @@
+import { BulkSubtitlePlan } from "./library-types.js";
 import { currentBulkSubtitlePlanState,currentBulkSubtitleSetKeyState,isBulkSubtitleDownloadingState,isBulkSubtitlePreparingState } from "./library-state.js";
 
 import { bulkSubtitleList,bulkSubtitleSets,bulkSubtitleStatus,confirmBulkSubtitleDownloadBtn } from "./library-dom.js";
@@ -18,11 +19,11 @@ export function updateBulkSubtitleConfirmState() {
     confirmBulkSubtitleDownloadBtn.disabled = getSelectedBulkSubtitleItems().length === 0;
 }
 
-export function renderBulkSubtitleSets(plan) {
+export function renderBulkSubtitleSets(plan: BulkSubtitlePlan | null) {
     if (!bulkSubtitleSets) return;
 
     const items = Array.isArray(plan?.items) ? plan.items : [];
-    const hasPending = items.some((item) => ["pending", "searching", "rate-limited"].includes(item.status));
+    const hasPending = items.some((item) => ["pending", "searching", "rate-limited"].includes(item.status ?? ""));
     const sets = getBulkSubtitleSets(plan);
 
     bulkSubtitleSets.innerHTML = "";
@@ -65,20 +66,20 @@ export function renderBulkSubtitleSets(plan) {
     bulkSubtitleSets.appendChild(wrapper);
 }
 
-export function applyBulkSubtitleSet(releaseKey) {
+export function applyBulkSubtitleSet(releaseKey: string) {
     if (!currentBulkSubtitlePlanState.value) return;
     currentBulkSubtitleSetKeyState.value = releaseKey;
     LibraryBulkModel.applySet(currentBulkSubtitlePlanState.value, releaseKey, lt);
     renderBulkSubtitlePlan(currentBulkSubtitlePlanState.value);
 }
 
-export function renderBulkSubtitlePlan(plan) {
-    const items = Array.isArray(plan.items) ? plan.items : [];
+export function renderBulkSubtitlePlan(plan: BulkSubtitlePlan | null) {
+    const items = Array.isArray(plan?.items) ? plan.items : [];
     const readyItems = items.filter((item) => item.status === "ready" && item.selected);
     const reviewItems = items.filter((item) => item.status === "needs-review" || (Array.isArray(item.candidates) && item.candidates.length && !item.selected));
     const skippedItems = items.filter((item) => item.status === "skipped");
     const failedItems = items.filter((item) => item.status === "failed");
-    const pendingItems = items.filter((item) => ["pending", "searching", "rate-limited"].includes(item.status));
+    const pendingItems = items.filter((item) => ["pending", "searching", "rate-limited"].includes(item.status ?? ""));
 
     bulkSubtitleStatus.classList.remove("error");
     if (!isBulkSubtitlePreparingState.value && !isBulkSubtitleDownloadingState.value) {
@@ -136,7 +137,7 @@ export function renderBulkSubtitlePlan(plan) {
                 ` : ""}
             </div>
             <div class="bulk-subtitle-state" data-bulk-state-for="${escapeHtml(item.episodeId)}">
-                ${escapeHtml(canDownload ? lt("ready") : statusKeyLabel(item.status))}
+                ${escapeHtml(canDownload ? lt("ready") : statusKeyLabel(item.status ?? ""))}
             </div>
         `;
 

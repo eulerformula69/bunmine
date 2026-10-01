@@ -64,6 +64,6 @@ document.getElementById("previewAudioBtn")?.addEventListener("click", async () =
         await playMedia(audio, (error) => { throw error; });
     } catch (err) {
         console.error("Preview failed:", err);
-        showToast(`Audio preview failed: ${err.message}`, "error", 6000);
+        showToast(`Audio preview failed: ${(err instanceof Error ? err.message : String(err))}`, "error", 6000);
     }
 });

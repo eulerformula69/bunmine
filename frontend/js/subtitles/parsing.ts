@@ -1,13 +1,14 @@
+import { RuntimeSubtitleCue } from "./model.js";
 // parsing
 
-export function parseSubtitleTimestamp(value) {
+export function parseSubtitleTimestamp(value: unknown) {
     const match = String(value).trim().match(/^(?:(\d+):)?(\d{1,2}):(\d{2})[,.](\d{1,3})/);
     if (!match) return null;
     const hours = Number(match[1] || 0);
     return hours * 3600 + Number(match[2]) * 60 + Number(match[3]) + Number(match[4].padEnd(3, "0")) / 1000;
 }
 
-export function cleanSubtitleText(lines) {
+export function cleanSubtitleText(lines: string[]) {
     return lines
         .map((line) => line.trim())
         .join("\n")
@@ -17,9 +18,9 @@ export function cleanSubtitleText(lines) {
         .trim();
 }
 
-export function parseSRT(data) {
+export function parseSRT(data: string) {
     const blocks = String(data).replace(/^\uFEFF/, "").replace(/\r/g, "").trim().split(/\n{2,}/);
-    const subs = [];
+    const subs: RuntimeSubtitleCue[] = [];
 
     for (const block of blocks) {
         const lines = block.split("\n");
@@ -35,9 +36,9 @@ export function parseSRT(data) {
     return subs.sort((left, right) => left.start - right.start || left.end - right.end);
 }
 
-export function parseASS(data) {
+export function parseASS(data: string) {
     const lines = String(data).replace(/^\uFEFF/, "").replace(/\r/g, "").split("\n");
-    const subs = [];
+    const subs: RuntimeSubtitleCue[] = [];
     const styles = new Map<string, Record<string, string | number | boolean>>();
     let section = "";
     let styleFormat: string[] = [];
@@ -45,12 +46,12 @@ export function parseASS(data) {
     let playResX = 384;
     let playResY = 288;
 
-    const timeToSeconds = (timeStr) => {
+    const timeToSeconds = (timeStr: string) => {
         const parts = timeStr.trim().split(":");
         return parseInt(parts[0], 10) * 3600 + parseInt(parts[1], 10) * 60 + parseFloat(parts[2]);
     };
 
-    const assColorToCss = (value) => {
+    const assColorToCss = (value: unknown) => {
         const source = String(value || "").trim();
         if (!source) return "";
         const hex = source.replace(/^&H/i, "").replace(/&$/, "").padStart(8, "0");
@@ -77,7 +78,7 @@ export function parseASS(data) {
         }
         if (/^Style:/i.test(line) && styleFormat.length) {
             const values = line.slice(line.indexOf(":") + 1).split(",");
-            const styleValue = (name) => values[styleFormat.indexOf(name)]?.trim() || "";
+            const styleValue = (name: string) => values[styleFormat.indexOf(name)]?.trim() || "";
             const name = styleValue("name");
             if (name) {
                 styles.set(name, {
@@ -99,7 +100,7 @@ export function parseASS(data) {
             : ["layer", "start", "end", "style", "name", "marginl", "marginr", "marginv", "effect", "text"];
         const textIndex = Math.max(0, format.indexOf("text"));
         if (values.length <= textIndex) return;
-        const value = (name) => values[format.indexOf(name)]?.trim() || "";
+        const value = (name: string) => values[format.indexOf(name)]?.trim() || "";
         const rawText = values.slice(textIndex).join(",");
         const overrideAlignment = rawText.match(/\\an([1-9])/i);
         const position = rawText.match(/\\pos\(\s*([\d.]+)\s*,\s*([\d.]+)\s*\)/i);
@@ -137,10 +138,10 @@ export function parseASS(data) {
         }
     });
 
-    return subs.sort((left, right) => left.start - right.start || left.layer - right.layer);
+    return subs.sort((left, right) => left.start - right.start || (left.layer ?? 0) - (right.layer ?? 0));
 }
 
-export function formatTime(t) {
+export function formatTime(t: number) {
     if (!Number.isFinite(t) || t < 0) t = 0;
 
     const minutes = Math.floor(t / 60);

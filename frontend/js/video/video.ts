@@ -22,12 +22,13 @@ import { renderSubtitles } from "../subtitles/sidebar-render.js";
 
 import { prefetchRuntimeStatusesForAllSubtitles } from "../player/controllers.js";
 
-export async function handleFiles(files) {
-    let videoFile = null;
-    let subtitleFile = null;
+export async function handleFiles(files: FileList | File[] | null) {
+    if (!files) return;
+    let videoFile: File | null = null;
+    let subtitleFile: File | null = null;
     let hasSubtitles = false;
 
-    for (const file of files) {
+    for (const file of Array.from(files)) {
         const lowerName = file.name.toLowerCase();
 
 		if (

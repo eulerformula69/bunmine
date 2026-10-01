@@ -1,3 +1,4 @@
+import { LibraryProgressPayload } from "../types/runtime-types.js";
 import { video } from "../core/dom.js";
 
 import { state } from "../core/state.js";
@@ -21,9 +22,9 @@ export const libraryProgressLastVideoTimeState = { value: 0 };
 
 export const libraryProgressSaveInFlightState = { value: false };
 
-export const libraryAutoCompletePromptEpisodeIdState = { value: null };
+export const libraryAutoCompletePromptEpisodeIdState: { value: string | number | null } = { value: null };
 
-export const libraryAutoCompleteDismissedEpisodeIdState = { value: null };
+export const libraryAutoCompleteDismissedEpisodeIdState: { value: string | number | null } = { value: null };
 
 export function resetLibraryProgressTracking() {
     libraryProgressLastSentAtMsState.value = 0;
@@ -34,7 +35,7 @@ export function resetLibraryProgressTracking() {
     libraryAutoCompleteDismissedEpisodeIdState.value = null;
 }
 
-export function getLibraryWatchedDeltaSeconds(currentTime) {
+export function getLibraryWatchedDeltaSeconds(currentTime: number) {
     const previousTime = Number(libraryProgressLastVideoTimeState.value || 0);
     const delta = currentTime - previousTime;
 
@@ -49,7 +50,7 @@ export function getLibraryWatchedDeltaSeconds(currentTime) {
     return delta;
 }
 
-export function shouldPromptLibraryAutoComplete(progress) {
+export function shouldPromptLibraryAutoComplete(progress: LibraryProgressPayload["progress"]) {
     if (!state.currentLibraryEpisodeId || !progress) return false;
     if (progress.completed) return false;
     if (libraryAutoCompletePromptEpisodeIdState.value === state.currentLibraryEpisodeId) return false;
@@ -79,7 +80,7 @@ export function shouldPromptLibraryAutoComplete(progress) {
     return watchedEnough && nearEnd;
 }
 
-export function maybePromptLibraryAutoComplete(progress) {
+export function maybePromptLibraryAutoComplete(progress: LibraryProgressPayload["progress"]) {
     if (!shouldPromptLibraryAutoComplete(progress)) return;
 
     libraryAutoCompletePromptEpisodeIdState.value = state.currentLibraryEpisodeId;
@@ -100,7 +101,7 @@ export function maybePromptLibraryAutoComplete(progress) {
                         showToast(t("libraryAutoCompleteSaved"), "success", 3000);
                     } catch (err) {
                         showToast(
-                            t("libraryAutoCompleteSaveFailed", { message: err.message }),
+                            t("libraryAutoCompleteSaveFailed", { message: (err instanceof Error ? err.message : String(err)) }),
                             "error",
                             6000
                         );
@@ -146,7 +147,7 @@ export async function saveLibraryWatchProgress({
     libraryProgressSaveInFlightState.value = true;
 
     try {
-        const { response, data } = await apiJson(
+        const { response, data } = await apiJson<LibraryProgressPayload>(
             `/library/episodes/${encodeURIComponent(state.currentLibraryEpisodeId)}/progress`,
             {
                 method: "POST",

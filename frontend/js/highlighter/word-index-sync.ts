@@ -160,12 +160,12 @@ export async function checkKnownAnkiWordsStaleOnPlayerOpen({ silent = true } = {
         return data;
     } catch (err) {
         console.warn("Anki highlight player stale-check failed:", err);
-        return { ok: false, error: err?.message || String(err) };
+        return { ok: false, error: err instanceof Error ? err.message : String(err) };
     }
 }
 
 export function chunkArray<T>(items: T[], size: number): T[][] {
-    const chunks = [];
+    const chunks: T[][] = [];
     for (let i = 0; i < items.length; i += size) {
         chunks.push(items.slice(i, i + size));
     }
@@ -201,7 +201,7 @@ export async function refreshKnownAnkiWordsFromAnki({ fullRebuild = false } = {}
             })
         }));
     } catch (err) {
-        if (err?.name === "AbortError") {
+        if (err instanceof Error && err.name === "AbortError") {
             throw new Error("Anki highlight refresh timed out after 120 seconds. Check that Anki is open and AnkiConnect is responding.");
         }
         throw err;

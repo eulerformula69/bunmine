@@ -225,7 +225,7 @@ export function initLangSelector(): void {
 export const settingsAutosaveTimerState = { value: null as ReturnType<typeof setTimeout> | null };
 
 export function queueSettingsAutosave(): void {
-    clearTimeout(settingsAutosaveTimerState.value);
+    clearTimeout(settingsAutosaveTimerState.value ?? undefined);
     settingsAutosaveTimerState.value = setTimeout(() => {
         try {
             saveSettingsLocal({ silent: true });

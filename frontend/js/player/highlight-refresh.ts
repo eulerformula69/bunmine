@@ -12,7 +12,7 @@ import { ensureStatusesForSubtitleText } from "../highlighter/anki-highlighter.j
 
 import { prefetchRuntimeStatusesForAllSubtitles } from "./controllers.js";
 
-export function setAnkiHighlightRefreshStatus(message, kind = "info") {
+export function setAnkiHighlightRefreshStatus(message: string, kind = "info") {
     const statusEl = document.getElementById("ankiHighlightRefreshStatus");
     if (!statusEl) return;
 
