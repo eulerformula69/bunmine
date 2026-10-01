@@ -69,8 +69,13 @@ The build removes stale files from `dist`, compiles modules into `dist/esm`, and
 
 `npm run check` runs Ruff, TypeScript, frontend tests, and Python tests. Frontend tests import modules directly and use the page HTML through jsdom. They do not test browser layout or real Anki connections.
 
-Strict TypeScript remains disabled during this refactor. Run `npx tsc -p tsconfig.json --noEmit --strict` to inspect the remaining type errors.
+The TypeScript configuration uses strict mode. The standard type check covers the strict rules.
 
-See [backend layers](docs/backend-architecture.md) for the server structure. Generated assets, local data, `.env`, and the root `repomix-output.xml` stay outside Git.
+## Documentation
+
+- [Backend architecture](docs/backend-architecture.md)
+- [Deferred mining workflow](docs/mining-candidates.md)
+
+Generated assets, local data, `.env`, and the root `repomix-output.xml` stay outside Git.
 
 Fonts remain in the repository so offline rendering stays unchanged. A download script needs verified sources, version checks, and a license review before it can replace these files.

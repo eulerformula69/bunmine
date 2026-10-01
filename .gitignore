@@ -9,10 +9,11 @@ frontend/libs/kuromoji/
 anki_highlight/
 frontend/LibraryCovers/
 __pycache__/
+*.py[cod]
 .pytest_cache/
-.tmp_pytest/
-.tmp_pytest_run/
-.tmp_pytest_cache/
+.ruff_cache/
+.tmp_pytest*/
+tmp/
 *.mp4
 *.mkv
 *.webm
@@ -25,7 +26,7 @@ miningplayer.xml
 futuremining.txt
 dedupe_index.json
 known-basic-words.json
-# Local planning notes are not part of the application.
+# Local planning notes and generated repository snapshots are not part of the application.
 NEXT.md
 library.sqlite3
 library.backup.db
