@@ -1,3 +1,5 @@
+from dataclasses import dataclass, field
+
 from backend.settings import Settings
 from backend.services.anki_client import (
     build_deck_query as _build_deck_query,
@@ -7,6 +9,8 @@ from backend.services.anki_client import (
     request as _anki_request,
 )
 from backend.services.anki_highlight_store import (
+    serialized_store_update,
+    normalize_highlight_settings,
     enrich_cached_word_metadata as _enrich_cached_word_metadata,
     known_anki_words_path as _known_anki_words_path,
     merge_refresh_payload_with_saved_settings as _merge_refresh_payload_with_saved_settings,
@@ -24,58 +28,45 @@ from backend.services.anki_word_model import (
 )
 
 
-def _refresh_known_anki_words_from_anki(payload: dict, settings: Settings | None = None) -> dict:
-    anki_url = str(payload.get("ankiUrl") or "").strip()
-    deck_names = [str(item).strip() for item in payload.get("decks") or [] if str(item).strip()]
-    word_fields = [str(item).strip() for item in payload.get("wordFields") or [] if str(item).strip()]
-    sentence_fields = [str(item).strip() for item in payload.get("sentenceFields") or [] if str(item).strip()]
-    full_rebuild = bool(payload.get("fullRebuild"))
+@dataclass(frozen=True)
+class RefreshRequest:
+    anki_url: str
+    decks: list[str]
+    word_fields: list[str]
+    sentence_fields: list[str]
+    auto_refresh: str
+    full_rebuild: bool
 
-    if not anki_url:
-        raise ValueError("ankiUrl is required")
-    if not deck_names:
-        raise ValueError("At least one deck is required")
-    if not word_fields:
-        raise ValueError("At least one word field is required")
+    @classmethod
+    def parse(cls, payload: dict) -> "RefreshRequest":
+        normalized = normalize_highlight_settings(payload)
+        for key, message in (
+            ("ankiUrl", "ankiUrl is required"),
+            ("decks", "At least one deck is required"),
+            ("wordFields", "At least one word field is required"),
+        ):
+            if not normalized[key]:
+                raise ValueError(message)
+        return cls(normalized["ankiUrl"], normalized["decks"], normalized["wordFields"],
+                   normalized["sentenceFields"], normalized["autoRefresh"], bool(payload.get("fullRebuild")))
 
-    auto_refresh = str(payload.get("autoRefresh") or "daily").strip().lower()
-    if auto_refresh not in {"off", "daily", "weekly"}:
-        auto_refresh = "daily"
 
-    checked_at = _utc_now_iso()
-    saved_settings = _read_anki_highlight_settings(settings)
-    _write_anki_highlight_settings(
-        {
-            **saved_settings,
-            "ankiUrl": anki_url,
-            "decks": deck_names,
-            "wordFields": word_fields,
-            "sentenceFields": sentence_fields,
-            "autoRefresh": auto_refresh,
-            "lastManualRefreshAt": checked_at
-            if not payload.get("autoRun")
-            else saved_settings.get("lastManualRefreshAt"),
-            "lastAutoRefreshAt": checked_at if payload.get("autoRun") else saved_settings.get("lastAutoRefreshAt"),
-            "lastAutoRefreshError": None,
-        },
-        settings,
-    )
+@dataclass
+class RefreshNote:
+    words: list[str]
+    card_ids: list[int]
+    fields: dict = field(default_factory=dict)
+    status: str | None = None
+    deck: str = ""
 
-    previous = _read_known_anki_data(settings)
-    previous_words = previous.get("words", {}) if isinstance(previous.get("words"), dict) else {}
-    next_words = {} if full_rebuild else dict(previous_words)
 
-    # Fast path:
-    #   1. findNotes is cheaper than findCards for discovery.
-    #   2. notesInfo gives fields and card ids together.
-    #   3. cardsInfo is requested only for notes that contain new/non-locked words.
-    # Locked mature words are preserved without status re-checks unless fullRebuild is requested.
+def _fetch_notes(request: RefreshRequest, previous_words: dict, next_words: dict):
+    anki_url, deck_names = request.anki_url, request.decks
+    word_fields, full_rebuild = request.word_fields, request.full_rebuild
     deck_query = _build_deck_query(deck_names)
     note_ids = _anki_request(anki_url, "findNotes", {"query": f"({deck_query})"}) or []
 
-    note_words: dict[str, list[str]] = {}
-    note_cards: dict[str, list[int]] = {}
-    note_fields: dict[str, dict] = {}
+    notes: dict[str, RefreshNote] = {}
     card_to_note: dict[int, str] = {}
     candidate_card_ids: list[int] = []
     discovered_words = 0
@@ -93,9 +84,8 @@ def _refresh_known_anki_words_from_anki(payload: dict, settings: Settings | None
                 continue
 
             card_ids = _note_card_ids(note)
-            note_words[note_id] = words
-            note_cards[note_id] = card_ids
-            note_fields[note_id] = note.get("fields") if isinstance(note.get("fields"), dict) else {}
+            fields = note.get("fields") if isinstance(note.get("fields"), dict) else {}
+            notes[note_id] = RefreshNote(words, card_ids, fields)
             discovered_words += len(words)
 
             needs_status_check = full_rebuild
@@ -103,7 +93,7 @@ def _refresh_known_anki_words_from_anki(payload: dict, settings: Settings | None
                 for word in words:
                     old_info = previous_words.get(word) if isinstance(previous_words.get(word), dict) else {}
                     if old_info.get("locked") is True and old_info.get("status") == "mature":
-                        next_words[word] = _enrich_cached_word_metadata(old_info, card_ids, note_fields[note_id])
+                        next_words[word] = _enrich_cached_word_metadata(old_info, card_ids, fields)
                         preserved_locked_words += 1
                     else:
                         needs_status_check = True
@@ -115,13 +105,16 @@ def _refresh_known_anki_words_from_anki(payload: dict, settings: Settings | None
                 card_to_note[card_id] = note_id
                 candidate_card_ids.append(card_id)
 
-    note_status_map: dict[str, str] = {}
-    note_deck_map: dict[str, str] = {}
+    return notes, len(note_ids), card_to_note, candidate_card_ids, discovered_words, preserved_locked_words
+
+
+def _fetch_card_statuses(anki_url: str, notes: dict[str, RefreshNote], card_to_note: dict[int, str],
+                         candidate_card_ids: list[int]) -> None:
     for card_chunk in _chunked(candidate_card_ids, 500):
         cards_info = _anki_request(anki_url, "cardsInfo", {"cards": card_chunk}) or []
         for card in cards_info:
             try:
-                card_id = int(card.get("cardId") or card.get("cardId") or card.get("id"))
+                card_id = int(card.get("cardId") or card.get("id"))
             except (TypeError, ValueError):
                 # Some AnkiConnect versions omit cardId in cardsInfo. Fall back to the note id in payload.
                 card_id = None
@@ -131,32 +124,37 @@ def _refresh_known_anki_words_from_anki(payload: dict, settings: Settings | None
                 note_id = card_to_note.get(card_id, "")
             if not note_id:
                 note_id = str(card.get("note") or "").strip()
-            if not note_id:
+            if note_id not in notes:
                 continue
+            note = notes[note_id]
 
-            note_status_map[note_id] = _pick_better_status(note_status_map.get(note_id), _card_status(card))
+            note.status = _pick_better_status(note.status, _card_status(card))
             deck_name = str(card.get("deckName") or "").strip()
-            if deck_name and (note_id not in note_deck_map or deck_name < note_deck_map[note_id]):
-                note_deck_map[note_id] = deck_name
+            if deck_name and (not note.deck or deck_name < note.deck):
+                note.deck = deck_name
 
+
+def _merge_words(notes: dict[str, RefreshNote], previous_words: dict, next_words: dict,
+                 full_rebuild: bool, checked_at: str) -> tuple[int, int, int]:
     imported_words = 0
     skipped_locked_words = 0
     status_checked_notes = 0
 
-    for note_id, words in note_words.items():
-        if note_id not in note_status_map:
+    for note_id, note in notes.items():
+        words = note.words
+        if note.status is None:
             skipped_locked_words += len(words)
             continue
 
         status_checked_notes += 1
-        status = note_status_map.get(note_id, "unknown")
+        status = note.status
         for word in words:
             old_info = previous_words.get(word) if isinstance(previous_words.get(word), dict) else {}
             if old_info.get("locked") is True and old_info.get("status") == "mature" and not full_rebuild:
                 next_words[word] = _enrich_cached_word_metadata(
                     old_info,
-                    note_cards.get(note_id, []),
-                    note_fields.get(note_id, {}),
+                    note.card_ids,
+                    note.fields,
                 )
                 continue
 
@@ -172,13 +170,40 @@ def _refresh_known_anki_words_from_anki(payload: dict, settings: Settings | None
                 **old_next_info,
                 "status": best_status,
                 "noteId": normalized_note_id,
-                "cardIds": note_cards.get(note_id, []),
-                "deck": note_deck_map.get(note_id, ""),
-                "fields": note_fields.get(note_id, {}),
+                "cardIds": note.card_ids,
+                "deck": note.deck,
+                "fields": note.fields,
                 "lastCheckedAt": checked_at,
                 "locked": best_status == "mature",
             }
             imported_words += 1
+
+    return imported_words, skipped_locked_words, status_checked_notes
+
+
+@serialized_store_update
+def _refresh_known_anki_words_from_anki(payload: dict, settings: Settings | None = None) -> dict:
+    request = RefreshRequest.parse(payload)
+    anki_url = request.anki_url
+    deck_names = request.decks
+    word_fields = request.word_fields
+    sentence_fields = request.sentence_fields
+    full_rebuild = request.full_rebuild
+    auto_refresh = request.auto_refresh
+
+    checked_at = _utc_now_iso()
+    saved_settings = _read_anki_highlight_settings(settings)
+    previous = _read_known_anki_data(settings)
+    previous_words = previous.get("words", {}) if isinstance(previous.get("words"), dict) else {}
+    next_words = {} if full_rebuild else dict(previous_words)
+
+    notes, note_count, card_to_note, candidate_card_ids, discovered_words, preserved_locked_words = _fetch_notes(
+        request, previous_words, next_words,
+    )
+    _fetch_card_statuses(anki_url, notes, card_to_note, candidate_card_ids)
+    imported_words, skipped_locked_words, status_checked_notes = _merge_words(
+        notes, previous_words, next_words, full_rebuild, checked_at,
+    )
 
     result_data = _write_known_anki_data(
         {
@@ -191,12 +216,29 @@ def _refresh_known_anki_words_from_anki(payload: dict, settings: Settings | None
         settings,
     )
 
+    _write_anki_highlight_settings(
+        {
+            **saved_settings,
+            "ankiUrl": anki_url,
+            "decks": deck_names,
+            "wordFields": word_fields,
+            "sentenceFields": sentence_fields,
+            "autoRefresh": auto_refresh,
+            "lastManualRefreshAt": checked_at
+            if not payload.get("autoRun")
+            else saved_settings.get("lastManualRefreshAt"),
+            "lastAutoRefreshAt": checked_at if payload.get("autoRun") else saved_settings.get("lastAutoRefreshAt"),
+            "lastAutoRefreshError": None,
+        },
+        settings,
+    )
+
     return {
         "ok": True,
         "updatedAt": checked_at,
         "source": _known_anki_words_path(settings).name,
         "count": len(result_data["words"]),
-        "notesFound": len(note_ids),
+        "notesFound": note_count,
         "notesChecked": status_checked_notes,
         "cardsChecked": len(candidate_card_ids),
         "discoveredWords": discovered_words,
@@ -229,6 +271,7 @@ def _compact_refresh_result(result: dict) -> dict:
     return {key: result.get(key) for key in keep if key in result}
 
 
+@serialized_store_update
 def refresh_known_anki_words_auto(settings: Settings | None = None) -> dict:
     payload = _merge_refresh_payload_with_saved_settings(
         {
@@ -277,6 +320,7 @@ def refresh_known_anki_words_auto(settings: Settings | None = None) -> dict:
         raise
 
 
+@serialized_store_update
 def refresh_known_anki_words_if_stale(context: str = "startup", settings: Settings | None = None) -> dict:
     saved_settings = _read_anki_highlight_settings(settings)
     checked_at = _utc_now_iso()
@@ -316,6 +360,7 @@ def refresh_known_anki_words_if_stale_on_startup(settings: Settings) -> dict:
     return refresh_known_anki_words_if_stale("startup", settings)
 
 
+@serialized_store_update
 def _refresh_single_known_anki_word_from_anki(payload: dict) -> dict:
     anki_url = str(payload.get("ankiUrl") or "").strip()
     if not anki_url:
@@ -386,6 +431,7 @@ def _refresh_single_known_anki_word_from_anki(payload: dict) -> dict:
             "updatedAt": checked_at,
             "decks": data.get("decks") or saved_settings.get("decks") or [],
             "wordFields": data.get("wordFields") or word_fields,
+            "sentenceFields": data.get("sentenceFields") or saved_settings.get("sentenceFields") or [],
             "words": known_words,
         }
     )

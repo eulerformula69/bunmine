@@ -19,9 +19,6 @@ def migrate_candidates(conn):
             updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
         )
     """)
-    columns = {row["name"] for row in conn.execute("PRAGMA table_info(mining_candidates)")}
-    if "revision" not in columns:
-        conn.execute("ALTER TABLE mining_candidates ADD COLUMN revision INTEGER NOT NULL DEFAULT 0")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_candidates_status ON mining_candidates(status, id)")
     conn.execute("""
         CREATE TABLE IF NOT EXISTS mining_acquire (
@@ -31,6 +28,12 @@ def migrate_candidates(conn):
             expires REAL NOT NULL
         )
     """)
+
+
+def migrate_candidate_revisions(conn):
+    columns = {row["name"] for row in conn.execute("PRAGMA table_info(mining_candidates)")}
+    if "revision" not in columns:
+        conn.execute("ALTER TABLE mining_candidates ADD COLUMN revision INTEGER NOT NULL DEFAULT 0")
 
 
 def decode(row):

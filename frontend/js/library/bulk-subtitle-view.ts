@@ -1,9 +1,10 @@
+import { el } from "../core/elements.js";
 import { BulkSubtitlePlan } from "./library-types.js";
 import { currentBulkSubtitlePlanState,currentBulkSubtitleSetKeyState,isBulkSubtitleDownloadingState,isBulkSubtitlePreparingState } from "./library-state.js";
 
 import { bulkSubtitleList,bulkSubtitleSets,bulkSubtitleStatus,confirmBulkSubtitleDownloadBtn } from "./library-dom.js";
 
-import { escapeHtml, formatBytes } from "../core/formatters.js";
+import { formatBytes } from "../core/formatters.js";
 
 import { LibraryPresentation } from "./library-presentation.js";
 
@@ -30,7 +31,7 @@ export function renderBulkSubtitleSets(plan: BulkSubtitlePlan | null) {
 
     if (!sets.length) {
         if (!hasPending) {
-            bulkSubtitleSets.innerHTML = `<div class="cover-message">${escapeHtml(lt("noSubtitleSets"))}</div>`;
+            bulkSubtitleSets.append(el("div", "cover-message", lt("noSubtitleSets")));
         }
         return;
     }
@@ -54,11 +55,11 @@ export function renderBulkSubtitleSets(plan: BulkSubtitlePlan | null) {
         button.className = `bulk-subtitle-set-btn ${currentBulkSubtitleSetKeyState.value === set.key ? "selected" : ""}`;
         button.disabled = isBulkSubtitleDownloadingState.value;
         button.dataset.releaseKey = set.key;
-        button.innerHTML = `
-            <div class="bulk-subtitle-set-name">${escapeHtml(set.label)}</div>
-            <div class="bulk-subtitle-set-count">${escapeHtml(set.count)} / ${escapeHtml(set.totalEpisodes)} episodes</div>
-            <div class="bulk-subtitle-set-examples">${escapeHtml(set.examples.join(" · "))}</div>
-        `;
+        button.append(
+            el("div", "bulk-subtitle-set-name", set.label),
+            el("div", "bulk-subtitle-set-count", `${set.count} / ${set.totalEpisodes} episodes`),
+            el("div", "bulk-subtitle-set-examples", set.examples.join(" · ")),
+        );
         list.appendChild(button);
     }
 
@@ -87,7 +88,7 @@ export function renderBulkSubtitlePlan(plan: BulkSubtitlePlan | null) {
     bulkSubtitleList.replaceChildren();
 
     if (!items.length) {
-        bulkSubtitleList.innerHTML = `<div class="cover-message">${escapeHtml(lt("noMissingSubtitleEpisodes"))}</div>`;
+        bulkSubtitleList.append(el("div", "cover-message", lt("noMissingSubtitleEpisodes")));
         confirmBulkSubtitleDownloadBtn.disabled = true;
         return;
     }
@@ -104,35 +105,34 @@ export function renderBulkSubtitlePlan(plan: BulkSubtitlePlan | null) {
                 ? item.message || lt("chooseSubtitleSetOrManual")
                 : item.message || lt("noSubtitleSelected");
 
-        row.className = `bulk-subtitle-item ${escapeHtml(item.status || "skipped")}`;
-        row.innerHTML = `
-            <input
-                class="bulk-subtitle-checkbox"
-                type="checkbox"
-                ${canDownload ? "checked" : "disabled"}
-                ${isBulkSubtitlePreparingState.value || isBulkSubtitleDownloadingState.value ? "disabled" : ""}
-                data-episode-id="${escapeHtml(item.episodeId)}"
-            >
-            <div class="bulk-subtitle-info">
-                <div class="bulk-subtitle-title">
-                    ${escapeHtml(lt("episodeLabel", { number: item.episodeNumber ?? "?" }))} · ${escapeHtml(item.episodeTitle || lt("untitled"))}
-                </div>
-                <div class="bulk-subtitle-meta">${escapeHtml(meta)}</div>
-                ${hasManualChoices ? `
-                    <select class="bulk-subtitle-select" data-episode-id="${escapeHtml(item.episodeId)}">
-                        <option value="">${escapeHtml(lt("chooseManually"))}</option>
-                        ${candidates.map((candidate) => `
-                            <option value="${escapeHtml(LibraryBulkModel.candidateKey(candidate))}" ${selected && LibraryBulkModel.candidateKey(candidate) === LibraryBulkModel.candidateKey(selected) ? "selected" : ""}>
-                                ${escapeHtml(candidate.releaseLabel || candidate.entryTitle || lt("other"))} — ${escapeHtml(candidate.filename || lt("subtitle"))}
-                            </option>
-                        `).join("")}
-                    </select>
-                ` : ""}
-            </div>
-            <div class="bulk-subtitle-state" data-bulk-state-for="${escapeHtml(item.episodeId)}">
-                ${escapeHtml(canDownload ? lt("ready") : LibraryPresentation.planStatusLabel(item.status ?? "", lt))}
-            </div>
-        `;
+        row.className = `bulk-subtitle-item ${item.status || "skipped"}`;
+        const checkbox = el("input", "bulk-subtitle-checkbox");
+        checkbox.type = "checkbox";
+        checkbox.checked = Boolean(canDownload);
+        checkbox.disabled = !canDownload || isBulkSubtitlePreparingState.value || isBulkSubtitleDownloadingState.value;
+        checkbox.dataset.episodeId = String(item.episodeId);
+        const info = el("div", "bulk-subtitle-info");
+        info.append(
+            el("div", "bulk-subtitle-title", `${lt("episodeLabel", { number: item.episodeNumber ?? "?" })} · ${item.episodeTitle || lt("untitled")}`),
+            el("div", "bulk-subtitle-meta", meta),
+        );
+        if (hasManualChoices) {
+            const select = el("select", "bulk-subtitle-select");
+            select.dataset.episodeId = String(item.episodeId);
+            const placeholder = el("option", "", lt("chooseManually"));
+            placeholder.value = "";
+            select.append(placeholder);
+            for (const candidate of candidates) {
+                const option = el("option", "", `${candidate.releaseLabel || candidate.entryTitle || lt("other")} — ${candidate.filename || lt("subtitle")}`);
+                option.value = LibraryBulkModel.candidateKey(candidate);
+                option.selected = Boolean(selected && option.value === LibraryBulkModel.candidateKey(selected));
+                select.append(option);
+            }
+            info.append(select);
+        }
+        const state = el("div", "bulk-subtitle-state", canDownload ? lt("ready") : LibraryPresentation.planStatusLabel(item.status ?? "", lt));
+        state.dataset.bulkStateFor = String(item.episodeId);
+        row.append(checkbox, info, state);
 
         bulkSubtitleList.appendChild(row);
     }

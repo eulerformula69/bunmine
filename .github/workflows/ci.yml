@@ -33,14 +33,5 @@ jobs:
       - name: Install Node.js dependencies
         run: npm ci
 
-      - name: Run Ruff
-        run: ruff check backend/
-
-      - name: Run Python tests
-        run: python -m pytest tests/ -v
-
-      - name: Check strict TypeScript
-        run: npx tsc -p tsconfig.json --noEmit --strict
-
       - name: Run project checks
         run: npm run check

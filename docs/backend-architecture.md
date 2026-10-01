@@ -13,6 +13,8 @@ Startup then prepares the database and starts the stale Anki check.
 ## Routes and services
 
 Routes check input and call services. Services contain application rules. Repositories contain database queries.
+The layer split is a target, with existing exceptions. Some routes call repositories directly, and the root library modules still contain SQL.
+Changes to those modules can move queries into repositories without a separate architecture rewrite.
 `video_service.resolve_media_file()` checks a library file ID, its resolved path, its library root, and its disk state.
 Video export, candidate export, and playback routes share this check.
 
@@ -22,6 +24,13 @@ Series relink checks the selected path against the media library root before a r
 Candidate list and candidate creation use separate GET and POST handlers.
 
 Anki synchronization uses `services/anki_word_sync_service.py`. Pure word rules use `services/anki_word_model.py`.
+Anki JSON files use schema version 1. Readers accept legacy files without a version and add the version on the next write.
+Writes use a temporary file in the same directory, flush its contents, and replace the destination atomically.
+Invalid JSON and unsupported versions cause an error. Writes keep those files unchanged for manual recovery.
+A shared reentrant lock covers complete Anki updates in the single-process desktop server, including network requests.
+Concurrent updates wait for the current operation. This lock does not coordinate separate server processes or external file editors.
+Refresh timestamps change only after the word data write succeeds. The word file and settings file are separate atomic writes.
+
 Text cleanup uses `text_processing.strip_html()`. Its documented options preserve each caller's existing output.
 
 ## HTTP downloads
@@ -39,6 +48,8 @@ Both download paths reject file URLs before network access.
 A concurrent writer waits for that transaction. Exceptions roll back changes.
 The migration runner enables WAL for both new and existing databases during initialization.
 It locks schema changes and commits migrations with their version update.
+Migration numbers remain unchanged for existing databases, including the gap at version 2.
+Version 3 creates candidate tables. Version 4 adds the revision column.
 
 `episode_file_query.py` supplies the shared primary-file query.
 `playback_repository.get_library_file_by_id()` reads a file without changing its existence flag.

@@ -12,6 +12,13 @@ assert.equal(api.loadLibraryLanguage(), "ru");
 localStorage.setItem("subtitlePlayerSettings", "broken json");
 assert.equal(api.loadLibraryLanguage(), "en");
 
+const locales = await Promise.all(["en", "ru", "ja"].map(async (language) => {
+    const { default: locale } = await import(`../dist/esm/core/locales/${language}.js`);
+    return Object.keys(locale.dict).sort();
+}));
+assert.deepEqual(locales[1], locales[0], "Russian translation keys must match English");
+assert.deepEqual(locales[2], locales[0], "Japanese translation keys must match English");
+
 console.log("Library i18n tests passed");
 
 dom.window.close();

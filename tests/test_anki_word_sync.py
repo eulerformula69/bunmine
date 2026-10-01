@@ -1,4 +1,6 @@
 from datetime import UTC, datetime, timedelta
+from concurrent.futures import ThreadPoolExecutor
+from threading import Event
 
 import pytest
 
@@ -49,3 +51,87 @@ def test_refresh_route_reports_invalid_request_without_private_details(temporary
 ])
 def test_card_status(card, expected):
     assert model._card_status(card) == expected
+
+
+@pytest.mark.parametrize("full_rebuild", [False, True])
+def test_refresh_preserves_locked_words_or_rebuilds_them(temporary_settings, monkeypatch, full_rebuild):
+    store.write_known_anki_data({"words": {"猫": {"status": "mature", "locked": True}}}, temporary_settings)
+    calls = []
+
+    def anki(_url, action, params):
+        calls.append((action, params))
+        if action == "findNotes":
+            return [1, 2]
+        if action == "notesInfo":
+            return [
+                {"noteId": 1, "cards": [11], "fields": {"Word": {"value": "猫"}}},
+                {"noteId": 2, "cards": [22, 23], "fields": {"Word": {"value": "犬"}}},
+            ]
+        return [
+            {"cardId": 11, "type": 0, "deckName": "Japanese"},
+            {"cardId": 22, "type": 1, "deckName": "Z"},
+            {"note": 2, "interval": 30, "deckName": "A"},
+        ]
+
+    monkeypatch.setattr(sync, "_anki_request", anki)
+    result = sync._refresh_known_anki_words_from_anki({
+        "ankiUrl": "http://anki.test", "decks": ["Japanese"], "wordFields": ["Word"],
+        "fullRebuild": full_rebuild,
+    }, temporary_settings)
+    words = store.read_known_anki_data(temporary_settings)["words"]
+    assert words["猫"]["status"] == ("new" if full_rebuild else "mature")
+    assert words["猫"]["cardIds"] == [11]
+    assert words["犬"]["status"] == "mature"
+    assert words["犬"]["deck"] == "A"
+    assert result["count"] == 2
+    assert result["cardsChecked"] == (3 if full_rebuild else 2)
+    assert calls[-1][1]["cards"] == ([11, 22, 23] if full_rebuild else [22, 23])
+
+
+def test_failed_refresh_does_not_advance_success_clock(temporary_settings, monkeypatch):
+    store.write_anki_highlight_settings({"lastAutoRefreshAt": "old"}, temporary_settings)
+
+    def fail(*_args):
+        raise OSError("Anki is unavailable")
+
+    monkeypatch.setattr(sync, "_anki_request", fail)
+    with pytest.raises(OSError):
+        sync._refresh_known_anki_words_from_anki({
+            "ankiUrl": "http://anki.test", "decks": ["Japanese"], "wordFields": ["Word"], "autoRun": True,
+        }, temporary_settings)
+    assert store.read_anki_highlight_settings(temporary_settings)["lastAutoRefreshAt"] == "old"
+
+
+def test_concurrent_stale_checks_refresh_once_and_keep_both_results(temporary_settings, monkeypatch):
+    store.write_anki_highlight_settings({
+        "ankiUrl": "http://anki.test", "decks": ["Japanese"], "wordFields": ["Word"],
+    }, temporary_settings)
+    entered, release, player_started = Event(), Event(), Event()
+    calls = []
+
+    def anki(_url, action, _params):
+        calls.append(action)
+        entered.set()
+        assert release.wait(5)
+        return []
+
+    def player_check():
+        player_started.set()
+        return sync.refresh_known_anki_words_if_stale("player", temporary_settings)
+
+    monkeypatch.setattr(sync, "_anki_request", anki)
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        startup = pool.submit(sync.refresh_known_anki_words_if_stale, "startup", temporary_settings)
+        try:
+            assert entered.wait(5)
+            player = pool.submit(player_check)
+            assert player_started.wait(5)
+            assert not player.done()
+        finally:
+            release.set()
+        assert startup.result(timeout=5)["ok"]
+        assert player.result(timeout=5)["skipped"]
+    saved = store.read_anki_highlight_settings(temporary_settings)
+    assert calls == ["findNotes"]
+    assert saved["lastStartupStaleCheckResult"]["ok"]
+    assert saved["lastPlayerStaleCheckResult"]["skipped"]

@@ -1,99 +1,101 @@
-export const seriesGrid = document.getElementById("seriesGrid") as HTMLElement;
+import { requireElement } from "../core/elements.js";
 
-export const librarySummary = document.getElementById("librarySummary") as HTMLElement;
+export const seriesGrid = requireElement("#seriesGrid", window.HTMLElement);
 
-export const catalogResultSummary = document.getElementById("catalogResultSummary") as HTMLElement;
+export const librarySummary = requireElement("#librarySummary", window.HTMLElement);
 
-export const catalogEmpty = document.getElementById("catalogEmpty") as HTMLElement;
+export const catalogResultSummary = requireElement("#catalogResultSummary", window.HTMLElement);
 
-export const catalogView = document.getElementById("catalogView") as HTMLElement;
+export const catalogEmpty = requireElement("#catalogEmpty", window.HTMLElement);
 
-export const seriesView = document.getElementById("seriesView") as HTMLElement;
+export const catalogView = requireElement("#catalogView", window.HTMLElement);
 
-export const libraryHeader = document.querySelector(".library-header") as HTMLElement;
+export const seriesView = requireElement("#seriesView", window.HTMLElement);
 
-export const scanLibraryBtn = document.getElementById("scanLibraryBtn") as HTMLButtonElement;
+export const libraryHeader = requireElement(".library-header", window.HTMLElement);
 
-export const addAnimeBtn = document.getElementById("addAnimeBtn") as HTMLButtonElement;
+export const scanLibraryBtn = requireElement("#scanLibraryBtn", window.HTMLButtonElement);
 
-export const librarySearchInput = document.getElementById("librarySearchInput") as HTMLInputElement;
+export const addAnimeBtn = requireElement("#addAnimeBtn", window.HTMLButtonElement);
 
-export const libraryFilters = document.getElementById("libraryFilters") as HTMLElement;
+export const librarySearchInput = requireElement("#librarySearchInput", window.HTMLInputElement);
 
-export const seriesTitle = document.getElementById("seriesTitle") as HTMLElement;
+export const libraryFilters = requireElement("#libraryFilters", window.HTMLElement);
 
-export const seriesStatus = document.getElementById("seriesStatus") as HTMLElement;
+export const seriesTitle = requireElement("#seriesTitle", window.HTMLElement);
 
-export const seriesStats = document.getElementById("seriesStats") as HTMLElement;
+export const seriesStatus = requireElement("#seriesStatus", window.HTMLElement);
 
-export const seriesCurrentEpisode = document.getElementById("seriesCurrentEpisode") as HTMLElement;
+export const seriesStats = requireElement("#seriesStats", window.HTMLElement);
 
-export const seriesDetailCover = document.getElementById("seriesDetailCover") as HTMLElement;
+export const seriesCurrentEpisode = requireElement("#seriesCurrentEpisode", window.HTMLElement);
 
-export const seriesPrimaryAction = document.getElementById("seriesPrimaryAction") as HTMLAnchorElement;
+export const seriesDetailCover = requireElement("#seriesDetailCover", window.HTMLElement);
 
-export const episodeList = document.getElementById("episodeList") as HTMLElement;
+export const seriesPrimaryAction = requireElement("#seriesPrimaryAction", window.HTMLAnchorElement);
 
-export const fileList = document.getElementById("fileList") as HTMLElement;
+export const episodeList = requireElement("#episodeList", window.HTMLElement);
 
-export const seriesTabs = document.getElementById("seriesTabs") as HTMLElement;
+export const fileList = requireElement("#fileList", window.HTMLElement);
 
-export const closeSeriesPanelBtn = document.getElementById("closeSeriesPanelBtn") as HTMLButtonElement;
+export const seriesTabs = requireElement("#seriesTabs", window.HTMLElement);
 
-export const changeSeriesCoverBtn = document.getElementById("changeSeriesCoverBtn") as HTMLButtonElement;
+export const closeSeriesPanelBtn = requireElement("#closeSeriesPanelBtn", window.HTMLButtonElement);
 
-export const downloadMissingSubtitlesBtn = document.getElementById("downloadMissingSubtitlesBtn") as HTMLButtonElement;
+export const changeSeriesCoverBtn = requireElement("#changeSeriesCoverBtn", window.HTMLButtonElement);
 
-export const relinkSeriesFilesBtn = document.getElementById("relinkSeriesFilesBtn") as HTMLButtonElement;
+export const downloadMissingSubtitlesBtn = requireElement("#downloadMissingSubtitlesBtn", window.HTMLButtonElement);
 
-export const deleteSeriesBtn = document.getElementById("deleteSeriesBtn") as HTMLButtonElement;
+export const relinkSeriesFilesBtn = requireElement("#relinkSeriesFilesBtn", window.HTMLButtonElement);
 
-export const coverModal = document.getElementById("coverModal") as HTMLElement;
+export const deleteSeriesBtn = requireElement("#deleteSeriesBtn", window.HTMLButtonElement);
 
-export const coverModalTitle = document.getElementById("coverModalTitle") as HTMLElement;
+export const coverModal = requireElement("#coverModal", window.HTMLElement);
 
-export const coverModalSubtitle = document.getElementById("coverModalSubtitle") as HTMLElement;
+export const coverModalTitle = requireElement("#coverModalTitle", window.HTMLElement);
 
-export const closeCoverModalBtn = document.getElementById("closeCoverModalBtn") as HTMLButtonElement;
+export const coverModalSubtitle = requireElement("#coverModalSubtitle", window.HTMLElement);
 
-export const coverSearchInput = document.getElementById("coverSearchInput") as HTMLInputElement;
+export const closeCoverModalBtn = requireElement("#closeCoverModalBtn", window.HTMLButtonElement);
 
-export const coverSearchBtn = document.getElementById("coverSearchBtn") as HTMLButtonElement;
+export const coverSearchInput = requireElement("#coverSearchInput", window.HTMLInputElement);
 
-export const coverResults = document.getElementById("coverResults") as HTMLElement;
+export const coverSearchBtn = requireElement("#coverSearchBtn", window.HTMLButtonElement);
 
-export const subtitleModal = document.getElementById("subtitleModal") as HTMLElement;
+export const coverResults = requireElement("#coverResults", window.HTMLElement);
 
-export const subtitleModalTitle = document.getElementById("subtitleModalTitle") as HTMLElement;
+export const subtitleModal = requireElement("#subtitleModal", window.HTMLElement);
 
-export const subtitleModalSubtitle = document.getElementById("subtitleModalSubtitle") as HTMLElement;
+export const subtitleModalTitle = requireElement("#subtitleModalTitle", window.HTMLElement);
 
-export const closeSubtitleModalBtn = document.getElementById("closeSubtitleModalBtn") as HTMLButtonElement;
+export const subtitleModalSubtitle = requireElement("#subtitleModalSubtitle", window.HTMLElement);
 
-export const subtitleSearchInput = document.getElementById("subtitleSearchInput") as HTMLInputElement;
+export const closeSubtitleModalBtn = requireElement("#closeSubtitleModalBtn", window.HTMLButtonElement);
 
-export const subtitleSearchBtn = document.getElementById("subtitleSearchBtn") as HTMLButtonElement;
+export const subtitleSearchInput = requireElement("#subtitleSearchInput", window.HTMLInputElement);
 
-export const subtitleResults = document.getElementById("subtitleResults") as HTMLElement;
+export const subtitleSearchBtn = requireElement("#subtitleSearchBtn", window.HTMLButtonElement);
 
-export const bulkSubtitleModal = document.getElementById("bulkSubtitleModal") as HTMLElement;
+export const subtitleResults = requireElement("#subtitleResults", window.HTMLElement);
 
-export const bulkSubtitleModalTitle = document.getElementById("bulkSubtitleModalTitle") as HTMLElement;
+export const bulkSubtitleModal = requireElement("#bulkSubtitleModal", window.HTMLElement);
 
-export const bulkSubtitleModalSubtitle = document.getElementById("bulkSubtitleModalSubtitle") as HTMLElement;
+export const bulkSubtitleModalTitle = requireElement("#bulkSubtitleModalTitle", window.HTMLElement);
 
-export const closeBulkSubtitleModalBtn = document.getElementById("closeBulkSubtitleModalBtn") as HTMLButtonElement;
+export const bulkSubtitleModalSubtitle = requireElement("#bulkSubtitleModalSubtitle", window.HTMLElement);
 
-export const bulkSubtitleSearchInput = document.getElementById("bulkSubtitleSearchInput") as HTMLInputElement;
+export const closeBulkSubtitleModalBtn = requireElement("#closeBulkSubtitleModalBtn", window.HTMLButtonElement);
 
-export const bulkSubtitleSearchBtn = document.getElementById("bulkSubtitleSearchBtn") as HTMLButtonElement;
+export const bulkSubtitleSearchInput = requireElement("#bulkSubtitleSearchInput", window.HTMLInputElement);
 
-export const bulkSubtitleStatus = document.getElementById("bulkSubtitleStatus") as HTMLElement;
+export const bulkSubtitleSearchBtn = requireElement("#bulkSubtitleSearchBtn", window.HTMLButtonElement);
 
-export const bulkSubtitleSets = document.getElementById("bulkSubtitleSets") as HTMLElement;
+export const bulkSubtitleStatus = requireElement("#bulkSubtitleStatus", window.HTMLElement);
 
-export const bulkSubtitleList = document.getElementById("bulkSubtitleList") as HTMLElement;
+export const bulkSubtitleSets = requireElement("#bulkSubtitleSets", window.HTMLElement);
 
-export const confirmBulkSubtitleDownloadBtn = document.getElementById("confirmBulkSubtitleDownloadBtn") as HTMLButtonElement;
+export const bulkSubtitleList = requireElement("#bulkSubtitleList", window.HTMLElement);
 
-export const cancelBulkSubtitleDownloadBtn = document.getElementById("cancelBulkSubtitleDownloadBtn") as HTMLButtonElement;
+export const confirmBulkSubtitleDownloadBtn = requireElement("#confirmBulkSubtitleDownloadBtn", window.HTMLButtonElement);
+
+export const cancelBulkSubtitleDownloadBtn = requireElement("#cancelBulkSubtitleDownloadBtn", window.HTMLButtonElement);

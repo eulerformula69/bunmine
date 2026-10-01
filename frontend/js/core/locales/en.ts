@@ -1,6 +1,9 @@
 export default {
     "name": "English",
     "dict": {
+        "chooseFolderCancelled": "Folder selection was cancelled.",
+        "openFolderDialogFailed": "Could not open the folder selection dialog",
+        "subtitleSearchTitle": "Title for subtitle search (query)",
         "nextEpisode": "Next episode",
         "allEpisodes": "All episodes",
         "interfaceLang": "Interface Language:",

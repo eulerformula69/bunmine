@@ -1,3 +1,4 @@
+import { el, coverImage } from "../core/elements.js";
 import { showToast, confirmToast } from "../core/notifications.js";
 import { TranslationKey, isTranslationKey } from "../core/i18n.js";
 import { escapeHtml, formatBytes, formatTime } from "../core/formatters.js";
@@ -100,14 +101,14 @@ export function renderFilters() {
             button.type = "button";
             button.className = filterState.filter === filter ? "active" : "";
             button.dataset.filter = filter;
-            button.innerHTML = `<span>${escapeHtml(lt(label))}</span><span>${filterCount(filter)}</span>`;
+            button.append(el("span", "", lt(label)), el("span", "", filterCount(filter)));
             section.appendChild(button);
         }
         libraryFilters.appendChild(section);
     }
     const sort = document.createElement("section");
     sort.className = "filter-group";
-    sort.innerHTML = `<h3>${escapeHtml(lt("sorting"))}</h3>`;
+    sort.append(el("h3", "", lt("sorting")));
     for (const [value, label] of SORT_ITEMS) {
         const button = document.createElement("button");
         button.type = "button";
@@ -136,10 +137,25 @@ export function renderSeriesCard(item: LibrarySeriesView) {
     const completed = Number(item.completedEpisodes || 0);
     const progress = total ? Math.round(completed / total * 100) : 0;
     const status = LibraryPresentation.seriesStatus(item);
-    const cover = item.coverUrl
-        ? `<img src="${escapeHtml(safeWebUrl(item.coverUrl))}" alt="">`
-        : `<span class="cover-letter">${escapeHtml(String(item.title || "?").slice(0, 1))}</span>`;
-    card.innerHTML = `<div class="series-cover">${cover}<span class="card-action">${escapeHtml(lt(status === "not-started" ? "startWatching" : status === "watching" ? "continueWatching" : "open"))}</span></div><div class="series-card-body"><h3>${escapeHtml(item.title)}</h3><p class="series-state">${escapeHtml(statusLabel(status))} · <span data-completed-episodes>${completed}</span>/<span data-total-episodes>${total}</span></p><div class="progress-bar"><span style="width:${progress}%"></span></div>${Number(item.currentTimeSeconds || 0) > 5 && status === "watching" ? `<p class="continue-note">${escapeHtml(lt("continueAt", { time: formatTime(item.currentTimeSeconds, "duration") }))}</p>` : ""}</div>`;
+    const cover = el("div", "series-cover");
+    cover.append(coverImage(safeWebUrl(item.coverUrl || ""), String(item.title || "?").slice(0, 1)),
+        el("span", "card-action", lt(status === "not-started" ? "startWatching" : status === "watching" ? "continueWatching" : "open")));
+    const body = el("div", "series-card-body");
+    const state = el("p", "series-state", `${statusLabel(status)} · `);
+    const completedCount = el("span", "", completed);
+    completedCount.dataset.completedEpisodes = "";
+    const totalCount = el("span", "", total);
+    totalCount.dataset.totalEpisodes = "";
+    state.append(completedCount, "/", totalCount);
+    const progressBar = el("div", "progress-bar");
+    const progressFill = el("span");
+    progressFill.style.width = `${progress}%`;
+    progressBar.append(progressFill);
+    body.append(el("h3", "", item.title), state, progressBar);
+    if (Number(item.currentTimeSeconds || 0) > 5 && status === "watching") {
+        body.append(el("p", "continue-note", lt("continueAt", { time: formatTime(item.currentTimeSeconds, "duration") })));
+    }
+    card.append(cover, body);
     const open = () => openSeries(item.id);
     card.addEventListener("click", open);
     card.addEventListener("keydown", (event) => { if (event.key === "Enter" || event.key === " ") open(); });
@@ -173,8 +189,23 @@ export function renderEpisodeRow(episode: LibraryEpisodeView) {
     row.className = `episode-row${episode.hasVideo ? " clickable" : ""}`;
     const canResume = LibraryPresentation.episodeCanResume(episode);
     const action = canResume ? lt("continueWatching") : lt("open");
-    row.innerHTML = `<div class="episode-number">${escapeHtml(episodeNumber(episode))}</div><div class="episode-main"><h3>${escapeHtml(episode.title || lt("episodeLabel", { number: episodeNumber(episode) }))}</h3><p><span class="episode-state">${escapeHtml(episodeState(episode))}</span>${canResume ? ` · ${escapeHtml(formatTime(episode.currentTimeSeconds, "duration"))} / ${escapeHtml(formatTime(episode.durationSeconds, "duration"))}` : ""}${!episode.hasSubtitle ? ` · ${escapeHtml(lt("noJp"))}` : ""}${!episode.hasVideo ? ` · ${escapeHtml(lt("missingVideo"))}` : ""}</p></div><div class="episode-actions"><label class="complete-toggle"><input class="episode-completed-checkbox" type="checkbox" ${episode.completed ? "checked" : ""}><span>${escapeHtml(lt("watched"))}</span></label><a class="button small ${episode.hasVideo ? "primary" : "disabled"}" href="/?episodeId=${encodeURIComponent(episode.id)}">${escapeHtml(action)}</a></div>`;
-    const checkbox = row.querySelector<HTMLInputElement>("input")!;
+    const main = el("div", "episode-main");
+    const details = el("p");
+    details.append(el("span", "episode-state", episodeState(episode)));
+    if (canResume) details.append(` · ${formatTime(episode.currentTimeSeconds, "duration")} / ${formatTime(episode.durationSeconds, "duration")}`);
+    if (!episode.hasSubtitle) details.append(` · ${lt("noJp")}`);
+    if (!episode.hasVideo) details.append(` · ${lt("missingVideo")}`);
+    main.append(el("h3", "", episode.title || lt("episodeLabel", { number: episodeNumber(episode) })), details);
+    const actions = el("div", "episode-actions");
+    const label = el("label", "complete-toggle");
+    const checkbox = el("input", "episode-completed-checkbox");
+    checkbox.type = "checkbox";
+    checkbox.checked = Boolean(episode.completed);
+    label.append(checkbox, el("span", "", lt("watched")));
+    const link = el("a", `button small ${episode.hasVideo ? "primary" : "disabled"}`, action);
+    link.href = `/?episodeId=${encodeURIComponent(episode.id)}`;
+    actions.append(label, link);
+    row.append(el("div", "episode-number", episodeNumber(episode)), main, actions);
     checkbox.addEventListener("click", (event) => event.stopPropagation());
     checkbox.addEventListener("change", () => toggleEpisodeCompleted(episode, checkbox));
     if (episode.hasVideo) row.addEventListener("click", (event) => { if (!(event.target as HTMLElement).closest("a,label,button")) location.href = `/?episodeId=${encodeURIComponent(episode.id)}`; });
@@ -184,9 +215,23 @@ export function renderEpisodeRow(episode: LibraryEpisodeView) {
 export function renderFileRow(episode: LibraryEpisodeView) {
     const row = document.createElement("article");
     row.className = "file-row";
-    row.innerHTML = `<div><h3>${escapeHtml(lt("episodeLabel", { number: episodeNumber(episode) }))}</h3><p>${escapeHtml(episode.videoFilename || lt("missingVideo"))}</p><p class="subtitle-filename">${escapeHtml(episode.subtitleFilename || lt("missingSubtitles"))}</p></div><div class="file-actions"><button class="button small subtitle-file-action" type="button" ${episode.hasVideo ? "" : "disabled"}>${escapeHtml(episode.hasSubtitle ? lt("changeJpSubs") : lt("findJpSubs"))}</button>${!episode.hasVideo && !episode.hasSubtitle ? `<button class="button small danger delete-missing-episode-btn" type="button">${escapeHtml(lt("deleteMissingEpisode"))}</button>` : ""}</div>`;
-    row.querySelector<HTMLButtonElement>(".subtitle-file-action")?.addEventListener("click", () => subtitleController.open(episode, row));
-    row.querySelector<HTMLButtonElement>(".delete-missing-episode-btn")?.addEventListener("click", () => deleteMissingEpisode(episode));
+    const details = el("div");
+    details.append(el("h3", "", lt("episodeLabel", { number: episodeNumber(episode) })),
+        el("p", "", episode.videoFilename || lt("missingVideo")),
+        el("p", "subtitle-filename", episode.subtitleFilename || lt("missingSubtitles")));
+    const actions = el("div", "file-actions");
+    const subtitleButton = el("button", "button small subtitle-file-action", episode.hasSubtitle ? lt("changeJpSubs") : lt("findJpSubs"));
+    subtitleButton.type = "button";
+    subtitleButton.disabled = !episode.hasVideo;
+    subtitleButton.addEventListener("click", () => subtitleController.open(episode, row));
+    actions.append(subtitleButton);
+    if (!episode.hasVideo && !episode.hasSubtitle) {
+        const deleteButton = el("button", "button small danger delete-missing-episode-btn", lt("deleteMissingEpisode"));
+        deleteButton.type = "button";
+        deleteButton.addEventListener("click", () => deleteMissingEpisode(episode));
+        actions.append(deleteButton);
+    }
+    row.append(details, actions);
     return row;
 }
 
@@ -220,7 +265,7 @@ export async function openSeries(seriesId: string | number, updateHash = true) {
     seriesCurrentEpisode.textContent = current ? lt("currentEpisode", { number: episodeNumber(current) }) : lt("allEpisodesCompleted");
     seriesPrimaryAction.textContent = lt(primary.kind === "start" ? "startWatching" : primary.kind === "continue" ? "continueWatching" : "openEpisodes");
     seriesPrimaryAction.href = primary.episodeId ? `/?episodeId=${encodeURIComponent(primary.episodeId)}` : "#episodes";
-    seriesDetailCover.innerHTML = series.coverUrl ? `<img src="${escapeHtml(safeWebUrl(series.coverUrl))}" alt="">` : `<span class="cover-letter">${escapeHtml(series.title.slice(0, 1))}</span>`;
+    seriesDetailCover.replaceChildren(coverImage(safeWebUrl(series.coverUrl || ""), series.title.slice(0, 1)));
     episodeList.replaceChildren(...currentOpenedEpisodesState.value.map(renderEpisodeRow));
     fileList.replaceChildren(...currentOpenedEpisodesState.value.map(renderFileRow));
     if (updateHash) history.pushState({ seriesId: series.id }, "", `#series=${encodeURIComponent(series.id)}`);
@@ -265,7 +310,7 @@ export async function deleteMissingEpisode(episode: LibraryEpisodeView) {
 
 export async function chooseLocalFolder(initialPath = "") {
     const { response, data } = await libraryChooseFolder(initialPath);
-    if (!response.ok || data.error) throw new Error(String(data.error || "openFolderDialogFailed"));
+    if (!response.ok || data.error) throw new Error(String(data.error || lt("openFolderDialogFailed")));
     return data.cancelled || !data.path ? null : String(data.path);
 }
 

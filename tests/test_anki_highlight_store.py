@@ -1,3 +1,7 @@
+import json
+
+import pytest
+
 from backend.services import anki_highlight_store as store
 
 
@@ -46,3 +50,42 @@ def test_enrich_locked_word_metadata_preserves_status():
     assert result["noteId"] == 42
     assert result["cardIds"] == [101, 102]
     assert result["fields"]["Sentence"]["value"] == "<b>日本語の例文</b>"
+
+
+@pytest.mark.parametrize("failure", ["replace", "fsync", "serialization"])
+def test_failed_atomic_write_keeps_original_and_removes_temporary_file(tmp_path, monkeypatch, failure):
+    path = tmp_path / "words.json"
+    path.write_text('["猫"]', encoding="utf-8")
+    original = path.read_bytes()
+
+    def fail(*_args):
+        raise OSError("disk error")
+
+    data = {"words": {object()}} if failure == "serialization" else {"words": ["犬"]}
+    if failure != "serialization":
+        monkeypatch.setattr(store.os, failure, fail)
+    with pytest.raises((OSError, TypeError)):
+        store.write_json_atomic(path, data)
+    assert path.read_bytes() == original
+    assert list(tmp_path.iterdir()) == [path]
+
+
+def test_legacy_json_is_normalized_and_versioned_on_next_write(temporary_settings):
+    path = store.anki_highlight_settings_path(temporary_settings)
+    path.write_text('{"decks": [" Mining "], "autoRefresh": "OFF"}', encoding="utf-8")
+    data = store.read_anki_highlight_settings(temporary_settings)
+    assert data["decks"] == ["Mining"]
+    assert data["autoRefresh"] == "off"
+    store.write_anki_highlight_settings(data, temporary_settings)
+    assert json.loads(path.read_text(encoding="utf-8"))["schemaVersion"] == 1
+
+
+@pytest.mark.parametrize("content", ['{"words":', '{"schemaVersion": 99, "words": {}}'])
+def test_corrupt_or_future_data_is_not_overwritten(temporary_settings, content):
+    path = store.known_anki_words_path(temporary_settings)
+    path.write_text(content, encoding="utf-8")
+    with pytest.raises(ValueError):
+        store.read_known_anki_data(temporary_settings)
+    with pytest.raises(ValueError):
+        store.write_known_anki_data({"words": {}}, temporary_settings)
+    assert path.read_text(encoding="utf-8") == content
