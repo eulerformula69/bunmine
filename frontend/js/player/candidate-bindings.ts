@@ -6,7 +6,7 @@ import { fetchNoteIdsByQuery,fetchNotesInfo } from "../anki/notes.js";
 import { stripHtml } from "../anki/note-fields.js";
 
 import { t } from "../core/translate.js";
-import { getCleanSelectedText,showToast } from "./ui.js";
+import { getCleanSelectedText,showActionToast,showToast } from "./ui.js";
 
 import { createCandidateExportService } from "./candidate-export.js";
 
@@ -61,6 +61,23 @@ export const candidateExports = createCandidateExportService({
     },
 });
 
+let candidateReviewToast: HTMLElement | null = null;
+
+function clearCandidateReviewToast(): void {
+    candidateReviewToast?.remove();
+    candidateReviewToast = null;
+}
+
+function showCandidateReviewStatus(message: string): void {
+    candidatePanel.status(message);
+    clearCandidateReviewToast();
+    if (message === t("candidateDone")) {
+        showToast(message, "success");
+        return;
+    }
+    candidateReviewToast = showActionToast(message);
+}
+
 export const candidateReview = createCandidateReviewController({
     action: candidateApi.action,
     noteIds: (snapshot) => fetchNoteIdsByQuery(snapshot.ankiUrl, "", "AnkiConnect candidate baseline"),
@@ -72,7 +89,7 @@ export const candidateReview = createCandidateReviewController({
     },
     sleep,
     changed: () => candidatePanel.refresh(),
-    status: (message) => candidatePanel.status(message),
+    status: showCandidateReviewStatus,
     now: () => Date.now(),
 });
 
@@ -101,6 +118,7 @@ export const candidatePanel = createCandidatePanel({
     },
     reject: candidateReview.reject,
     error: (error) => {
+        clearCandidateReviewToast();
         reportError(error, {status: candidatePanel.status});
     },
 });
