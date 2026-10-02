@@ -1,6 +1,4 @@
 import { logger } from "../core/logger.js";
-import { initTargetNoteDropdown,refreshTargetNoteList } from "./controllers.js";
-
 import { updateIconButtons } from "./ui.js";
 
 import { initSubtitleSidebar } from "../subtitles/subtitles-sidebar.js";
@@ -20,8 +18,6 @@ import { overlay } from "../core/dom.js";
 import { ankiSubtitleHighlighter,ensureStatusesForSubtitleText } from "../highlighter/anki-highlighter.js";
 
 export function startPlayer() {
-    initTargetNoteDropdown();
-    refreshTargetNoteList({ preserveSelection: true });
     updateIconButtons();
 	initSubtitleSidebar();
 

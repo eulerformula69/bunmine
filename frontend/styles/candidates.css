@@ -3,7 +3,7 @@
     gap: 8px;
     padding: 10px;
 }
-.candidate-tabs button { flex: 1; }
+.candidate-tabs button, .candidate-actions button { flex: 1; }
 .candidate-tabs button, #candidatePanel button, #candidateCount {
     color: #eee;
     background: #252525;

@@ -10,7 +10,6 @@ export interface KnownBasicActionsOptions {
     markMature: (word: string) => void;
     hideButton: () => void;
     clearSelection: () => void;
-    copyText: (text: string) => Promise<void>;
 }
 
 export function createKnownBasicActions(options: KnownBasicActionsOptions) {
@@ -74,22 +73,5 @@ export function createKnownBasicActions(options: KnownBasicActionsOptions) {
         }
     }
 
-    async function copyWord(word: unknown): Promise<void> {
-        const cleanWord = String(word || "").trim();
-        if (!cleanWord) {
-            options.toast(options.translate("toastCopiedForYomitan", { word: cleanWord }), "success", 3000);
-            return;
-        }
-        try {
-            await options.copyText(cleanWord);
-            options.toast(`Copied for Yomitan: ${cleanWord}`, "success", 3000);
-        } catch (error) {
-            logger.error("Copy for Yomitan failed:", error);
-            options.toast(options.translate("toastCopyFailed", {
-                message: error instanceof Error ? error.message : String(error),
-            }), "error", 5000);
-        }
-    }
-
-    return { dictionaryForm, addWord, copyWord };
+    return { dictionaryForm, addWord };
 }

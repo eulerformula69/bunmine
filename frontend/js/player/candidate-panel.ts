@@ -20,6 +20,7 @@ export function createCandidatePanel(options: {
     select(candidate: MiningCandidate): Promise<CandidateContext | null | void>;
     saveContext(candidate: MiningCandidate, context: CandidateContext, start: number, end: number): Promise<MiningCandidate>;
     acquire(candidate: MiningCandidate, selectedWord: string): Promise<void>;
+    attachManual(candidate: MiningCandidate): Promise<void>;
     autoAcquireEnabled(): boolean;
     reject(candidate: MiningCandidate): Promise<void>;
     error(error: unknown): void;
@@ -55,11 +56,12 @@ export function createCandidatePanel(options: {
     });
     const status = document.createElement("p");
     status.setAttribute("role", "status");
+    const manual = document.createElement("button");
     const skip = document.createElement("button");
     skip.textContent = t("candidateSkip");
     const actions = document.createElement("div");
     actions.className = "candidate-actions";
-    actions.append(skip);
+    actions.append(manual, skip);
     panel.append(list, editor.element, actions, status);
     tabs.append(subtitleTab, candidateTab);
     options.sidebar.querySelector(".subtitle-sidebar-header")!.after(tabs);
@@ -102,6 +104,7 @@ export function createCandidatePanel(options: {
         subtitleTab.textContent = t("subtitlesPanelTitle");
         panel.setAttribute("aria-label", t("candidateTitle"));
         counter.title = t("candidateOpen");
+        manual.textContent = t("candidateManualAdd");
         skip.textContent = t("candidateSkip");
         candidateTab.textContent = `${t("candidateTitle")} · ${candidates.length}`;
         counter.textContent = `${t("candidateTitle")}: ${candidates.length}`;
@@ -122,7 +125,7 @@ export function createCandidatePanel(options: {
         }
         list.scrollTop = listScroll;
         editor.set(active, editorContext, options.busy() || selecting || editing);
-        skip.disabled = !active || options.busy() || selecting || editing || performing;
+        manual.disabled = skip.disabled = !active || options.busy() || selecting || editing || performing;
     }
     async function select(candidate: MiningCandidate): Promise<void> {
         if (options.busy() || selecting || editing) return;
@@ -148,6 +151,7 @@ export function createCandidatePanel(options: {
         catch (error) { options.error(error); }
         finally { performing = false; render(); }
     }
+    manual.onclick = () => { void perform(options.attachManual); };
     skip.onclick = () => { void perform(options.reject); };
     return {
         render,

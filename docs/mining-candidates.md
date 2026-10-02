@@ -4,7 +4,8 @@
 2. Open Candidates in the right panel. Select an item to seek to its saved frame and read its saved context.
 3. Select the word in the saved context with Yomitan. Bunmine reads the initial Anki note IDs.
 4. Create one note through Yomitan. Bunmine attaches the saved context, audio, and image when automatic attachment is enabled.
-5. Click Skip to reject the candidate and open the next pending item.
+5. If automatic attachment is disabled or missed the note, click Add manually to attach the candidate to the latest Anki card.
+6. Click Skip to reject the candidate and open the next pending item.
 
 Capture does not need Anki. Hover and selection alone do not save a candidate.
 Automatic attachment only listens for new Anki notes while the Candidates panel is open.

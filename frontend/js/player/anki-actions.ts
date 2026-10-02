@@ -29,9 +29,6 @@ export interface AnkiMediaControllerOptions {
     getSubtitleStart(index: number): number;
     getSubtitleContext(index: number): { startTime: number; endTime: number; text: string; items?: CandidateCue[] };
     getGlobalSubtitleDelay(): number;
-    getTargetNoteId(): number;
-    clearTargetNote(): void;
-    refreshTargetNotes(): void;
     maybePromptSubtitleDepthReset(): void;
     resetRuntimeHighlightPrefetch(): void;
     refreshKnownWord(payload: Record<string, unknown>): Promise<unknown> | undefined;
@@ -222,12 +219,9 @@ export function createAnkiMediaController(options: AnkiMediaControllerOptions): 
             throw new Error(`Error: There are no cards in "${snapshot.deckName}"!`);
         }
 
-        const selectedId = options.getTargetNoteId();
-        const targetNoteId = selectedId > 0 ? selectedId : noteIds[noteIds.length - 1];
+        const targetNoteId = noteIds[noteIds.length - 1];
         await updateNote(targetNoteId, snapshot);
         options.showToast(options.translate("toastCardUpdated"), "success");
-        options.clearTargetNote();
-        options.refreshTargetNotes();
         options.maybePromptSubtitleDepthReset();
     }
 

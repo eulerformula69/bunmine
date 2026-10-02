@@ -14,13 +14,10 @@ const actions = context.createKnownBasicActions({
     markMature: (word) => events.push(`mature:${word}`),
     hideButton: () => events.push("hidden"),
     clearSelection: () => events.push("cleared"),
-    copyText: async (text) => events.push(`copied:${text}`),
 });
 
 assert.equal(await actions.dictionaryForm("食べた"), "食べる");
 await actions.addWord("食べた");
 assert.deepEqual(events.slice(0, 4), ["食べる", "mature:食べる", "cleared", "hidden"]);
-await actions.copyWord(" 猫 ");
-assert.ok(events.includes("copied:猫"));
 
 console.log("Known-basic actions tests passed");

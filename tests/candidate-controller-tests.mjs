@@ -56,6 +56,17 @@ const candidate = () => ({ id: 1, snapshot: { ...snapshot }, anki_note_id: null 
     assert.equal(review.isBusy(), false);
 }
 {
+    const { review, events } = harness({ noteIds: async () => [5, 7] });
+    await review.attachLatestCandidate(candidate());
+    assert.deepEqual(events.filter(([name]) => ["bind", "update", "accept"].includes(name)).map(([name, value]) => [name, value]),
+        [["bind", 7], ["update", 7], ["accept", undefined]]);
+    assert.equal(events.some(([name]) => name === "copy"), false);
+}
+{
+    const { review } = harness({ noteIds: async () => [] });
+    await assert.rejects(review.attachLatestCandidate(candidate()));
+}
+{
     let release;
     const { review, events } = harness({ copy: () => new Promise((resolve) => { release = resolve; }) });
     const work = review.acquireCandidate(candidate());

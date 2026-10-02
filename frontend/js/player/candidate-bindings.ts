@@ -14,7 +14,7 @@ import { candidateApi } from "./candidate-api.js";
 
 import { createCandidateReviewController } from "./review-controller.js";
 
-import { ankiMediaController,refreshTargetNoteList,updateAnkiNoteWithSnapshot } from "./controllers.js";
+import { ankiMediaController,updateAnkiNoteWithSnapshot } from "./controllers.js";
 
 import { sleep } from "../core/api.js";
 
@@ -85,7 +85,6 @@ export const candidateReview = createCandidateReviewController({
     verify: verifyCandidateAnkiNote,
     update: async (noteId, snapshot) => {
         await updateAnkiNoteWithSnapshot(noteId, snapshot);
-        void refreshTargetNoteList({ preserveSelection: false });
     },
     sleep,
     changed: () => candidatePanel.refresh(),
@@ -115,6 +114,10 @@ export const candidatePanel = createCandidatePanel({
         const saved = await candidateExports.load(candidate.id);
         saved.snapshot.selectedWord = selectedWord;
         await runExclusiveAnkiAcquire(() => candidateReview.acquireCandidate(saved));
+    },
+    attachManual: async (candidate) => {
+        const saved = await candidateExports.load(candidate.id);
+        await runExclusiveAnkiAcquire(() => candidateReview.attachLatestCandidate(saved));
     },
     reject: candidateReview.reject,
     error: (error) => {

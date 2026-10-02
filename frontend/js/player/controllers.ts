@@ -13,7 +13,7 @@ import { getCurrentSubtitle,getPrimarySubtitleIndex } from "../subtitles/timing.
 
 import { renderSubtitleOverlay } from "../subtitles/subtitles.js";
 
-import { overlay,targetNoteSelect,video } from "../core/dom.js";
+import { overlay,video } from "../core/dom.js";
 
 import { ankiSubtitleHighlighter,collectSubtitleCandidates,ensureStatusesForCandidates,ensureStatusesForSubtitleText,rerenderCurrentSubtitleWithAnkiHighlighter } from "../highlighter/anki-highlighter.js";
 
@@ -22,14 +22,6 @@ import { createRuntimePrefetchController } from "./runtime-prefetch.js";
 import { state } from "../core/state.js";
 
 import { getHighlightWordFieldNames,loadHighlightWordIndexes,refreshKnownAnkiWordFromNote } from "../highlighter/word-index-sync.js";
-
-import { createTargetNoteDropdownController } from "./target-note-dropdown.js";
-
-import { i18n } from "../core/i18n.js";
-
-import { fetchDeckNoteIds,fetchNotesInfo } from "../anki/notes.js";
-
-import { pickNotePreviewText } from "../anki/note-fields.js";
 
 import { getSubtitleContextSelection,isSubtitleContextDepthDefault,resetSubtitleContextDepths } from "../subtitles/context-range.js";
 
@@ -59,12 +51,9 @@ export const knownBasicActions = createKnownBasicActions({
     },
     hideButton: hideAddKnownBasicButton,
     clearSelection: () => window.getSelection()?.removeAllRanges(),
-    copyText: (text) => navigator.clipboard.writeText(text),
 });
 
 export const addWordToKnownBasic = knownBasicActions.addWord;
-
-export const copyWordForYomitan = knownBasicActions.copyWord;
 
 export const runtimePrefetchController = createRuntimePrefetchController({
     state: state,
@@ -81,21 +70,6 @@ export const runtimePrefetchController = createRuntimePrefetchController({
 export async function prefetchRuntimeStatusesForAllSubtitles(options = {}) {
     await runtimePrefetchController.prefetch(options);
 }
-
-export const targetNoteDropdown = createTargetNoteDropdownController({
-    select: targetNoteSelect,
-    getAnkiUrl: () => (document.getElementById("ankiUrl") as HTMLInputElement).value,
-    getDeckName: () => (document.getElementById("deckName") as HTMLInputElement).value,
-    getLastAddedLabel: () => i18n[state.currentLang].dict.lastAdded || "🕘",
-    getLastAddedTitle: () => i18n[state.currentLang].dict.lastAddedTitle || "Last added card",
-    fetchDeckNoteIds,
-    fetchNotesInfo,
-    pickNotePreviewText
-});
-
-export const refreshTargetNoteList = targetNoteDropdown.refresh;
-
-export const initTargetNoteDropdown = targetNoteDropdown.init;
 
 export function maybePromptSubtitleDepthReset() {
     if (isSubtitleContextDepthDefault()) return;
@@ -133,11 +107,6 @@ export const ankiMediaController = createAnkiMediaController({
     getSubtitleStart: (index) => state.subtitles[index].start,
     getSubtitleContext: getSubtitleContextSelection,
     getGlobalSubtitleDelay: () => state.globalSubDelay,
-    getTargetNoteId: () => Number(targetNoteSelect?.value || 0),
-    clearTargetNote: () => {
-        if (targetNoteSelect) targetNoteSelect.value = "";
-    },
-    refreshTargetNotes: () => refreshTargetNoteList({ preserveSelection: false }),
     maybePromptSubtitleDepthReset,
     resetRuntimeHighlightPrefetch: () => {
         state.runtimePrefetchWindowStart = -1;

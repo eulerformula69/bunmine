@@ -46,7 +46,6 @@ export interface BunmineState {
     subtitleContextBackDepth: number;
     subtitleContextForwardDepth: number;
     subtitleContextDragState: SubtitleContextDragState | null;
-    deckNoteRefreshTimer: ReturnType<typeof setTimeout> | null;
     runtimeHighlightPrefetchReady: boolean;
     runtimePrefetchWindowStart: number;
     runtimePrefetchWindowEnd: number;
@@ -78,7 +77,6 @@ export const state: BunmineState = {
     subtitleContextBackDepth: 0,
     subtitleContextForwardDepth: 0,
     subtitleContextDragState: null,
-    deckNoteRefreshTimer: null,
     runtimeHighlightPrefetchReady: false,
     runtimePrefetchWindowStart: -1,
     runtimePrefetchWindowEnd: -1,

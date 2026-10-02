@@ -41,11 +41,10 @@ const media = ctx.createAnkiMediaController({
     getValidatedVolume: () => 1, getActiveSubtitleIndex: () => 0,
     getSubtitleStart: () => 999,
     getSubtitleContext: () => ({ startTime: 999, endTime: 1000, text: "center only" }),
-    getGlobalSubtitleDelay: () => 0, getTargetNoteId: () => 123,
+    getGlobalSubtitleDelay: () => 0,
     resetRuntimeHighlightPrefetch() {}, refreshKnownWord: async () => {},
     getHighlightWordFields: () => [], ensureSubtitleStatuses: async () => {},
-    prefetchSubtitleStatuses() {}, showToast() {}, clearTargetNote() {},
-    refreshTargetNotes() {}, maybePromptSubtitleDepthReset() {},
+    prefetchSubtitleStatuses() {}, showToast() {}, maybePromptSubtitleDepthReset() {},
 });
 ctx.ankiMediaController = media;
 

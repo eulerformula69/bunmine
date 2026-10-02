@@ -1,8 +1,8 @@
 import { logger } from "../core/logger.js";
-import { ankiAllBtn,deleteVideoBtn,fontSizeRange,fullscreenBtn,overlay,settingsBtn,settingsModal,subtitleOverlay,targetNoteSelect,video,videoContainer,volume } from "../core/dom.js";
+import { ankiAllBtn,deleteVideoBtn,fontSizeRange,fullscreenBtn,overlay,settingsBtn,settingsModal,subtitleOverlay,video,videoContainer,volume } from "../core/dom.js";
 import { reportError } from "./toast.js";
 
-import { prefetchRuntimeStatusesForAllSubtitles,refreshTargetNoteList,updateCurrentOrSelectedAnkiCard } from "./controllers.js";
+import { prefetchRuntimeStatusesForAllSubtitles,updateCurrentOrSelectedAnkiCard } from "./controllers.js";
 
 import { toggleFullscreenMode,updateFullscreenButtonText } from "./ui.js";
 
@@ -106,21 +106,9 @@ globalSubDelayInput?.addEventListener("input", (e) => {
 
 const ankiUrlInput = document.getElementById("ankiUrl");
 
-const deckNameInput = document.getElementById("deckName");
-
 const highlightWordFieldInput = document.getElementById("highlightWordField");
 
 const highlightDeckNamesInput = document.getElementById("highlightDeckNames");
-
-[ankiUrlInput, deckNameInput].forEach((input) => {
-    input?.addEventListener("input", () => {
-        clearTimeout(state.deckNoteRefreshTimer ?? undefined);
-
-        state.deckNoteRefreshTimer = setTimeout(() => {
-            refreshTargetNoteList({ preserveSelection: true });
-        }, 500);
-    });
-});
 
 [ankiUrlInput, highlightWordFieldInput, highlightDeckNamesInput].forEach((input) => {
     input?.addEventListener("change", () => {
@@ -146,10 +134,6 @@ const highlightDeckNamesInput = document.getElementById("highlightDeckNames");
 
         prefetchRuntimeStatusesForAllSubtitles({ silent: true });
     });
-});
-
-targetNoteSelect?.addEventListener("focus", () => {
-    refreshTargetNoteList({ preserveSelection: true });
 });
 
 fullscreenBtn?.addEventListener("click", () => {

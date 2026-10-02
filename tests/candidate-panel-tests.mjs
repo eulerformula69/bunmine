@@ -19,6 +19,7 @@ let autoAcquireEnabled = false;
 let finish;
 const selected = [];
 const acquired = [];
+const manuallyAttached = [];
 let panel;
 panel = context.createCandidatePanel({
     sidebar, busy: () => busy,
@@ -35,6 +36,7 @@ panel = context.createCandidatePanel({
         await new Promise((resolve) => { finish = resolve; });
         busy = false;
     },
+    attachManual: async (candidate) => { manuallyAttached.push(candidate.id); },
     reject: async (candidate) => {
         candidates = candidates.filter((item) => item.id !== candidate.id);
         await panel.refresh();
@@ -45,7 +47,7 @@ await panel.refresh();
 const tabs = header.nextElementSibling.children;
 const section = sidebar.querySelector("#candidatePanel");
 const [list, savedContext, actions] = section.children;
-const [skip] = actions.children;
+const [manual, skip] = actions.children;
 const settle = () => new Promise((resolve) => setImmediate(resolve));
 const waitForArm = () => new Promise((resolve) => setTimeout(resolve, 300));
 assert.equal(tabs.length, 2);
@@ -70,6 +72,9 @@ assert.equal(list.children[1].disabled, true);
 assert.deepEqual(acquired, [[1, "selected word"]]);
 finish();
 await settle();
+manual.click();
+await settle();
+assert.deepEqual(manuallyAttached, [1]);
 skip.click();
 await settle();
 assert.deepEqual(selected, [1, 2]);
@@ -92,12 +97,14 @@ context.setLanguage("ja");
 panel.render();
 assert.equal(tabs[0].textContent, "字幕");
 assert.equal(tabs[1].textContent, "候補 · 0");
+assert.equal(manual.textContent, "手動で追加");
 assert.equal(skip.textContent, "スキップ");
 assert.equal(section.getAttribute("aria-label"), "候補");
 context.setLanguage("en");
 panel.render();
 assert.equal(tabs[0].textContent, "Subtitles");
 assert.equal(tabs[1].textContent, "Candidates · 0");
+assert.equal(manual.textContent, "Add manually");
 assert.equal(skip.textContent, "Skip");
 assert.equal(context.t("sidebarTitle"), "Sidebar");
 const candidateSettingsTab = document.querySelector('[data-settings-tab="candidates"]');

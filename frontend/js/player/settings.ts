@@ -196,11 +196,6 @@ export function applyLanguage(lang: string): void {
 
     candidatePanel.render();
 
-    const autoOption = document.querySelector<HTMLOptionElement>("#targetNoteSelect option[value='']");
-    if (autoOption && dictionary.lastAdded) {
-        autoOption.textContent = dictionary.lastAdded;
-    }
-
     updateFullscreenButtonText();
 
     updateSubtitleSearchPanelLanguage();
