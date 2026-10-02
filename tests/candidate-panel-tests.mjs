@@ -46,7 +46,7 @@ panel = context.createCandidatePanel({
 await panel.refresh();
 const tabs = header.nextElementSibling.children;
 const section = sidebar.querySelector("#candidatePanel");
-const [list, savedContext, actions] = section.children;
+const [list, actions, savedContext] = section.children;
 const [manual, skip] = actions.children;
 const settle = () => new Promise((resolve) => setImmediate(resolve));
 const waitForArm = () => new Promise((resolve) => setTimeout(resolve, 300));
@@ -59,6 +59,8 @@ list.children[0].click();
 await settle();
 assert.deepEqual(selected, [1]);
 assert.equal(savedContext.textContent, "<b>context1</b>");
+assert.equal(actions.previousElementSibling, list);
+assert.equal(actions.nextElementSibling, savedContext);
 assert.equal(panel.exportCandidateId(), 1);
 assert.equal(panel.isCandidateMode(), true);
 panel.armAutoAcquire("disabled");

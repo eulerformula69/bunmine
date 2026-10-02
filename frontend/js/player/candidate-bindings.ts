@@ -69,7 +69,6 @@ function clearCandidateReviewToast(): void {
 }
 
 function showCandidateReviewStatus(message: string): void {
-    candidatePanel.status(message);
     clearCandidateReviewToast();
     if (message === t("candidateDone")) {
         showToast(message, "success");
@@ -122,7 +121,7 @@ export const candidatePanel = createCandidatePanel({
     reject: candidateReview.reject,
     error: (error) => {
         clearCandidateReviewToast();
-        reportError(error, {status: candidatePanel.status});
+        reportError(error);
     },
 });
 
@@ -148,8 +147,8 @@ export async function captureSelectedCandidate(): Promise<void> {
     }
 }
 
-void candidatePanel.refresh().catch((error) => candidatePanel.status(String(error)));
+void candidatePanel.refresh().catch(reportError);
 
 window.addEventListener("focus", () => {
-    if (!candidateReview.isBusy()) void candidatePanel.refresh().catch((error) => candidatePanel.status(String(error)));
+    if (!candidateReview.isBusy()) void candidatePanel.refresh().catch(reportError);
 });

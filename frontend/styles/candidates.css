@@ -41,7 +41,6 @@
 .candidate-cues.dragging { user-select: none; cursor: row-resize; }
 .candidate-context-summary { display: flex; justify-content: space-between; gap: 8px; padding-top: 12px; font-size: 12px; color: #b9b0bf; }
 .candidate-context-summary [role="status"] { white-space: nowrap; }
-#candidatePanel > [role="status"] { margin: 0; font-size: 12px; }
 .candidate-context { overflow-y: auto; min-height: 0; }
 
 .candidate-list, .candidate-cues { scrollbar-color: #65566e #19131d; }

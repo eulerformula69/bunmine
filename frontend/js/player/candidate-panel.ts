@@ -54,15 +54,13 @@ export function createCandidatePanel(options: {
             render();
         },
     });
-    const status = document.createElement("p");
-    status.setAttribute("role", "status");
     const manual = document.createElement("button");
     const skip = document.createElement("button");
     skip.textContent = t("candidateSkip");
     const actions = document.createElement("div");
     actions.className = "candidate-actions";
     actions.append(manual, skip);
-    panel.append(list, editor.element, actions, status);
+    panel.append(list, actions, editor.element);
     tabs.append(subtitleTab, candidateTab);
     options.sidebar.querySelector(".subtitle-sidebar-header")!.after(tabs);
     options.sidebar.append(panel);
@@ -129,7 +127,6 @@ export function createCandidatePanel(options: {
     }
     async function select(candidate: MiningCandidate): Promise<void> {
         if (options.busy() || selecting || editing) return;
-        status.textContent = "";
         active = candidate;
         editorContext = candidate.snapshot.context || null;
         selecting = true;
@@ -175,7 +172,6 @@ export function createCandidatePanel(options: {
             if (selecting || (editing && !savingContext)) throw new Error(t("candidateSaving"));
             return active.id;
         },
-        status: (message: string) => { status.textContent = message; },
         async refresh(): Promise<void> {
             if (editing) return;
             const loaded = await (options.list || candidateApi.list)();
