@@ -15,6 +15,7 @@ let candidates = [1, 2].map((id) => ({
         videoPayload: { filename: "test.mkv" } },
 }));
 let busy = false;
+let autoAcquireEnabled = false;
 let finish;
 const selected = [];
 const acquired = [];
@@ -27,9 +28,10 @@ panel = context.createCandidatePanel({
         return {element, set: candidate => { element.textContent = candidate?.snapshot.combinedText || ""; }};
     },
     select: async (candidate) => selected.push(candidate.id),
-    acquire: async (candidate) => {
+    autoAcquireEnabled: () => autoAcquireEnabled,
+    acquire: async (candidate, selectedWord) => {
         busy = true;
-        acquired.push(candidate.id);
+        acquired.push([candidate.id, selectedWord]);
         await new Promise((resolve) => { finish = resolve; });
         busy = false;
     },
@@ -43,8 +45,9 @@ await panel.refresh();
 const tabs = header.nextElementSibling.children;
 const section = sidebar.querySelector("#candidatePanel");
 const [list, savedContext, actions] = section.children;
-const [add, skip] = actions.children;
+const [skip] = actions.children;
 const settle = () => new Promise((resolve) => setImmediate(resolve));
+const waitForArm = () => new Promise((resolve) => setTimeout(resolve, 300));
 assert.equal(tabs.length, 2);
 assert.equal(section.hidden, true);
 tabs[1].click();
@@ -55,12 +58,16 @@ await settle();
 assert.deepEqual(selected, [1]);
 assert.equal(savedContext.textContent, "<b>context1</b>");
 assert.equal(panel.exportCandidateId(), 1);
-add.click();
-assert.equal(add.disabled, true);
+assert.equal(panel.isCandidateMode(), true);
+panel.armAutoAcquire("disabled");
+await waitForArm();
+assert.deepEqual(acquired, []);
+autoAcquireEnabled = true;
+panel.armAutoAcquire(" selected word ");
+await waitForArm();
 assert.equal(skip.disabled, true);
 assert.equal(list.children[1].disabled, true);
-add.click();
-assert.deepEqual(acquired, [1]);
+assert.deepEqual(acquired, [[1, "selected word"]]);
 finish();
 await settle();
 skip.click();
@@ -71,6 +78,7 @@ assert.equal(panel.exportCandidateId(), 2);
 assert.equal(toggle.nextElementSibling.textContent, "Кандидаты: 1");
 tabs[0].click();
 assert.equal(section.hidden, true);
+assert.equal(panel.isCandidateMode(), false);
 assert.equal(panel.exportCandidateId(), undefined);
 sidebar.classList.toggle("hidden", true);
 toggle.nextElementSibling.click();
@@ -78,14 +86,13 @@ assert.equal(sidebar.classList.contains("hidden"), false);
 assert.equal(section.hidden, false);
 skip.click();
 await settle();
-assert.equal(add.disabled, true);
+assert.equal(skip.disabled, true);
 assert.equal(toggle.nextElementSibling.textContent, "Кандидаты: 0");
 context.setLanguage("ja");
 panel.render();
 assert.equal(tabs[0].textContent, "字幕");
 assert.equal(tabs[1].textContent, "候補 · 0");
 assert.equal(skip.textContent, "スキップ");
-assert.equal(add.textContent, "Yomitanで追加");
 assert.equal(section.getAttribute("aria-label"), "候補");
 context.setLanguage("en");
 panel.render();
@@ -93,6 +100,9 @@ assert.equal(tabs[0].textContent, "Subtitles");
 assert.equal(tabs[1].textContent, "Candidates · 0");
 assert.equal(skip.textContent, "Skip");
 assert.equal(context.t("sidebarTitle"), "Sidebar");
+const candidateSettingsTab = document.querySelector('[data-settings-tab="candidates"]');
+assert.ok(candidateSettingsTab);
+assert.ok(document.querySelector('[data-settings-page="candidates"] #autoAttachNextCardEnabled'));
 console.log("Candidate panel and language switching tests passed");
 
 dom.window.close();

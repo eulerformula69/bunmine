@@ -40,8 +40,6 @@ import { createCandidateCaptureController } from "./capture-controller.js";
 
 import { getSubtitleContextRange } from "../subtitles/context-range.js";
 
-import { autoAttachController } from "./auto-attach-bindings.js";
-
 import { getSubtitleIndexFromSelection } from "./selection-model.js";
 
 export async function verifyCandidateAnkiNote(noteId: number, snapshot: AnkiMediaSnapshot): Promise<void> {
@@ -94,8 +92,11 @@ export const candidatePanel = createCandidatePanel({
     },
     saveContext: (candidate, context, start, end) => candidateExports.trackSave(candidate.id,
         runExclusiveAnkiAcquire(() => candidateApi.context(candidate, context, start, end))),
-    acquire: async (candidate) => {
+    autoAcquireEnabled: () =>
+        (document.getElementById("autoAttachNextCardEnabled") as HTMLInputElement | null)?.checked === true,
+    acquire: async (candidate, selectedWord) => {
         const saved = await candidateExports.load(candidate.id);
+        saved.snapshot.selectedWord = selectedWord;
         await runExclusiveAnkiAcquire(() => candidateReview.acquireCandidate(saved));
     },
     reject: candidateReview.reject,
@@ -120,7 +121,6 @@ export const captureCandidate = createCandidateCaptureController({
 
 export async function captureSelectedCandidate(): Promise<void> {
     try {
-        autoAttachController.cancel();
         await captureCandidate(getCleanSelectedText(), getSubtitleIndexFromSelection());
     } catch (error) {
         reportError(error);

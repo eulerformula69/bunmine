@@ -19,7 +19,8 @@ export function createCandidatePanel(options: {
     busy(): boolean;
     select(candidate: MiningCandidate): Promise<CandidateContext | null | void>;
     saveContext(candidate: MiningCandidate, context: CandidateContext, start: number, end: number): Promise<MiningCandidate>;
-    acquire(candidate: MiningCandidate): Promise<void>;
+    acquire(candidate: MiningCandidate, selectedWord: string): Promise<void>;
+    autoAcquireEnabled(): boolean;
     reject(candidate: MiningCandidate): Promise<void>;
     error(error: unknown): void;
     playback?(candidate: MiningCandidate | undefined, restart: boolean): void;
@@ -54,13 +55,11 @@ export function createCandidatePanel(options: {
     });
     const status = document.createElement("p");
     status.setAttribute("role", "status");
-    const add = document.createElement("button");
-    add.textContent = t("candidateAdd");
     const skip = document.createElement("button");
     skip.textContent = t("candidateSkip");
     const actions = document.createElement("div");
     actions.className = "candidate-actions";
-    actions.append(add, skip);
+    actions.append(skip);
     panel.append(list, editor.element, actions, status);
     tabs.append(subtitleTab, candidateTab);
     options.sidebar.querySelector(".subtitle-sidebar-header")!.after(tabs);
@@ -79,9 +78,12 @@ export function createCandidatePanel(options: {
     let selecting = false;
     let editing = false;
     let savingContext = false;
+    let performing = false;
+    let acquireTimer: ReturnType<typeof setTimeout> | undefined;
     let editorContext: CandidateContext | null = null;
 
     function showCandidates(show: boolean): void {
+        if (!show) clearTimeout(acquireTimer);
         options.sidebar.classList.toggle("review-candidates", show);
         panel.hidden = !show;
         subtitleTab.setAttribute("aria-selected", String(!show));
@@ -114,14 +116,13 @@ export function createCandidatePanel(options: {
                 : (candidate.snapshot.videoPayload as VideoFilePayload).filename;
             button.textContent = `${candidate.snapshot.selectedWord} · ${source} · ${formatTime(candidate.snapshot.targetTime)}`;
             button.setAttribute("aria-pressed", String(active?.id === candidate.id));
-            button.disabled = options.busy() || selecting || editing;
+            button.disabled = options.busy() || selecting || editing || performing;
             button.onclick = () => { void select(candidate); };
             list.append(button);
         }
         list.scrollTop = listScroll;
         editor.set(active, editorContext, options.busy() || selecting || editing);
-        add.textContent = active?.anki_note_id ? t("candidateRetry") : t("candidateAdd");
-        add.disabled = skip.disabled = !active || options.busy() || selecting || editing;
+        skip.disabled = !active || options.busy() || selecting || editing || performing;
     }
     async function select(candidate: MiningCandidate): Promise<void> {
         if (options.busy() || selecting || editing) return;
@@ -140,17 +141,31 @@ export function createCandidatePanel(options: {
         finally { selecting = false; render(); }
     }
     async function perform(action: (candidate: MiningCandidate) => Promise<void>): Promise<void> {
-        if (!active || selecting || editing || options.busy()) return;
-        const work = action(active);
+        if (!active || selecting || editing || performing || options.busy()) return;
+        performing = true;
         render();
-        try { await work; }
+        try { await action(active); }
         catch (error) { options.error(error); }
-        finally { render(); }
+        finally { performing = false; render(); }
     }
-    add.onclick = () => { void perform(options.acquire); };
     skip.onclick = () => { void perform(options.reject); };
     return {
         render,
+        isCandidateMode(): boolean {
+            return !panel.hidden;
+        },
+        armAutoAcquire(word: string): void {
+            clearTimeout(acquireTimer);
+            const cleanWord = word.trim();
+            if (panel.hidden || !active || !cleanWord || !options.autoAcquireEnabled()) return;
+            acquireTimer = setTimeout(() => {
+                if (panel.hidden || !active || !options.autoAcquireEnabled()) return;
+                void perform((candidate) => options.acquire(candidate, cleanWord));
+            }, 250);
+        },
+        selectionCleared(): void {
+            clearTimeout(acquireTimer);
+        },
         exportCandidateId(): number | undefined {
             if (panel.hidden || !active) return undefined;
             if (selecting || (editing && !savingContext)) throw new Error(t("candidateSaving"));

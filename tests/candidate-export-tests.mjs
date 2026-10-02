@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { installDom } from "./dom-environment.mjs";
 const dom = installDom();
 
-const ctx = Object.assign({}, ...await Promise.all(["anki-actions", "candidate-export", "candidate-model", "auto-attach-controller"].map(name => import('../dist/esm/player/' + name + '.js'))));
+const ctx = Object.assign({}, ...await Promise.all(["anki-actions", "candidate-export", "candidate-model"].map(name => import('../dist/esm/player/' + name + '.js'))));
 const {t} = await import("../dist/esm/core/translate.js");
 const requests = [];
 globalThis.fetch = async (url, options) => {
@@ -94,21 +94,6 @@ document.getElementById("imageSubtitleMode").value = "all";
 assert.doesNotThrow(() => ctx.buildImageSubtitleExport(old));
 document.getElementById("imageSubtitleMode").value = "timed";
 
-// Listener resolves the same candidate source and freezes its identity during the wait.
-requests.length = 0;
-let polls = 0;
-const listener = ctx.createAutoAttachController({
-    enabled: () => true, snapshot: ctx.resolveAnkiExportSnapshot,
-    noteIds: async () => { activeId = 2; return ++polls === 1 ? [] : [123]; },
-    verify: async () => {}, update: media.updateNote,
-    exclusive: (work) => work(), sleep: async () => {}, now: () => 0,
-    status() {}, done() {}, error(error) { throw error; },
-});
-await listener.start("word1", 999);
-assert.equal(requests[0][1].videoFileId, 1);
-assert.equal(requests[0][1].imageSubtitleMode, "timed");
-assert.equal(requests[2][1].params.note.fields.Sentence, "before word1 after");
-
 // Explicit IDs support export without an active panel (including a future batch caller).
 activeId = undefined;
 const snapshots = await Promise.all([1, 2].map(async (id) => (await exports.load(id)).snapshot));
@@ -136,6 +121,6 @@ exports.trackSave(2, Promise.reject(new Error("save failed")));
 await assert.rejects(exports.load(2), /save failed/);
 exports.trackSave(2, Promise.resolve());
 assert.equal((await exports.load(2)).snapshot.audioEnd, 27);
-console.log("Candidate export: manual, listener, independent IDs, save wait, failure and revision checks passed");
+console.log("Candidate export: manual, independent IDs, save wait, failure and revision checks passed");
 
 dom.window.close();

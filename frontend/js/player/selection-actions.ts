@@ -4,15 +4,13 @@ import { addWordToKnownBasic } from "./controllers.js";
 
 import { state } from "../core/state.js";
 
-import { captureSelectedCandidate } from "./candidate-bindings.js";
+import { candidatePanel,captureSelectedCandidate } from "./candidate-bindings.js";
 
 import { candidateCaptureHotkey } from "./candidate-model.js";
 
 import { isEditableHotkeyTarget } from "./hotkeys.js";
 
 import { getCleanSelectedText,hideAddKnownBasicButton,showAddKnownBasicButtonForSelection } from "./ui.js";
-
-import { autoAttachController } from "./auto-attach-bindings.js";
 
 import { getSubtitleIndexFromSelection } from "./selection-model.js";
 
@@ -60,7 +58,7 @@ document.addEventListener("selectionchange", () => {
     const selection = window.getSelection();
 
     if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
-        autoAttachController.selectionCleared();
+        candidatePanel.selectionCleared();
         hideAddKnownBasicButton();
         return;
     }
@@ -81,7 +79,7 @@ document.addEventListener("selectionchange", () => {
         overlay?.contains(focusElement) || getSubtitleIndexFromSelection(selection) >= 0;
 
     if (!isSubtitleSelection) {
-        autoAttachController.selectionCleared();
+        candidatePanel.selectionCleared();
         hideAddKnownBasicButton();
         return;
     }
@@ -89,6 +87,6 @@ document.addEventListener("selectionchange", () => {
 
     requestAnimationFrame(() => {
         showAddKnownBasicButtonForSelection();
-        autoAttachController.arm(getCleanSelectedText(), getSubtitleIndexFromSelection());
+        candidatePanel.armAutoAcquire(getCleanSelectedText());
     });
 });

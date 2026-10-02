@@ -39,6 +39,10 @@
       <button class="settings-tab" data-settings-tab="anki" data-i18n="ankiIntegration">
         Anki Integration
       </button>
+
+      <button class="settings-tab" data-settings-tab="candidates" data-i18n="candidateTitle">
+        Candidates
+      </button>
     </aside>
 
     <section class="settings-content">
@@ -73,11 +77,6 @@
 		  <input type="checkbox" id="includeImageSubtitle" checked>
 		  <button type="button" id="imageSubtitleMode" class="image-subtitle-mode" value="all" aria-pressed="false" data-i18n="imageSubtitleAll">All text</button>
 		</div>
-
-        <div class="settings-checkbox-row">
-          <label for="autoAttachNextCardEnabled" data-i18n="autoAttachNextCard">Automatically attach media to the next Anki card after selecting a word</label>
-          <input type="checkbox" id="autoAttachNextCardEnabled">
-        </div>
 
       </div>
 	  
@@ -216,6 +215,15 @@
 		</button>
 		<div id="ankiHighlightRefreshStatus" class="settings-help-text anki-highlight-refresh-status" aria-live="polite"></div>		
 
+      </div>
+
+      <div class="settings-page" data-settings-page="candidates">
+        <h2 data-i18n="candidateTitle">Candidates</h2>
+
+        <div class="settings-checkbox-row">
+          <label for="autoAttachNextCardEnabled" data-i18n="autoAttachNextCard">Automatically attach media to the next Anki card while reviewing candidates</label>
+          <input type="checkbox" id="autoAttachNextCardEnabled">
+        </div>
       </div>
 
       <div class="settings-footer">

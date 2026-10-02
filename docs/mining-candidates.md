@@ -2,12 +2,13 @@
 
 1. Select a word in the subtitles. Click Save candidate or press Alt+Q.
 2. Open Candidates in the right panel. Select an item to seek to its saved frame and read its saved context.
-3. Click Add through Yomitan. Bunmine reads the initial Anki note IDs, then copies the word.
-4. Create one note through Yomitan. Bunmine attaches the saved context, audio, and image.
+3. Select the word in the saved context with Yomitan. Bunmine reads the initial Anki note IDs.
+4. Create one note through Yomitan. Bunmine attaches the saved context, audio, and image when automatic attachment is enabled.
 5. Click Skip to reject the candidate and open the next pending item.
 
 Capture does not need Anki. Hover and selection alone do not save a candidate.
-Review needs AnkiConnect and Yomitan. Use clipboard search in Yomitan, or paste the copied word into its search page.
+Automatic attachment only listens for new Anki notes while the Candidates panel is open.
+Review needs AnkiConnect and Yomitan.
 
 ## Storage
 
@@ -45,10 +46,9 @@ If the app closes before it saves the note ID, the new note can remain unlinked.
 Skipping a candidate does not delete its Anki note.
 
 Manual Update Card retains its existing behavior.
-Enable automatic media attachment in Settings to wait for a new Anki note after subtitle selection.
-This mode captures the current context without adding a candidate. The new note receives that saved image, audio, and text.
-Click Cancel to stop the wait. Saving a candidate also cancels the automatic wait.
-Direct attachment and candidate review share an exclusive lock in browsers with Web Locks support, including Chrome.
+Enable automatic media attachment in the Candidates settings.
+Selecting a word outside candidate review never starts the Anki listener.
+Candidate review uses an exclusive lock in browsers with Web Locks support, including Chrome.
 The sidebar title, tabs, actions, and messages follow the selected interface language: English, Russian, or Japanese.
 
 ## Checks

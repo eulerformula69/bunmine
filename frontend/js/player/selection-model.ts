@@ -16,8 +16,8 @@ export function getSubtitleIndexFromSelection(selection = window.getSelection())
         ? focusNode.parentElement
         : focusNode as Element | null;
 
-    const sidebarSubtitle = anchorElement?.closest?.(".subtitle[data-index]")
-        || focusElement?.closest?.(".subtitle[data-index]");
+    const sidebarSubtitle = anchorElement?.closest?.(".subtitle[data-index], .candidate-cue[data-index]")
+        || focusElement?.closest?.(".subtitle[data-index], .candidate-cue[data-index]");
 
     if (sidebarSubtitle) {
         const idx = Number((sidebarSubtitle as HTMLElement).dataset.index);

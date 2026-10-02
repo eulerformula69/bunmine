@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { installDom } from "./dom-environment.mjs";
 const dom = installDom();
-const context = Object.assign({}, ...await Promise.all(["candidate-context-model", "candidate-context-editor"].map(name => import('../dist/esm/player/' + name + '.js'))));
+const context = Object.assign({}, ...await Promise.all(["candidate-context-model", "candidate-context-editor", "selection-model"].map(name => import('../dist/esm/player/' + name + '.js'))));
 let nextFrame;
 globalThis.requestAnimationFrame = callback => {nextFrame = callback; return 1;};
 globalThis.cancelAnimationFrame = () => {};
@@ -62,6 +62,13 @@ editor = context.createCandidateContextEditor({
 });
 editor.set(value, captured, false);
 const viewport = editor.element.children[1];
+const selectedCueText = viewport.children[1].children[1];
+assert.equal(context.getSubtitleIndexFromSelection({
+    rangeCount: 1,
+    isCollapsed: false,
+    anchorNode: selectedCueText.firstChild,
+    focusNode: selectedCueText.firstChild,
+}), 1);
 // Legacy context arrives after selection; focus waits until the hidden editor has layout.
 editor.set({ ...value, id: 2 }, null, false);
 editor.set({ ...value, id: 2 }, captured, false);
