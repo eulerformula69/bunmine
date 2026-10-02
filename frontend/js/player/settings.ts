@@ -15,6 +15,17 @@ import { candidatePanel } from "./candidate-bindings.js";
 
 import { updateSubtitleSearchPanelLanguage } from "../subtitles/sidebar-actions.js";
 
+import {
+    getLegacySubtitleDisplaySettings,
+    initSubtitleDisplayControls,
+    updateSubtitleDisplayControls
+} from "./subtitle-display-controls.js";
+
+import {
+    DEFAULT_SUBTITLE_COMPREHENSION_MINIMUM,
+    normalizeSubtitleComprehensionMinimum
+} from "../subtitles/comprehension-level.js";
+
 export function enableWheelOnSettings(): void {
     const settingsInputs = document.querySelectorAll<HTMLInputElement>("#settingsModal input[type=\"number\"], #settingsModal input[type=\"range\"]");
     settingsInputs.forEach((input) => {
@@ -55,6 +66,7 @@ export function loadSettings(): void {
     if (!saved) {
         initLangSelector();
         applyLanguage(state.currentLang);
+        updateSubtitleDisplayControls();
         return;
     }
 
@@ -122,19 +134,19 @@ export function loadSettings(): void {
 		ankiHighlightAutoRefreshInterval.value = settings.ankiHighlightAutoRefreshInterval || settings.ankiHighlightAutoRefresh || "daily";
 	}
 
-	const comprehensionVisibilityMapping: Record<string, boolean | undefined> = {
-		showComprehensionI0: settings.showComprehensionI0,
-		showComprehensionI1: settings.showComprehensionI1,
-		showComprehensionI2: settings.showComprehensionI2,
-		showComprehensionI3: settings.showComprehensionI3,
-		showComprehensionI4: settings.showComprehensionI4,
-		showComprehensionI5Plus: settings.showComprehensionI5Plus
-	};
-
-	for (const [id, value] of Object.entries(comprehensionVisibilityMapping)) {
-		const el = getSettingsInput(id);
-		if (el) el.checked = value !== false;
+	const legacySubtitleDisplay = getLegacySubtitleDisplaySettings(settings);
+	const subtitlesVisible = getSettingsInput("subtitlesVisible");
+	if (subtitlesVisible) {
+		subtitlesVisible.checked = settings.subtitlesVisible ?? legacySubtitleDisplay?.visible ?? true;
 	}
+	const subtitleComprehensionMinimum = getSettingsInput("subtitleComprehensionMinimum");
+	if (subtitleComprehensionMinimum) {
+		subtitleComprehensionMinimum.value = normalizeSubtitleComprehensionMinimum(
+			settings.subtitleComprehensionMinimum,
+			legacySubtitleDisplay?.minimum ?? DEFAULT_SUBTITLE_COMPREHENSION_MINIMUM
+		);
+	}
+	updateSubtitleDisplayControls();
 
     const mapping: Record<string, string | undefined> = {
         fontSizeRange: settings.fontSize,
@@ -269,12 +281,8 @@ export function initSettingsAutosave(): void {
         "highlightWordField",
         "ankiSentenceFields",
         "ankiHighlightAutoRefreshInterval",
-        "showComprehensionI0",
-        "showComprehensionI1",
-        "showComprehensionI2",
-        "showComprehensionI3",
-        "showComprehensionI4",
-        "showComprehensionI5Plus",
+        "subtitlesVisible",
+        "subtitleComprehensionMinimum",
         "autoAttachNextCardEnabled",
         "interfaceLangSelect"
     ].forEach((id) => {
@@ -303,6 +311,8 @@ window.addEventListener("load", loadSettings);
 window.addEventListener("load", initSettingsAutosave);
 
 enableWheelOnSettings();
+
+initSubtitleDisplayControls();
 
 initLangSelector();
 

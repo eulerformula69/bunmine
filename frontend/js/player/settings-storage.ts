@@ -8,6 +8,7 @@ import { saveSettingsLocal } from "./settings.js";
 import { showToast } from "./ui.js";
 
 import { apiJson } from "../core/api.js";
+import type { SubtitleComprehensionLevel } from "../subtitles/comprehension-level.js";
 
 export interface PlayerSettings {
     language?: string;
@@ -39,6 +40,9 @@ export interface PlayerSettings {
 	ankiSentenceFields?: string;
 	ankiHighlightAutoRefresh?: string;
 	ankiHighlightAutoRefreshInterval?: string;
+	subtitlesVisible?: boolean;
+	subtitleComprehensionMinimum?: SubtitleComprehensionLevel;
+	// Legacy fields stay here only so old saved settings can migrate.
 	showComprehensionI0?: boolean;
 	showComprehensionI1?: boolean;
 	showComprehensionI2?: boolean;
@@ -90,12 +94,8 @@ export function collectSettings(): PlayerSettings {
 		highlightWordField: getSettingsInput("highlightWordField")?.value || "Word",
 		ankiSentenceFields: getSettingsInput("ankiSentenceFields")?.value || "Sentence, Example, ExpressionSentence, Context",
 		ankiHighlightAutoRefreshInterval: getSettingsSelect("ankiHighlightAutoRefreshInterval")?.value || "off",
-		showComprehensionI0: getSettingsInput("showComprehensionI0")?.checked ?? true,
-		showComprehensionI1: getSettingsInput("showComprehensionI1")?.checked ?? true,
-		showComprehensionI2: getSettingsInput("showComprehensionI2")?.checked ?? true,
-		showComprehensionI3: getSettingsInput("showComprehensionI3")?.checked ?? true,
-		showComprehensionI4: getSettingsInput("showComprehensionI4")?.checked ?? true,
-		showComprehensionI5Plus: getSettingsInput("showComprehensionI5Plus")?.checked ?? true,
+		subtitlesVisible: getSettingsInput("subtitlesVisible")?.checked ?? true,
+		subtitleComprehensionMinimum: getSettingsInput("subtitleComprehensionMinimum")?.value as SubtitleComprehensionLevel,
         autoAttachNextCardEnabled: getSettingsInput("autoAttachNextCardEnabled")?.checked ?? false
 
     };

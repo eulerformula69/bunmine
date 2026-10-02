@@ -1,13 +1,10 @@
 export type SubtitleComprehensionLevel = "i+0" | "i+1" | "i+2" | "i+3" | "i+4" | "i+5+";
 
-export interface SubtitleComprehensionVisibilitySettings {
-    "i+0": boolean;
-    "i+1": boolean;
-    "i+2": boolean;
-    "i+3": boolean;
-    "i+4": boolean;
-    "i+5+": boolean;
-}
+export const SUBTITLE_COMPREHENSION_LEVELS: readonly SubtitleComprehensionLevel[] = [
+    "i+0", "i+1", "i+2", "i+3", "i+4", "i+5+"
+];
+
+export const DEFAULT_SUBTITLE_COMPREHENSION_MINIMUM: SubtitleComprehensionLevel = "i+1";
 
 export interface SubtitleComprehensionHighlighter {
     getUnknownKanjiTokenCount?: (text: string) => number;
@@ -36,17 +33,21 @@ export function getSubtitleComprehensionLevel(
     return getSubtitleComprehensionLevelFromUnknownCount(unknownCount);
 }
 
-export function getSubtitleComprehensionVisibilitySettings(): SubtitleComprehensionVisibilitySettings {
-    return {
-        "i+0": (document.getElementById("showComprehensionI0") as HTMLInputElement | null)?.checked !== false,
-        "i+1": (document.getElementById("showComprehensionI1") as HTMLInputElement | null)?.checked !== false,
-        "i+2": (document.getElementById("showComprehensionI2") as HTMLInputElement | null)?.checked !== false,
-        "i+3": (document.getElementById("showComprehensionI3") as HTMLInputElement | null)?.checked !== false,
-        "i+4": (document.getElementById("showComprehensionI4") as HTMLInputElement | null)?.checked !== false,
-        "i+5+": (document.getElementById("showComprehensionI5Plus") as HTMLInputElement | null)?.checked !== false
-    };
+export function normalizeSubtitleComprehensionMinimum(
+    value: unknown,
+    fallback: SubtitleComprehensionLevel = DEFAULT_SUBTITLE_COMPREHENSION_MINIMUM
+): SubtitleComprehensionLevel {
+    return SUBTITLE_COMPREHENSION_LEVELS.includes(value as SubtitleComprehensionLevel)
+        ? value as SubtitleComprehensionLevel
+        : fallback;
+}
+
+export function getSubtitleComprehensionMinimum(): SubtitleComprehensionLevel {
+    const input = document.getElementById("subtitleComprehensionMinimum") as HTMLInputElement | null;
+    return normalizeSubtitleComprehensionMinimum(input?.value);
 }
 
 export function shouldShowSubtitleForComprehensionLevel(level: SubtitleComprehensionLevel): boolean {
-    return getSubtitleComprehensionVisibilitySettings()[level] !== false;
+    const thresholdIndex = SUBTITLE_COMPREHENSION_LEVELS.indexOf(getSubtitleComprehensionMinimum());
+    return SUBTITLE_COMPREHENSION_LEVELS.indexOf(level) >= thresholdIndex;
 }

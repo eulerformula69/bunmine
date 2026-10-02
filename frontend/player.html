@@ -136,39 +136,18 @@
   </label>
 </div>
 
-<label>Comprehension levels:</label>
-
-<div class="settings-row comprehension-settings-row">
-  <div class="settings-checkbox-row">
-    <label for="showComprehensionI0">show i+0</label>
-    <input type="checkbox" id="showComprehensionI0" checked>
+<div class="comprehension-threshold-setting">
+  <label id="subtitleComprehensionMinimumLabel" data-i18n="subtitleThreshold">Show from level:</label>
+  <div id="subtitleComprehensionMinimumControl" class="comprehension-threshold-control" role="group" aria-labelledby="subtitleComprehensionMinimumLabel">
+    <button type="button" data-comprehension-minimum="i+0">i+0</button>
+    <button type="button" data-comprehension-minimum="i+1">i+1</button>
+    <button type="button" data-comprehension-minimum="i+2">i+2</button>
+    <button type="button" data-comprehension-minimum="i+3">i+3</button>
+    <button type="button" data-comprehension-minimum="i+4">i+4</button>
+    <button type="button" data-comprehension-minimum="i+5+">i+5+</button>
   </div>
-  <div class="settings-checkbox-row">
-    <label for="showComprehensionI1">show i+1</label>
-    <input type="checkbox" id="showComprehensionI1" checked>
-  </div>
-</div>
-
-<div class="settings-row comprehension-settings-row">
-  <div class="settings-checkbox-row">
-    <label for="showComprehensionI2">show i+2</label>
-    <input type="checkbox" id="showComprehensionI2" checked>
-  </div>
-  <div class="settings-checkbox-row">
-    <label for="showComprehensionI3">show i+3</label>
-    <input type="checkbox" id="showComprehensionI3" checked>
-  </div>
-</div>
-
-<div class="settings-row comprehension-settings-row">
-  <div class="settings-checkbox-row">
-    <label for="showComprehensionI4">show i+4</label>
-    <input type="checkbox" id="showComprehensionI4" checked>
-  </div>
-  <div class="settings-checkbox-row">
-    <label for="showComprehensionI5Plus">show i+5+</label>
-    <input type="checkbox" id="showComprehensionI5Plus" checked>
-  </div>
+  <input type="hidden" id="subtitleComprehensionMinimum" value="i+1">
+  <p class="settings-help-text" data-i18n="subtitleThresholdHelp">Shows this level and all harder subtitles.</p>
 </div>
 		
       </div>
@@ -294,7 +273,15 @@
 
 </div>
 
-    <div style="display: flex; gap: 5px; align-items: center;">
+	<div style="display: flex; gap: 5px; align-items: center;">
+	<div id="subtitleVisibilityControl" class="subtitle-visibility-control" role="group" aria-labelledby="subtitleVisibilityLabel">
+	  <span id="subtitleVisibilityLabel" class="subtitle-visibility-label" data-i18n="subtitleDisplay">Subtitles</span>
+	  <div class="subtitle-visibility-options">
+	    <button type="button" data-subtitle-visible="false" data-i18n="subtitlesOff">Off</button>
+	    <button type="button" data-subtitle-visible="true" data-i18n="subtitlesOn">On</button>
+	  </div>
+	</div>
+	<input type="checkbox" id="subtitlesVisible" class="hidden-input" checked>
 	<button id="fullscreenBtn" type="button" class="icon-btn" title="Fullscreen" aria-label="Fullscreen">
 	  ⛶
 	</button>

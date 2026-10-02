@@ -76,12 +76,7 @@ fontSizeRange.addEventListener("input", (e) => {
     "highlightColorMature",
     "highlightColorSuspended",
     "highlightColorUnknown",
-    "showComprehensionI0",
-    "showComprehensionI1",
-    "showComprehensionI2",
-    "showComprehensionI3",
-    "showComprehensionI4",
-    "showComprehensionI5Plus"
+    "subtitleComprehensionMinimum"
 ].forEach((id) => {
     document.getElementById(id)?.addEventListener("input", () => {
         renderSubtitleOverlay({
