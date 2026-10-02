@@ -6,7 +6,7 @@ import { fetchNoteIdsByQuery,fetchNotesInfo } from "../anki/notes.js";
 import { stripHtml } from "../anki/note-fields.js";
 
 import { t } from "../core/translate.js";
-import { getCleanSelectedText,showActionToast,showToast } from "./ui.js";
+import { getCleanSelectedText,showToast } from "./ui.js";
 
 import { createCandidateExportService } from "./candidate-export.js";
 
@@ -74,7 +74,11 @@ function showCandidateReviewStatus(message: string): void {
         showToast(message, "success");
         return;
     }
-    candidateReviewToast = showActionToast(message);
+    if (message === t("candidateSkipped")) {
+        showToast(message);
+        return;
+    }
+    candidateReviewToast = showToast(message, "info", 0);
 }
 
 export const candidateReview = createCandidateReviewController({

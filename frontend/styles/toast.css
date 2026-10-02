@@ -15,12 +15,15 @@
 
 .mp-toast {
   width: fit-content;
+  max-width: calc(100vw - 32px);
+  box-sizing: border-box;
   padding: 12px 16px;
   border-radius: 10px;
   color: #ffffff;
   font-size: 14px;
   font-weight: 600;
   line-height: 1.35;
+  text-align: center;
   background: var(--toast-background, #333333);
   box-shadow: var(--toast-shadow, 0 8px 28px rgba(0, 0, 0, 0.45));
   opacity: 0;

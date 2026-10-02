@@ -5,7 +5,7 @@ export interface ToastActionButton {
   onClick?: () => void | Promise<void>;
 }
 
-export function showToast(message: string, type: ToastType = "info", timeout = 3000): void {
+export function showToast(message: string, type: ToastType = "info", timeout = 3000): HTMLDivElement {
   let container = document.getElementById("mpToastContainer");
 
   if (!container) {
@@ -22,13 +22,17 @@ export function showToast(message: string, type: ToastType = "info", timeout = 3
 
   container.appendChild(toast);
 
-  setTimeout(() => {
-    toast.classList.add("mp-toast-removing");
-
+  if (timeout > 0) {
     setTimeout(() => {
-      toast.remove();
-    }, 180);
-  }, timeout);
+      toast.classList.add("mp-toast-removing");
+
+      setTimeout(() => {
+        toast.remove();
+      }, 180);
+    }, timeout);
+  }
+
+  return toast;
 }
 
 export function showActionToast(message: string, actions: ToastActionButton[] = [], type: ToastType = "info", timeout = 0): HTMLDivElement {
