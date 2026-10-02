@@ -147,6 +147,10 @@ body.subtitles-hidden #comprehensionLevelBadge {
 /* Bottom controls */
 #controls {
   --control-height: 30px;
+  --control-surface: rgba(20, 16, 23, 0.76);
+  --control-surface-hover: rgba(55, 45, 62, 0.9);
+  --control-border: rgba(255, 255, 255, 0.14);
+  --control-text: rgba(255, 255, 255, 0.88);
 
   position: absolute;
   bottom: 0;
@@ -166,16 +170,30 @@ body.subtitles-hidden #comprehensionLevelBadge {
   align-items: center;
 }
 
+.controls-main-row {
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.control-cluster {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
 #controls button,
 #controls select {
   height: var(--control-height);
   min-height: var(--control-height);
   box-sizing: border-box;
-  background: #333;
-  border: 1px solid #444;
-  color: white;
-  border-radius: 4px;
+  background: var(--control-surface);
+  border: 1px solid var(--control-border);
+  color: var(--control-text);
+  border-radius: 7px;
   font-size: 12px;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.24);
+  backdrop-filter: blur(12px) saturate(135%);
+  transition: background-color 120ms ease-out, border-color 120ms ease-out, color 120ms ease-out, transform 80ms ease-out;
 }
 
 #controls button {
@@ -191,7 +209,13 @@ body.subtitles-hidden #comprehensionLevelBadge {
 
 #controls button:hover,
 #controls select:hover {
-  background: #444 !important;
+  background: var(--control-surface-hover) !important;
+  border-color: rgba(255, 255, 255, 0.22);
+  color: #fff;
+}
+
+#controls button:active {
+  transform: scale(0.94);
 }
 
 #playPause,
@@ -232,25 +256,6 @@ body.subtitles-hidden #comprehensionLevelBadge {
   font-size: 12px;
 }
 
-#ankiAllBtn {
-  padding: 0 12px;
-}
-
-.primary-action {
-  background: #2d0659 !important;
-  border-color: #a97ce6 !important;
-  color: #d7b5ff !important;
-  font-weight: bold;
-}
-
-.mining-row {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
 .subtitle-visibility-control {
   display: inline-flex;
   align-items: center;
@@ -258,10 +263,11 @@ body.subtitles-hidden #comprehensionLevelBadge {
   height: var(--control-height);
   padding: 0 3px 0 9px;
   box-sizing: border-box;
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  border: 1px solid var(--control-border);
   border-radius: 7px;
-  background: rgba(20, 16, 23, 0.76);
+  background: var(--control-surface);
   backdrop-filter: blur(12px) saturate(135%);
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.24);
 }
 
 .subtitle-visibility-label {
@@ -289,6 +295,8 @@ body.subtitles-hidden #comprehensionLevelBadge {
   border-radius: 4px;
   background: transparent;
   color: rgba(255, 255, 255, 0.62);
+  box-shadow: none;
+  backdrop-filter: none;
   transition: background-color 120ms ease-out, color 120ms ease-out, transform 80ms ease-out;
 }
 
@@ -811,6 +819,7 @@ body[data-subtitle-depth-drag-kind="forward"]
 }
 
 @media (prefers-reduced-motion: reduce) {
+  #controls button,
   #controls .subtitle-visibility-options button,
   .comprehension-threshold-control button {
     transition: none;
@@ -1100,6 +1109,13 @@ body[data-subtitle-depth-drag-kind="forward"]
     background: #120c16;
     backdrop-filter: none;
   }
+
+  #controls button,
+  #controls select,
+  .subtitle-visibility-control {
+    background: #18131b;
+    backdrop-filter: none;
+  }
 }
 
 @media (prefers-contrast: more) {
@@ -1110,6 +1126,12 @@ body[data-subtitle-depth-drag-kind="forward"]
 
   .subtitle.active::before {
     background: white;
+  }
+
+  #controls button,
+  #controls select,
+  .subtitle-visibility-control {
+    border-color: rgba(255, 255, 255, 0.62);
   }
 }
 

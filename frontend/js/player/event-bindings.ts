@@ -1,8 +1,7 @@
 import { logger } from "../core/logger.js";
-import { ankiAllBtn,deleteVideoBtn,fontSizeRange,fullscreenBtn,overlay,settingsBtn,settingsModal,subtitleOverlay,video,videoContainer,volume } from "../core/dom.js";
-import { reportError } from "./toast.js";
+import { deleteVideoBtn,fontSizeRange,fullscreenBtn,overlay,settingsBtn,settingsModal,subtitleOverlay,video,videoContainer,volume } from "../core/dom.js";
 
-import { prefetchRuntimeStatusesForAllSubtitles,updateCurrentOrSelectedAnkiCard } from "./controllers.js";
+import { prefetchRuntimeStatusesForAllSubtitles } from "./controllers.js";
 
 import { toggleFullscreenMode,updateFullscreenButtonText } from "./ui.js";
 
@@ -21,14 +20,6 @@ import { renderSubtitles } from "../subtitles/sidebar-render.js";
 import { clearRuntimeWordStatuses } from "../highlighter/word-status-store.js";
 
 export function bindPlayerEvents() {
-ankiAllBtn.onclick = async () => {
-    try {
-        await updateCurrentOrSelectedAnkiCard();
-	} catch (err) {
-        reportError(err, {key: "toastError", log: "Update error:"});
-	}
-};
-
 deleteVideoBtn.onclick = async () => {
     if (!state.currentVideoFile) return;
     await fetch(buildApiUrl(`/delete-video?filename=${encodeURIComponent(state.currentVideoFile)}`), {

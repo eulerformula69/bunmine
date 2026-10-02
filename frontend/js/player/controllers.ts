@@ -5,7 +5,7 @@ import { getJapaneseTokenizer,tokenizeJapaneseText } from "../japanese/japanese-
 import { apiJson } from "../core/api.js";
 
 import { t } from "../core/translate.js";
-import { hideAddKnownBasicButton,showActionToast,showToast } from "./ui.js";
+import { hideAddKnownBasicButton,showToast } from "./ui.js";
 
 import { addRuntimeKnownBasicWord,ankiRuntimeWordStatusMap } from "../highlighter/word-status-store.js";
 
@@ -23,11 +23,9 @@ import { state } from "../core/state.js";
 
 import { getHighlightWordFieldNames,loadHighlightWordIndexes,refreshKnownAnkiWordFromNote } from "../highlighter/word-index-sync.js";
 
-import { getSubtitleContextSelection,isSubtitleContextDepthDefault,resetSubtitleContextDepths } from "../subtitles/context-range.js";
+import { getSubtitleContextSelection } from "../subtitles/context-range.js";
 
 import { createAnkiMediaController } from "./anki-actions.js";
-
-import { resolveAnkiExportSnapshot } from "./candidate-export.js";
 
 import { candidateExports } from "./candidate-bindings.js";
 
@@ -71,33 +69,11 @@ export async function prefetchRuntimeStatusesForAllSubtitles(options = {}) {
     await runtimePrefetchController.prefetch(options);
 }
 
-export function maybePromptSubtitleDepthReset() {
-    if (isSubtitleContextDepthDefault()) return;
-
-    showActionToast(
-        t("toastResetSubtitleDepthQuestion"),
-        [
-            {
-                label: t("toastResetSubtitleDepthYes"),
-                onClick: () => {
-                    resetSubtitleContextDepths();
-                }
-            },
-            {
-                label: t("toastResetSubtitleDepthNo")
-            }
-        ],
-        "info",
-        0
-    );
-}
-
 export function getActiveSubtitleIndex() {
     return getPrimarySubtitleIndex();
 }
 
 export const ankiMediaController = createAnkiMediaController({
-    resolveExportSnapshot: () => resolveAnkiExportSnapshot(),
     validateExportSnapshot: (snapshot) => candidateExports.validate(snapshot),
     translate: t,
     getVideoPayload: getCurrentVideoPayload,
@@ -107,7 +83,6 @@ export const ankiMediaController = createAnkiMediaController({
     getSubtitleStart: (index) => state.subtitles[index].start,
     getSubtitleContext: getSubtitleContextSelection,
     getGlobalSubtitleDelay: () => state.globalSubDelay,
-    maybePromptSubtitleDepthReset,
     resetRuntimeHighlightPrefetch: () => {
         state.runtimePrefetchWindowStart = -1;
         state.runtimePrefetchWindowEnd = -1;
@@ -119,12 +94,9 @@ export const ankiMediaController = createAnkiMediaController({
     ensureSubtitleStatuses: ensureStatusesForSubtitleText,
     prefetchSubtitleStatuses: () => {
         prefetchRuntimeStatusesForAllSubtitles({ silent: true });
-    },
-    showToast
+    }
 });
 
 export const buildCurrentAnkiMediaSnapshot = ankiMediaController.buildSnapshot;
 
 export const updateAnkiNoteWithSnapshot = ankiMediaController.updateNote;
-
-export const updateCurrentOrSelectedAnkiCard = ankiMediaController.updateCurrentOrSelected;

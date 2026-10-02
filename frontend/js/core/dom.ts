@@ -20,7 +20,6 @@ export interface PlayerDom {
     timeLabel: HTMLElement;
     videoContainer: HTMLElement;
     controls: HTMLElement;
-    ankiAllBtn: HTMLButtonElement;
     fontSizeRange: HTMLInputElement;
     subtitleOverlay: HTMLElement;
     resizer: HTMLElement;
@@ -49,7 +48,6 @@ export const dom: PlayerDom = {
     timeLabel: requiredElement(document.getElementById("time")),
     videoContainer: requiredElement(document.getElementById("videoContainer")),
     controls: requiredElement(document.getElementById("controls")),
-    ankiAllBtn: requiredElement(document.getElementById("ankiAllBtn") as HTMLButtonElement | null),
     fontSizeRange: requiredElement(document.getElementById("fontSizeRange") as HTMLInputElement | null),
     subtitleOverlay: requiredElement(document.getElementById("subtitleOverlay")),
     resizer: requiredElement(document.getElementById("resizer")),
@@ -78,7 +76,6 @@ export const {
     timeLabel,
     videoContainer,
     controls,
-    ankiAllBtn,
     fontSizeRange,
     subtitleOverlay,
     resizer,

@@ -3,19 +3,58 @@
     gap: 8px;
     padding: 10px;
 }
+.candidate-tabs {
+    gap: 3px;
+    margin: 10px;
+    padding: 3px;
+    border: 1px solid rgba(255, 255, 255, 0.13);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.055);
+}
 .candidate-tabs button, .candidate-actions button { flex: 1; }
-.candidate-tabs button, #candidatePanel button, #candidateCount {
+.candidate-tabs button, #candidatePanel button {
     color: #eee;
-    background: #252525;
-    border: 1px solid #555;
-    border-radius: 6px;
+    background: rgba(37, 31, 41, 0.78);
+    border: 1px solid rgba(255, 255, 255, 0.13);
+    border-radius: 7px;
     padding: 8px 10px;
+    transition: background-color 120ms ease-out, border-color 120ms ease-out, transform 80ms ease-out;
+}
+.candidate-tabs button {
+    border-color: transparent;
+    background: transparent;
+}
+.candidate-tabs button:hover, #candidatePanel button:hover {
+    background: rgba(78, 62, 85, 0.72);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+.candidate-tabs button:active, #candidatePanel button:active {
+    transform: scale(0.97);
 }
 #candidatePanel button:disabled { opacity: 0.5; cursor: default; }
-#candidateCount { font-size: 12px; padding: 4px 8px; }
-.candidate-tabs [aria-selected="true"], .candidate-item[aria-pressed="true"] {
+#candidateCount {
+    padding: 0 9px;
+    border: 1px solid var(--control-border);
+    border-radius: 7px;
+    background: var(--control-surface);
+    color: var(--control-text);
+    font-size: 12px;
+}
+.candidate-tabs button[aria-selected="true"],
+.candidate-tabs button[aria-selected="true"]:hover {
+    background: #7430a8;
+    border-color: transparent;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.3);
+}
+.candidate-item[aria-pressed="true"] {
     outline: 2px solid #a544c0;
     outline-offset: -2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .candidate-tabs button, #candidatePanel button {
+        transition: none;
+    }
 }
 #sidebar.review-candidates #subtitleList,
 #sidebar.review-candidates #subtitleSearchPanel { display: none; }

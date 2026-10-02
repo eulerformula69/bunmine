@@ -1,6 +1,6 @@
 import { logger } from "../core/logger.js";
 import { getApiErrorMessage } from "../core/api.js";
-import { fetchDeckNoteIds,fetchNotesInfo } from "../anki/notes.js";
+import { fetchNotesInfo } from "../anki/notes.js";
 
 import { AnkiMediaSnapshot,buildImageSubtitleExport } from "../anki/media-snapshot.js";
 
@@ -18,8 +18,6 @@ import { ankiRequest } from "../anki/anki-connect-client.js";
 
 export interface AnkiMediaControllerOptions {
     fetchNotesInfo?: typeof fetchNotesInfo;
-    fetchDeckNoteIds?: typeof fetchDeckNoteIds;
-    resolveExportSnapshot?(): Promise<AnkiMediaSnapshot>;
     validateExportSnapshot?(snapshot: AnkiMediaSnapshot): Promise<void>;
     translate(key: string, params?: Record<string, unknown>): string;
     getVideoPayload(): CurrentVideoPayload | null;
@@ -29,19 +27,16 @@ export interface AnkiMediaControllerOptions {
     getSubtitleStart(index: number): number;
     getSubtitleContext(index: number): { startTime: number; endTime: number; text: string; items?: CandidateCue[] };
     getGlobalSubtitleDelay(): number;
-    maybePromptSubtitleDepthReset(): void;
     resetRuntimeHighlightPrefetch(): void;
     refreshKnownWord(payload: Record<string, unknown>): Promise<unknown> | undefined;
     getHighlightWordFields(): string[] | undefined;
     ensureSubtitleStatuses(text: string): Promise<unknown>;
     prefetchSubtitleStatuses(): void;
-    showToast(message: string, type?: string, duration?: number): unknown;
 }
 
 export interface AnkiMediaController {
     buildSnapshot(options?: { subtitleIndex?: number | null; validateAnki?: boolean }): AnkiMediaSnapshot;
     updateNote(targetNoteId: number, snapshot: AnkiMediaSnapshot): Promise<{ targetWord: string }>;
-    updateCurrentOrSelected(): Promise<void>;
 }
 
 export function createAnkiMediaController(options: AnkiMediaControllerOptions): AnkiMediaController {
@@ -212,18 +207,5 @@ export function createAnkiMediaController(options: AnkiMediaControllerOptions): 
         return { targetWord };
     }
 
-    async function updateCurrentOrSelected(): Promise<void> {
-        const snapshot = options.resolveExportSnapshot ? await options.resolveExportSnapshot() : buildSnapshot();
-        const noteIds = await (options.fetchDeckNoteIds || fetchDeckNoteIds)(snapshot.ankiUrl, snapshot.deckName);
-        if (!noteIds.length) {
-            throw new Error(`Error: There are no cards in "${snapshot.deckName}"!`);
-        }
-
-        const targetNoteId = noteIds[noteIds.length - 1];
-        await updateNote(targetNoteId, snapshot);
-        options.showToast(options.translate("toastCardUpdated"), "success");
-        options.maybePromptSubtitleDepthReset();
-    }
-
-    return { buildSnapshot, updateNote, updateCurrentOrSelected };
+    return { buildSnapshot, updateNote };
 }

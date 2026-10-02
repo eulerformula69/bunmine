@@ -5,10 +5,6 @@ export interface AnkiNoteInfo {
     fields?: Record<string, { value?: unknown }>;
 }
 
-export function fetchDeckNoteIds(ankiUrl: string, deckName: string): Promise<number[]> {
-    return fetchNoteIdsByQuery(ankiUrl, `deck:"${deckName}"`);
-}
-
 export async function fetchNoteIdsByQuery(
     ankiUrl: string, query: string, label = "AnkiConnect findNotes"
 ): Promise<number[]> {

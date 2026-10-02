@@ -27,15 +27,10 @@ const exports = ctx.createCandidateExportService({
     source: async (id) => structuredClone(stored.get(id)),
     configure() {},
 });
-let activeId = 1;
-ctx.resolveAnkiExportSnapshot = async () => (await exports.load(activeId)).snapshot;
-ctx.candidatePanel = { exportCandidateId: () => activeId };
-ctx.fetchDeckNoteIds = async () => [123];
 ctx.fetchNotesInfo = async () => [{ fields: {} }];
 const media = ctx.createAnkiMediaController({
     translate: String,
-    fetchNotesInfo: ctx.fetchNotesInfo, fetchDeckNoteIds: ctx.fetchDeckNoteIds,
-    resolveExportSnapshot: () => ctx.resolveAnkiExportSnapshot(),
+    fetchNotesInfo: ctx.fetchNotesInfo,
     validateExportSnapshot: exports.validate,
     getVideoPayload: () => ({ videoFileId: 99 }), getVideoCurrentTime: () => 999,
     getValidatedVolume: () => 1, getActiveSubtitleIndex: () => 0,
@@ -44,12 +39,12 @@ const media = ctx.createAnkiMediaController({
     getGlobalSubtitleDelay: () => 0,
     resetRuntimeHighlightPrefetch() {}, refreshKnownWord: async () => {},
     getHighlightWordFields: () => [], ensureSubtitleStatuses: async () => {},
-    prefetchSubtitleStatuses() {}, showToast() {}, maybePromptSubtitleDepthReset() {},
+    prefetchSubtitleStatuses() {},
 });
 ctx.ankiMediaController = media;
 
-// Manual update ignores the current video and exports all selected candidate cues.
-await media.updateCurrentOrSelected();
+// Candidate export ignores the current video and exports all saved candidate cues.
+await media.updateNote(123, (await exports.load(1)).snapshot);
 assert.equal(requests[0][1].start, 10);
 assert.equal(requests[0][1].end, 17);
 assert.equal(requests[0][1].text, "before word1 after");
@@ -69,7 +64,7 @@ original.context = { start: 0, end: 2, anchor: 1, cues: [
 ] };
 document.getElementById("imageSubtitleMode").value = "timed";
 requests.length = 0;
-await media.updateCurrentOrSelected();
+await media.updateNote(123, (await exports.load(1)).snapshot);
 assert.equal(requests[0][1].imageSubtitleMode, "timed");
 assert.deepEqual(requests[0][1].imageSubtitleCues, [
     { start: 10, end: 12, text: "before" },
@@ -94,7 +89,6 @@ assert.doesNotThrow(() => ctx.buildImageSubtitleExport(old));
 document.getElementById("imageSubtitleMode").value = "timed";
 
 // Explicit IDs support export without an active panel (including a future batch caller).
-activeId = undefined;
 const snapshots = await Promise.all([1, 2].map(async (id) => (await exports.load(id)).snapshot));
 assert.deepEqual(snapshots.map((s) => s.audioEnd), [17, 27]);
 snapshots[0].context.cues[0].text = "mutation";
