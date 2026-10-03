@@ -6,7 +6,7 @@ import { fetchNoteIdsByQuery,fetchNotesInfo } from "../anki/notes.js";
 import { stripHtml } from "../anki/note-fields.js";
 
 import { t } from "../core/translate.js";
-import { getCleanSelectedText,showToast } from "./ui.js";
+import { getCleanSelectedText,showActionToast,showToast } from "./ui.js";
 
 import { createCandidateExportService } from "./candidate-export.js";
 
@@ -76,6 +76,17 @@ function showCandidateReviewStatus(message: string): void {
     }
     if (message === t("candidateSkipped")) {
         showToast(message);
+        return;
+    }
+    if (message === t("candidateWaiting")) {
+        candidateReviewToast = showActionToast(message, [{
+            label: t("cancel"),
+            onClick: () => {
+                candidateReview.cancelAcquire();
+                candidateReviewToast = null;
+            }
+        }], "info", 0);
+        candidateReviewToast.classList.add("candidate-waiting-toast");
         return;
     }
     candidateReviewToast = showToast(message, "info", 0);

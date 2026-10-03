@@ -18,8 +18,38 @@ export interface CandidateReviewOptions {
     now(): number;
 }
 
+class CandidateAcquireCancelled extends Error {}
+
 export function createCandidateReviewController(options: CandidateReviewOptions) {
     let busy = false;
+    let acquireController: AbortController | null = null;
+
+    function throwIfAcquireCancelled(signal: AbortSignal): void {
+        if (signal.aborted) throw new CandidateAcquireCancelled();
+    }
+
+    function waitForNextPoll(ms: number, signal: AbortSignal): Promise<void> {
+        return new Promise((resolve, reject) => {
+            const cleanup = () => signal.removeEventListener("abort", cancel);
+            const cancel = () => {
+                cleanup();
+                reject(new CandidateAcquireCancelled());
+            };
+            signal.addEventListener("abort", cancel, { once: true });
+            if (signal.aborted) {
+                cancel();
+                return;
+            }
+            options.sleep(ms).then(() => {
+                cleanup();
+                resolve();
+            }, (error) => {
+                cleanup();
+                reject(error);
+            });
+        });
+    }
+
     async function completeCandidate(
         candidate: MiningCandidate,
         findNote: (snapshot: AnkiMediaSnapshot, renew: () => Promise<void>) => Promise<number>
@@ -65,21 +95,37 @@ export function createCandidateReviewController(options: CandidateReviewOptions)
     return {
         isBusy: () => busy,
         async acquireCandidate(candidate: MiningCandidate): Promise<void> {
-            await completeCandidate(candidate, async (snapshot, renew) => {
-                const previous = await options.noteIds(snapshot);
-                await options.copy(snapshot.selectedWord || "");
-                options.status(t("candidateWaiting"));
-                const deadline = options.now() + 60000;
-                let noteId: number | null = null;
-                while (options.now() < deadline) {
-                    await renew();
-                    noteId = findCandidateNote(previous, await options.noteIds(snapshot));
-                    if (noteId) break;
-                    await options.sleep(1000);
-                }
-                if (!noteId) throw new Error(t("candidateTimeout"));
-                return noteId;
-            });
+            if (busy) return;
+            const controller = new AbortController();
+            acquireController = controller;
+            try {
+                await completeCandidate(candidate, async (snapshot, renew) => {
+                    const previous = await options.noteIds(snapshot);
+                    throwIfAcquireCancelled(controller.signal);
+                    await options.copy(snapshot.selectedWord || "");
+                    options.status(t("candidateWaiting"));
+                    const deadline = options.now() + 60000;
+                    let noteId: number | null = null;
+                    while (options.now() < deadline) {
+                        throwIfAcquireCancelled(controller.signal);
+                        await renew();
+                        throwIfAcquireCancelled(controller.signal);
+                        noteId = findCandidateNote(previous, await options.noteIds(snapshot));
+                        throwIfAcquireCancelled(controller.signal);
+                        if (noteId) break;
+                        await waitForNextPoll(1000, controller.signal);
+                    }
+                    if (!noteId) throw new Error(t("candidateTimeout"));
+                    return noteId;
+                });
+            } catch (error) {
+                if (!(error instanceof CandidateAcquireCancelled)) throw error;
+            } finally {
+                if (acquireController === controller) acquireController = null;
+            }
+        },
+        cancelAcquire(): void {
+            acquireController?.abort();
         },
         async attachLatestCandidate(candidate: MiningCandidate): Promise<void> {
             await completeCandidate(candidate, async (snapshot) => {

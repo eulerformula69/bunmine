@@ -87,6 +87,24 @@ const candidate = () => ({ id: 1, snapshot: { ...snapshot }, anki_note_id: null 
     assert.equal(events.some(([name]) => name === "release"), true);
 }
 {
+    let waiting = false;
+    const { review, events } = harness({
+        noteIds: async () => [1],
+        sleep: async () => { waiting = true; return new Promise(() => {}); },
+    });
+    const work = review.acquireCandidate(candidate());
+    for (let attempt = 0; attempt < 10 && !waiting; attempt++) {
+        await new Promise((resolve) => setImmediate(resolve));
+    }
+    assert.equal(waiting, true);
+    assert.equal(review.isBusy(), true);
+    review.cancelAcquire();
+    await work;
+    assert.equal(review.isBusy(), false);
+    assert.equal(events.some(([name]) => name === "release"), true);
+    assert.equal(events.some(([name]) => name === "bind" || name === "update" || name === "accept"), false);
+}
+{
     const { review, events } = harness({ noteIds: async () => [1] });
     await assert.rejects(review.acquireCandidate(candidate()));
     assert.equal(events.some(([name]) => name === "accept"), false);

@@ -74,6 +74,49 @@
   background: var(--toast-button-hover, rgba(255, 255, 255, 0.18));
 }
 
+.mp-toast-action-button:active {
+  transform: scale(0.96);
+}
+
+.candidate-waiting-toast {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  max-width: min(760px, calc(100vw - 32px));
+  text-align: left;
+}
+
+.candidate-waiting-toast .mp-toast-action-message {
+  flex: 1;
+}
+
+.candidate-waiting-toast .mp-toast-action-buttons {
+  flex: 0 0 auto;
+  margin-top: 0;
+}
+
+@media (max-width: 560px) {
+  .candidate-waiting-toast {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mp-toast,
+  .mp-toast-removing,
+  .mp-toast-action-button {
+    animation: none;
+    transition: none;
+  }
+
+  .mp-toast {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 .mp-toast-removing {
   opacity: 0;
   transform: translateY(12px);
