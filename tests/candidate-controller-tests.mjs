@@ -42,6 +42,7 @@ function harness(overrides = {}) {
         now: () => now,
         changed: async () => events.push(["changed"]),
         status: () => {},
+        removeAfterSuccess: () => false,
         ...overrides,
     });
     return { review, events };
@@ -50,16 +51,16 @@ const candidate = () => ({ id: 1, snapshot: { ...snapshot }, anki_note_id: null 
 {
     const { review, events } = harness();
     await review.acquireCandidate(candidate());
-    assert.deepEqual(events.filter(([name]) => ["copy", "bind", "accept"].includes(name)),
-        [["copy", "猫"], ["bind", 2], ["accept", undefined]]);
+    assert.deepEqual(events.filter(([name]) => ["copy", "bind", "accept", "release"].includes(name)),
+        [["copy", "猫"], ["bind", 2], ["release", undefined]]);
     assert.equal(events.find(([name]) => name === "update")[2].audioStart, 10);
     assert.equal(review.isBusy(), false);
 }
 {
     const { review, events } = harness({ noteIds: async () => [5, 7] });
     await review.attachLatestCandidate(candidate());
-    assert.deepEqual(events.filter(([name]) => ["bind", "update", "accept"].includes(name)).map(([name, value]) => [name, value]),
-        [["bind", 7], ["update", 7], ["accept", undefined]]);
+    assert.deepEqual(events.filter(([name]) => ["bind", "update", "accept", "release"].includes(name)).map(([name, value]) => [name, value]),
+        [["bind", 7], ["update", 7], ["release", undefined]]);
     assert.equal(events.some(([name]) => name === "copy"), false);
 }
 {
@@ -73,11 +74,12 @@ const candidate = () => ({ id: 1, snapshot: { ...snapshot }, anki_note_id: null 
     await new Promise((resolve) => setImmediate(resolve));
     assert.equal(review.isBusy(), true);
     await review.acquireCandidate(candidate());
-    await review.reject(candidate());
+    const skipped = review.reject(candidate());
     assert.equal(events.filter(([name]) => name === "claim").length, 1);
-    assert.equal(events.some(([name]) => name === "reject"), false);
     release();
     await work;
+    await skipped;
+    assert.equal(events.some(([name]) => name === "reject"), true);
 }
 {
     let calls = 0;
@@ -117,7 +119,7 @@ const candidate = () => ({ id: 1, snapshot: { ...snapshot }, anki_note_id: null 
     const retry = harness();
     await retry.review.acquireCandidate(value);
     assert.equal(retry.events.some(([name]) => name === "copy"), false);
-    assert.equal(retry.events.some(([name]) => name === "accept"), true);
+    assert.equal(retry.events.some(([name]) => name === "release"), true);
 }
 {
     const { review, events } = harness({ verify: async () => { throw new Error("wrong word"); } });
@@ -128,6 +130,12 @@ const candidate = () => ({ id: 1, snapshot: { ...snapshot }, anki_note_id: null 
     const { review, events } = harness();
     await review.reject(candidate());
     assert.equal(events[0][0], "reject");
+}
+{
+    const { review, events } = harness({ removeAfterSuccess: () => true });
+    await review.acquireCandidate(candidate());
+    assert.equal(events.some(([name]) => name === "accept"), true);
+    assert.equal(events.some(([name]) => name === "release"), false);
 }
 console.log("Candidate controller tests passed");
 

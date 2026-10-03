@@ -84,8 +84,8 @@ def change_candidate(db_path, candidate_id, action, token=None, note_id=None, re
             conn.execute("INSERT INTO mining_acquire VALUES (1, ?, ?, ?)", (candidate_id, token, now + 120))
             return {"token": token, "ankiNoteId": row["anki_note_id"]}
         if action == "reject":
-            if lock:
-                raise ValueError("Finish the active candidate first")
+            if lock and lock["candidate_id"] == candidate_id:
+                conn.execute("DELETE FROM mining_acquire")
             conn.execute(
                 "UPDATE mining_candidates SET status = 'rejected', updated_at = CURRENT_TIMESTAMP WHERE id = ?",
                 (candidate_id,),

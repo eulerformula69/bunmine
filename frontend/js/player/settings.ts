@@ -187,6 +187,10 @@ export function loadSettings(): void {
     if (autoAttachNextCardEnabled) {
         autoAttachNextCardEnabled.checked = settings.autoAttachNextCardEnabled === true;
     }
+    const removeCandidateAfterAddEnabled = getSettingsInput("removeCandidateAfterAddEnabled");
+    if (removeCandidateAfterAddEnabled) {
+        removeCandidateAfterAddEnabled.checked = settings.removeCandidateAfterAddEnabled === true;
+    }
 
     const playerVolumeEl = getSettingsInput("volume");
     if (playerVolumeEl && typeof video !== "undefined") {
@@ -284,6 +288,7 @@ export function initSettingsAutosave(): void {
         "subtitlesVisible",
         "subtitleComprehensionMinimum",
         "autoAttachNextCardEnabled",
+        "removeCandidateAfterAddEnabled",
         "interfaceLangSelect"
     ].forEach((id) => {
         const el = document.getElementById(id);

@@ -50,6 +50,7 @@ export interface PlayerSettings {
 	showComprehensionI4?: boolean;
 	showComprehensionI5Plus?: boolean;
     autoAttachNextCardEnabled?: boolean;
+    removeCandidateAfterAddEnabled?: boolean;
 }
 
 export interface SaveAnkiHighlightAutoRefreshResponse extends ApiPayload {
@@ -96,7 +97,8 @@ export function collectSettings(): PlayerSettings {
 		ankiHighlightAutoRefreshInterval: getSettingsSelect("ankiHighlightAutoRefreshInterval")?.value || "off",
 		subtitlesVisible: getSettingsInput("subtitlesVisible")?.checked ?? true,
 		subtitleComprehensionMinimum: getSettingsInput("subtitleComprehensionMinimum")?.value as SubtitleComprehensionLevel,
-        autoAttachNextCardEnabled: getSettingsInput("autoAttachNextCardEnabled")?.checked ?? false
+        autoAttachNextCardEnabled: getSettingsInput("autoAttachNextCardEnabled")?.checked ?? false,
+        removeCandidateAfterAddEnabled: getSettingsInput("removeCandidateAfterAddEnabled")?.checked ?? false
 
     };
 }

@@ -104,6 +104,8 @@ export const candidateReview = createCandidateReviewController({
     changed: () => candidatePanel.refresh(),
     status: showCandidateReviewStatus,
     now: () => Date.now(),
+    removeAfterSuccess: () =>
+        (document.getElementById("removeCandidateAfterAddEnabled") as HTMLInputElement | null)?.checked === true,
 });
 
 export const candidateLoop = createCandidateLoop(video);

@@ -69,7 +69,7 @@ assert.deepEqual(acquired, []);
 autoAcquireEnabled = true;
 panel.armAutoAcquire(" selected word ");
 await waitForArm();
-assert.equal(skip.disabled, true);
+assert.equal(skip.disabled, false);
 assert.equal(list.children[1].disabled, true);
 assert.deepEqual(acquired, [[1, "selected word"]]);
 finish();
@@ -112,6 +112,9 @@ assert.equal(context.t("sidebarTitle"), "Sidebar");
 const candidateSettingsTab = document.querySelector('[data-settings-tab="candidates"]');
 assert.ok(candidateSettingsTab);
 assert.ok(document.querySelector('[data-settings-page="candidates"] #autoAttachNextCardEnabled'));
+const removeAfterAdd = document.querySelector('[data-settings-page="candidates"] #removeCandidateAfterAddEnabled');
+assert.ok(removeAfterAdd);
+assert.equal(removeAfterAdd.checked, false);
 console.log("Candidate panel and language switching tests passed");
 
 dom.window.close();

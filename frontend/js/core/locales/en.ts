@@ -128,6 +128,7 @@ export default {
         "candidateAttaching": "Attaching saved text, audio, and image…",
         "candidateDone": "Card ready.",
         "candidateSkipped": "Candidate skipped.",
+        "removeCandidateAfterAdd": "Remove the candidate after a successful card addition",
         "candidateMismatch": "The word was not found in the new note. Check it in Anki.",
         "candidateSettings": "Complete the Anki settings before adding a card.",
         "candidateSaved": "Candidate saved. Review it in the sidebar.",

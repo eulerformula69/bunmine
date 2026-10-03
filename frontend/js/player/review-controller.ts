@@ -16,6 +16,7 @@ export interface CandidateReviewOptions {
     changed(): Promise<void>;
     status(message: string): void;
     now(): number;
+    removeAfterSuccess(): boolean;
 }
 
 class CandidateAcquireCancelled extends Error {}
@@ -23,6 +24,8 @@ class CandidateAcquireCancelled extends Error {}
 export function createCandidateReviewController(options: CandidateReviewOptions) {
     let busy = false;
     let acquireController: AbortController | null = null;
+    let activeCandidateId: number | null = null;
+    let activeCompletion: Promise<boolean> = Promise.resolve(false);
 
     function throwIfAcquireCancelled(signal: AbortSignal): void {
         if (signal.aborted) throw new CandidateAcquireCancelled();
@@ -53,12 +56,14 @@ export function createCandidateReviewController(options: CandidateReviewOptions)
     async function completeCandidate(
         candidate: MiningCandidate,
         findNote: (snapshot: AnkiMediaSnapshot, renew: () => Promise<void>) => Promise<number>
-    ): Promise<void> {
-        if (busy) return;
+    ): Promise<boolean> {
+        if (busy) return false;
         busy = true;
+        activeCandidateId = candidate.id;
         let token: string | undefined;
         let renewTimer: ReturnType<typeof setInterval> | undefined;
         let leaseError: Error | null = null;
+        let removed = false;
         const renew = async () => {
             if (leaseError) throw leaseError;
             await options.action(candidate.id, "renew", token);
@@ -81,14 +86,19 @@ export function createCandidateReviewController(options: CandidateReviewOptions)
             await options.verify(noteId, candidate.snapshot);
             options.status(t("candidateAttaching"));
             await options.update(noteId, candidate.snapshot);
-            await renew();
-            await options.action(candidate.id, "accept", token);
-            token = undefined;
+            if (options.removeAfterSuccess()) {
+                await renew();
+                await options.action(candidate.id, "accept", token);
+                token = undefined;
+                removed = true;
+            }
             options.status(t("candidateDone"));
+            return removed;
         } finally {
             clearInterval(renewTimer);
             if (token) await options.action(candidate.id, "release", token).catch(() => {});
             busy = false;
+            activeCandidateId = null;
             await options.changed();
         }
     }
@@ -98,26 +108,28 @@ export function createCandidateReviewController(options: CandidateReviewOptions)
             if (busy) return;
             const controller = new AbortController();
             acquireController = controller;
-            try {
-                await completeCandidate(candidate, async (snapshot, renew) => {
-                    const previous = await options.noteIds(snapshot);
+            const operation = completeCandidate(candidate, async (snapshot, renew) => {
+                const previous = await options.noteIds(snapshot);
+                throwIfAcquireCancelled(controller.signal);
+                await options.copy(snapshot.selectedWord || "");
+                options.status(t("candidateWaiting"));
+                const deadline = options.now() + 60000;
+                let noteId: number | null = null;
+                while (options.now() < deadline) {
                     throwIfAcquireCancelled(controller.signal);
-                    await options.copy(snapshot.selectedWord || "");
-                    options.status(t("candidateWaiting"));
-                    const deadline = options.now() + 60000;
-                    let noteId: number | null = null;
-                    while (options.now() < deadline) {
-                        throwIfAcquireCancelled(controller.signal);
-                        await renew();
-                        throwIfAcquireCancelled(controller.signal);
-                        noteId = findCandidateNote(previous, await options.noteIds(snapshot));
-                        throwIfAcquireCancelled(controller.signal);
-                        if (noteId) break;
-                        await waitForNextPoll(1000, controller.signal);
-                    }
-                    if (!noteId) throw new Error(t("candidateTimeout"));
-                    return noteId;
-                });
+                    await renew();
+                    throwIfAcquireCancelled(controller.signal);
+                    noteId = findCandidateNote(previous, await options.noteIds(snapshot));
+                    throwIfAcquireCancelled(controller.signal);
+                    if (noteId) break;
+                    await waitForNextPoll(1000, controller.signal);
+                }
+                if (!noteId) throw new Error(t("candidateTimeout"));
+                return noteId;
+            });
+            activeCompletion = operation.catch(() => false);
+            try {
+                await operation;
             } catch (error) {
                 if (!(error instanceof CandidateAcquireCancelled)) throw error;
             } finally {
@@ -128,21 +140,25 @@ export function createCandidateReviewController(options: CandidateReviewOptions)
             acquireController?.abort();
         },
         async attachLatestCandidate(candidate: MiningCandidate): Promise<void> {
-            await completeCandidate(candidate, async (snapshot) => {
+            if (busy) return;
+            const operation = completeCandidate(candidate, async (snapshot) => {
                 const noteIds = await options.noteIds(snapshot);
                 const noteId = noteIds[noteIds.length - 1];
                 if (!noteId) throw new Error(t("candidateNoNotes"));
                 return noteId;
             });
+            activeCompletion = operation.catch(() => false);
+            await operation;
         },
         async reject(candidate: MiningCandidate): Promise<void> {
-            if (busy) return;
-            busy = true;
+            if (activeCandidateId === candidate.id) {
+                acquireController?.abort();
+                if (await activeCompletion) return;
+            }
             try {
                 await options.action(candidate.id, "reject");
                 options.status(t("candidateSkipped"));
             } finally {
-                busy = false;
                 await options.changed();
             }
         },

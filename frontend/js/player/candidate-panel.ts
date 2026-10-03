@@ -78,7 +78,8 @@ export function createCandidatePanel(options: {
     let selecting = false;
     let editing = false;
     let savingContext = false;
-    let performing = false;
+    let adding = false;
+    let skipping = false;
     let acquireTimer: ReturnType<typeof setTimeout> | undefined;
     let editorContext: CandidateContext | null = null;
 
@@ -117,13 +118,14 @@ export function createCandidatePanel(options: {
                 : (candidate.snapshot.videoPayload as VideoFilePayload).filename;
             button.textContent = `${candidate.snapshot.selectedWord} · ${source} · ${formatTime(candidate.snapshot.targetTime)}`;
             button.setAttribute("aria-pressed", String(active?.id === candidate.id));
-            button.disabled = options.busy() || selecting || editing || performing;
+            button.disabled = options.busy() || selecting || editing || adding || skipping;
             button.onclick = () => { void select(candidate); };
             list.append(button);
         }
         list.scrollTop = listScroll;
         editor.set(active, editorContext, options.busy() || selecting || editing);
-        manual.disabled = skip.disabled = !active || options.busy() || selecting || editing || performing;
+        manual.disabled = !active || options.busy() || selecting || editing || adding || skipping;
+        skip.disabled = !active || selecting || editing || skipping;
     }
     async function select(candidate: MiningCandidate): Promise<void> {
         if (options.busy() || selecting || editing) return;
@@ -140,16 +142,25 @@ export function createCandidatePanel(options: {
         catch (error) { options.error(error); }
         finally { selecting = false; render(); }
     }
-    async function perform(action: (candidate: MiningCandidate) => Promise<void>): Promise<void> {
-        if (!active || selecting || editing || performing || options.busy()) return;
-        performing = true;
+    async function add(action: (candidate: MiningCandidate) => Promise<void>): Promise<void> {
+        if (!active || selecting || editing || adding || skipping || options.busy()) return;
+        adding = true;
         render();
         try { await action(active); }
         catch (error) { options.error(error); }
-        finally { performing = false; render(); }
+        finally { adding = false; render(); }
     }
-    manual.onclick = () => { void perform(options.attachManual); };
-    skip.onclick = () => { void perform(options.reject); };
+    async function reject(): Promise<void> {
+        if (!active || selecting || editing || skipping) return;
+        const candidate = active;
+        skipping = true;
+        render();
+        try { await options.reject(candidate); }
+        catch (error) { options.error(error); }
+        finally { skipping = false; render(); }
+    }
+    manual.onclick = () => { void add(options.attachManual); };
+    skip.onclick = () => { void reject(); };
     return {
         render,
         isCandidateMode(): boolean {
@@ -161,7 +172,7 @@ export function createCandidatePanel(options: {
             if (panel.hidden || !active || !cleanWord || !options.autoAcquireEnabled()) return;
             acquireTimer = setTimeout(() => {
                 if (panel.hidden || !active || !options.autoAcquireEnabled()) return;
-                void perform((candidate) => options.acquire(candidate, cleanWord));
+                void add((candidate) => options.acquire(candidate, cleanWord));
             }, 250);
         },
         selectionCleared(): void {

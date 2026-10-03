@@ -81,16 +81,20 @@ def test_only_one_acquire_across_sessions_and_expiry(setup):
     for candidate_id in (first, second):
         with pytest.raises(ValueError):
             repository.change_candidate(db, candidate_id, 'claim')
-        with pytest.raises(ValueError):
-            repository.change_candidate(db, candidate_id, 'reject')
+    repository.change_candidate(db, second, 'reject')
     with pytest.raises(ValueError):
         repository.change_candidate(db, first, 'bind', 'wrong', 123)
     repository.change_candidate(db, first, 'renew', token)
+    repository.change_candidate(db, first, 'reject')
+    assert repository.get_candidate(db, first)['status'] == 'rejected'
+    third = capture_candidate(settings, snapshot)['id']
+    fourth = capture_candidate(settings, snapshot)['id']
+    token = repository.change_candidate(db, third, 'claim')['token']
     with get_db(db) as conn:
         conn.execute('UPDATE mining_acquire SET expires = 0')
-    repository.change_candidate(db, second, 'claim')
+    repository.change_candidate(db, fourth, 'claim')
     with pytest.raises(ValueError):
-        repository.change_candidate(db, first, 'accept', token)
+        repository.change_candidate(db, third, 'accept', token)
 
 
 def test_source_replacement_and_missing_file(setup):
@@ -153,13 +157,16 @@ def test_routes(setup):
     assert client.get(f'/mining-candidates/{candidate_id}/source').status_code == 200
     claim = client.post(f'/mining-candidates/{candidate_id}/claim', json={})
     token = claim.json['token']
-    assert client.post(f'/mining-candidates/{candidate_id}/reject', json={}).status_code == 409
     bound = client.post(f'/mining-candidates/{candidate_id}/bind', json={'token': token, 'noteId': 123})
     assert bound.status_code == 200
     assert bound.json == {}
     accepted = client.post(f'/mining-candidates/{candidate_id}/accept', json={'token': token})
     assert accepted.status_code == 200
     assert accepted.json == {}
+    assert client.get('/mining-candidates').json['candidates'] == []
+    second = client.post('/mining-candidates', json={'snapshot': snapshot}).json['candidate']['id']
+    assert client.post(f'/mining-candidates/{second}/claim', json={}).status_code == 200
+    assert client.post(f'/mining-candidates/{second}/reject', json={}).status_code == 200
     assert client.get('/mining-candidates').json['candidates'] == []
 
 

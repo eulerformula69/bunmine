@@ -125,6 +125,7 @@ export default {
         "candidateAttaching": "保存したテキスト・音声・画像を追加中…",
         "candidateDone": "カードの準備ができました。",
         "candidateSkipped": "候補をスキップしました。",
+        "removeCandidateAfterAdd": "カード追加後に候補を削除する",
         "candidateMismatch": "新しいノートに単語が見つかりません。Ankiで確認してください。",
         "candidateSettings": "カードを追加する前にAnkiの設定を入力してください。",
         "candidateSaved": "候補を保存しました。サイドバーで確認できます。",

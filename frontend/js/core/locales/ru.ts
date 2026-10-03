@@ -125,6 +125,7 @@ export default {
         "candidateAttaching": "Прикрепляю сохранённые текст, аудио и изображение…",
         "candidateDone": "Карточка готова.",
         "candidateSkipped": "Кандидат пропущен.",
+        "removeCandidateAfterAdd": "Удалять кандидата после успешного добавления карточки",
         "candidateMismatch": "Слово не найдено в новой записи. Проверьте её в Anki.",
         "candidateSettings": "Заполните настройки Anki перед добавлением карточки.",
         "candidateSaved": "Кандидат сохранён. Разберите его в боковой панели.",
