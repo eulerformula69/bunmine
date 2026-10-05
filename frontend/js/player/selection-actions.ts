@@ -14,24 +14,13 @@ import { getCleanSelectedText,hideAddKnownBasicButton,showAddKnownBasicButtonFor
 
 import { getSubtitleIndexFromSelection } from "./selection-model.js";
 
-addKnownBasicBtn?.addEventListener("mousedown", (e) => {
-    e.preventDefault();
-});
+import { bindSelectionButtonAction } from "./selection-button.js";
 
-addKnownBasicBtn?.addEventListener("click", async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-
+bindSelectionButtonAction(addKnownBasicBtn, async () => {
     await addWordToKnownBasic(state.selectedKnownBasicWord);
 });
 
-addCardToDeck?.addEventListener("mousedown", (event) => event.preventDefault());
-
-addCardToDeck?.addEventListener("click", (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    void captureSelectedCandidate();
-});
+bindSelectionButtonAction(addCardToDeck, captureSelectedCandidate);
 
 document.addEventListener("keydown", (event) => {
     if (!candidateCaptureHotkey(event) || isEditableHotkeyTarget(event.target)) return;
