@@ -29,6 +29,7 @@ export interface PlayerSettings {
 	includeImageSubtitle?: boolean;
     imageSubtitleMode?: "all" | "timed";
 	subtitleHighlightEnabled?: boolean;
+	subtitleAnnotationsVisible?: boolean;
 	highlightColorNew?: string;
 	highlightColorLearning?: string;
 	highlightColorYoung?: string;
@@ -85,6 +86,7 @@ export function collectSettings(): PlayerSettings {
 		includeImageSubtitle: getSettingsInput("includeImageSubtitle").checked,
         imageSubtitleMode: getSettingsInput("imageSubtitleMode")?.value === "timed" ? "timed" : "all",
 		subtitleHighlightEnabled: getSettingsInput("subtitleHighlightEnabled")?.checked ?? true,
+		subtitleAnnotationsVisible: getSettingsInput("subtitleAnnotationsVisible")?.checked ?? true,
 		highlightColorNew: getSettingsInput("highlightColorNew")?.value || "#ffcc66",
 		highlightColorLearning: getSettingsInput("highlightColorLearning")?.value || "#66ccff",
 		highlightColorYoung: getSettingsInput("highlightColorYoung")?.value || "#66ccff",

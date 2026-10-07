@@ -42,6 +42,7 @@ export default {
         "ssWebp": "Animated WebP",
         "closeSettings": "Close",
         "subtitleHighlightEnabled": "Highlight subtitle words",
+        "subtitleAnnotationsVisible": "Show names and notes in brackets",
         "highlightColors": "Highlight colors:",
         "highlightStatusNew": "New",
         "highlightStatusLearning": "Learning",

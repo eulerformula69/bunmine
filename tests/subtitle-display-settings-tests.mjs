@@ -9,6 +9,7 @@ const comprehension = await import("../dist/esm/subtitles/comprehension-level.js
 settings.initSettingsAutosave();
 
 assert.equal(element("subtitlesVisible").checked, true);
+assert.equal(element("subtitleAnnotationsVisible").checked, true);
 assert.equal(element("subtitleComprehensionMinimum").value, "i+1");
 assert.equal(document.querySelector('[data-subtitle-visible="true"]').getAttribute("aria-pressed"), "true");
 assert.equal(document.querySelector('[data-comprehension-minimum="i+1"]').getAttribute("aria-pressed"), "true");
@@ -24,9 +25,13 @@ assert.equal(element("subtitleComprehensionMinimum").value, "i+3");
 assert.equal(comprehension.shouldShowSubtitleForComprehensionLevel("i+2"), false);
 assert.equal(comprehension.shouldShowSubtitleForComprehensionLevel("i+3"), true);
 
+element("subtitleAnnotationsVisible").checked = false;
+element("subtitleAnnotationsVisible").dispatchEvent(new Event("change"));
+
 await new Promise(resolve => setTimeout(resolve, 300));
 const saved = JSON.parse(localStorage.getItem("subtitlePlayerSettings"));
 assert.equal(saved.subtitlesVisible, false);
+assert.equal(saved.subtitleAnnotationsVisible, false);
 assert.equal(saved.subtitleComprehensionMinimum, "i+3");
 assert.equal("showComprehensionI0" in saved, false);
 
@@ -40,6 +45,7 @@ localStorage.setItem("subtitlePlayerSettings", JSON.stringify({
 }));
 settings.loadSettings();
 assert.equal(element("subtitlesVisible").checked, true);
+assert.equal(element("subtitleAnnotationsVisible").checked, true);
 assert.equal(element("subtitleComprehensionMinimum").value, "i+2");
 
 localStorage.setItem("subtitlePlayerSettings", JSON.stringify({

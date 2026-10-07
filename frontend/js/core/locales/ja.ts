@@ -39,6 +39,7 @@ export default {
         "ssWebp": "アニメーションWebP",
         "closeSettings": "閉じる",
         "subtitleHighlightEnabled": "字幕の単語をハイライト",
+        "subtitleAnnotationsVisible": "括弧内の話者名・注釈を表示",
         "highlightColors": "ハイライト色:",
         "highlightStatusNew": "新規",
         "highlightStatusLearning": "学習中",

@@ -61,6 +61,7 @@ fontSizeRange.addEventListener("input", (e) => {
 
 [
     "subtitleHighlightEnabled",
+    "subtitleAnnotationsVisible",
     "highlightColorNew",
     "highlightColorLearning",
     "highlightColorYoung",
@@ -70,6 +71,11 @@ fontSizeRange.addEventListener("input", (e) => {
     "subtitleComprehensionMinimum"
 ].forEach((id) => {
     document.getElementById(id)?.addEventListener("input", () => {
+        if (id === "subtitleAnnotationsVisible") {
+            state.subtitleSearchMatches = [];
+            state.subtitleSearchIndex = -1;
+            renderSubtitles();
+        }
         renderSubtitleOverlay({
             overlay,
             cues: getActiveSubtitles(),

@@ -6,6 +6,7 @@ import { SubtitleOverlayHighlighter, SubtitleOverlayOptions } from "./overlay-ty
 import { getActiveSubtitleEntries,getActiveSubtitles,getPrimarySubtitleIndex,selectPrimarySubtitle } from "./timing.js";
 
 import { getSubtitleComprehensionLevel,shouldShowSubtitleForComprehensionLevel } from "./comprehension-level.js";
+import { getSubtitleDisplayText } from "./display-text.js";
 
 // overlay rendering
 
@@ -152,7 +153,8 @@ export function renderSubtitleOverlay(options: SubtitleOverlayOptions, dependenc
     const primaryIndex = getPrimarySubtitleIndex();
 
     for (let position = 0; position < texts.length; position += 1) {
-        const text = texts[position];
+        const text = getSubtitleDisplayText(texts[position]);
+        if (!text) continue;
         const entry = cueEntries[position];
         const cue = entry?.cue;
         const cueIndex = entry?.index ?? -1;

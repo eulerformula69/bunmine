@@ -4,6 +4,7 @@ const dom = installDom();
 const overlay = document.getElementById("subtitleOverlay");
 const badge = document.getElementById("comprehensionLevelBadge");
 const {renderSubtitleOverlay} = await import("../dist/esm/subtitles/subtitles.js");
+const {removeSubtitleAnnotations} = await import("../dist/esm/subtitles/display-text.js");
 const cues = [
     { start: 414.28, end: 416.25, text: "ちょっと被服室にもってくる！" },
     { start: 415.16, end: 416.23, text: "えッ ちょ まッ…" }
@@ -61,6 +62,15 @@ assert.equal(overlay.children[0].style.transform, "translate(-50%, -100%)");
 render({ cues: [] });
 assert.equal(overlay.children.length, 0);
 assert.equal(badge.textContent, "");
+
+assert.equal(removeSubtitleAnnotations("（太郎） 行くぞ【ドアが閉まる】"), "行くぞ");
+assert.equal(removeSubtitleAnnotations("[whispers]\nHello (quietly)"), "Hello");
+assert.equal(removeSubtitleAnnotations("（（小声）太郎）話す"), "話す");
+assert.equal(removeSubtitleAnnotations("「（本当だよ）」"), "「」");
+
+document.getElementById("subtitleAnnotationsVisible").checked = false;
+render({ cues: [{ ...cues[0], text: "（太郎） 行くぞ" }, { ...cues[1], text: "【物音】" }] });
+assert.deepEqual(lines().map((line) => line.textContent), ["行くぞ"]);
 console.log("Subtitle overlay tests passed");
 
 dom.window.close();

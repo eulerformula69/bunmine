@@ -21,6 +21,7 @@ import { renderSubtitleOverlay } from "./subtitles.js";
 import { ankiSubtitleHighlighter } from "../highlighter/anki-highlighter.js";
 
 import { updatePlayButton } from "../player/ui.js";
+import { areSubtitleAnnotationsVisible,getSubtitleDisplayText } from "./display-text.js";
 
 export type SubtitleDepthKind = "back" | "forward";
 
@@ -122,6 +123,8 @@ export const renderedSubtitleContextState = { value: null as SubtitleContextRang
 
 export const renderedSubtitleSearchState = { value: null as SubtitleSearchResult | null };
 
+export const renderedSubtitleAnnotationsVisibleState = { value: true };
+
 export function refreshSubtitleRows(): void {
     const context = getSubtitleContextRange();
     const match = getCurrentSearchMatch();
@@ -142,7 +145,7 @@ export function refreshSubtitleRows(): void {
             const text = row.div.querySelector<HTMLElement>(".text-content");
             if (text) {
                 text.replaceChildren();
-                appendSubtitleTextWithSearchHighlight(text, row.sub.text, match, index);
+                appendSubtitleTextWithSearchHighlight(text, getSubtitleDisplayText(row.sub.text), match, index);
             }
         }
         for (const kind of ["back", "forward"] as const) {
@@ -165,13 +168,16 @@ export function renderSubtitles() {
     const list = document.getElementById("subtitleList");
     if (!list) return;
 
+    const annotationsVisible = areSubtitleAnnotationsVisible();
     if (renderedSubtitleSourceState.value === state.subtitles && renderedSubtitleDelayState.value === state.globalSubDelay &&
+        renderedSubtitleAnnotationsVisibleState.value === annotationsVisible &&
         renderedSubtitleListState.value === list && state.subtitleElements.length === state.subtitles.length) {
         refreshSubtitleRows();
         return;
     }
     renderedSubtitleSourceState.value = state.subtitles;
     renderedSubtitleDelayState.value = state.globalSubDelay;
+    renderedSubtitleAnnotationsVisibleState.value = annotationsVisible;
     renderedSubtitleListState.value = list;
     state.subtitleElements = [];
     const fragment = document.createDocumentFragment();
@@ -194,7 +200,9 @@ export function renderSubtitles() {
 
         const textContent = document.createElement("div");
         textContent.className = "text-content";
-        appendSubtitleTextWithSearchHighlight(textContent, sub.text, currentSearchMatch, idx);
+        const displayText = getSubtitleDisplayText(sub.text, annotationsVisible);
+        appendSubtitleTextWithSearchHighlight(textContent, displayText, currentSearchMatch, idx);
+        div.hidden = !displayText;
 
         div.appendChild(timeContainer);
         div.appendChild(textContent);
@@ -211,7 +219,7 @@ export function renderSubtitles() {
 
             renderSubtitleOverlay({
                 overlay,
-                text: sub.text,
+                text: displayText,
                 highlighter: ankiSubtitleHighlighter
             });
 

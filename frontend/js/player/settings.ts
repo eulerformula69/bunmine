@@ -85,6 +85,10 @@ export function loadSettings(): void {
 	if (subtitleHighlightEnabled) {
 		subtitleHighlightEnabled.checked = settings.subtitleHighlightEnabled ?? true;
 	}
+	const subtitleAnnotationsVisible = getSettingsInput("subtitleAnnotationsVisible");
+	if (subtitleAnnotationsVisible) {
+		subtitleAnnotationsVisible.checked = settings.subtitleAnnotationsVisible ?? true;
+	}
 
     const inputDefaults: Array<[keyof PlayerSettings, string]> = [
     [
@@ -275,6 +279,7 @@ export function initSettingsAutosave(): void {
         "audioField",
         "includeImageSubtitle",
         "subtitleHighlightEnabled",
+        "subtitleAnnotationsVisible",
         "highlightColorNew",
         "highlightColorLearning",
         "highlightColorYoung",

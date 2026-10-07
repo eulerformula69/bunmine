@@ -39,6 +39,7 @@ export default {
         "ssWebp": "Анимированный WebP",
         "closeSettings": "Закрыть",
         "subtitleHighlightEnabled": "Подсвечивать слова в субтитрах",
+        "subtitleAnnotationsVisible": "Показывать имена и ремарки в скобках",
         "highlightColors": "Цвета подсветки:",
         "highlightStatusNew": "Новые",
         "highlightStatusLearning": "В изучении",

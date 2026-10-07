@@ -47,6 +47,15 @@ assert.equal(list.children[0].querySelector('.text-content').textContent, 'Repla
 state.subtitles = [];
 context.renderSubtitles();
 assert.equal(list.children.length, 0);
+
+document.getElementById("subtitleAnnotationsVisible").checked = false;
+state.subtitles = [
+    { start: 0, end: 1, text: '（太郎） 行くぞ' },
+    { start: 1, end: 2, text: '【物音】' }
+];
+context.renderSubtitles();
+assert.equal(list.children[0].querySelector('.text-content').textContent, '行くぞ');
+assert.equal(list.children[1].hidden, true);
 console.log('Subtitle sidebar: 5,000 rows, incremental selection/search, delay, replacement, and clearing passed.');
 
 dom.window.close();

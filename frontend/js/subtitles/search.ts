@@ -3,6 +3,7 @@ import { JapaneseToken } from "../types/runtime-types.js";
 import { SubtitleSearchMatch } from "../core/state.js";
 
 import { RuntimeSubtitleCue } from "./model.js";
+import { getSubtitleDisplayText } from "./display-text.js";
 
 export type SubtitleTokenizer = (text: string) => JapaneseToken[] | null;
 
@@ -104,7 +105,7 @@ export function findSubtitleTextMatchesInCues(
     const matches: SubtitleWordSearchMatch[] = [];
 
     cues.forEach((sub, subtitleIndex) => {
-        const text = String(sub.text || "");
+        const text = getSubtitleDisplayText(sub.text);
         const tokens = tokenize(text) || [];
         let cursor = 0;
 
