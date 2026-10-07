@@ -5,6 +5,17 @@ from pathlib import Path
 from flask import current_app
 
 
+DEFAULT_COVER_ALLOWED_HOSTS = frozenset(
+    {
+        "s3.anilist.co",
+        "s4.anilist.co",
+        "media.kitsu.app",
+        "s3.kitsu.app",
+        "kitsu.app",
+    }
+)
+
+
 def load_env_file(path: Path) -> None:
     if not path.exists():
         return
@@ -45,14 +56,7 @@ class Settings:
     anki_highlight_auto_refresh: str
     anki_highlight_auto_refresh_hour: int
     anki_highlight_auto_refresh_minute: int
-    cover_allowed_hosts: frozenset[str] = frozenset(
-        {
-            "s3.anilist.co",
-            "media.kitsu.app",
-            "s3.kitsu.app",
-            "kitsu.app",
-        }
-    )
+    cover_allowed_hosts: frozenset[str] = DEFAULT_COVER_ALLOWED_HOSTS
     cover_max_bytes: int = 10 * 1024 * 1024
     subprocess_timeout_seconds: int = 600
 
@@ -112,7 +116,7 @@ def load_settings() -> Settings:
             host.strip().lower()
             for host in os.getenv(
                 "COVER_ALLOWED_HOSTS",
-                "s3.anilist.co,media.kitsu.app,s3.kitsu.app,kitsu.app",
+                ",".join(sorted(DEFAULT_COVER_ALLOWED_HOSTS)),
             ).split(",")
             if host.strip()
         ),

@@ -24,6 +24,17 @@ def test_cover_rejects_private_dns(monkeypatch, address):
         covers._validate_cover_url("https://s3.anilist.co/cover.jpg", frozenset({"s3.anilist.co"}))
 
 
+def test_current_anilist_cover_host_is_allowed(temporary_settings, monkeypatch):
+    monkeypatch.setattr(covers.socket, "getaddrinfo", lambda *_args, **_kwargs: [(0, 0, 0, "", ("8.8.8.8", 443))])
+
+    hostname = covers._validate_cover_url(
+        "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/example.png",
+        temporary_settings.cover_allowed_hosts,
+    )
+
+    assert hostname == "s4.anilist.co"
+
+
 def test_cover_download_uses_size_limit_and_safe_name(tmp_path, monkeypatch):
     monkeypatch.setattr(covers.socket, "getaddrinfo", lambda *_args, **_kwargs: [(0, 0, 0, "", ("8.8.8.8", 443))])
     calls = []
