@@ -13,6 +13,7 @@ import { buildApiUrl } from "../core/api.js";
 import { boldWordInText,getNoteWord } from "../anki/note-fields.js";
 
 import { buildSentenceFurigana } from "../anki/furigana.js";
+import { getSubtitleDisplayText } from "../subtitles/display-text.js";
 
 import { ankiRequest } from "../anki/anki-connect-client.js";
 
@@ -154,16 +155,17 @@ export function createAnkiMediaController(options: AnkiMediaControllerOptions): 
 
         const [targetNoteInfo] = await (options.fetchNotesInfo || fetchNotesInfo)(snapshot.ankiUrl, [targetNoteId]);
         const targetWord = getNoteWord(targetNoteInfo);
+        const exportText = getSubtitleDisplayText(snapshot.combinedText);
         const sentence = targetWord
-            ? boldWordInText(snapshot.combinedText, targetWord)
-            : snapshot.combinedText;
+            ? boldWordInText(exportText, targetWord)
+            : exportText;
         let furiganaSentence = "";
 
         if (snapshot.sentenceFuriganaField) {
             try {
                 furiganaSentence = boldWordInText(
                     await Promise.race([
-                        buildSentenceFurigana(snapshot.combinedText),
+                        buildSentenceFurigana(exportText),
                         new Promise<string>((_, reject) => setTimeout(
                             () => reject(new Error("Furigana generation timeout")),
                             1500
@@ -200,7 +202,7 @@ export function createAnkiMediaController(options: AnkiMediaControllerOptions): 
             logger.warn("Could not refresh known-anki-words.json for updated card:", error);
         }
 
-        options.ensureSubtitleStatuses(snapshot.combinedText)
+        options.ensureSubtitleStatuses(exportText)
             .then(options.prefetchSubtitleStatuses)
             .catch((error) => logger.warn("Could not update runtime highlight status:", error));
 

@@ -88,6 +88,22 @@ document.getElementById("imageSubtitleMode").value = "all";
 assert.doesNotThrow(() => ctx.buildImageSubtitleExport(old));
 document.getElementById("imageSubtitleMode").value = "timed";
 
+document.getElementById("subtitleAnnotationsVisible").checked = false;
+const filtered = ctx.buildImageSubtitleExport({
+    combinedText: "（speaker） line 【noise】",
+    imageSubtitleCues: [
+        { start: 1, end: 2, text: "（speaker） line" },
+        { start: 2, end: 3, text: "【noise】" }
+    ]
+});
+assert.equal(filtered.text, "line");
+assert.deepEqual(filtered.imageSubtitleCues, [{ start: 1, end: 2, text: "line" }]);
+assert.deepEqual(ctx.buildImageSubtitleExport({
+    combinedText: "【noise】",
+    imageSubtitleCues: [{ start: 1, end: 2, text: "【noise】" }]
+}).imageSubtitleCues, []);
+document.getElementById("subtitleAnnotationsVisible").checked = true;
+
 // Explicit IDs support export without an active panel (including a future batch caller).
 const snapshots = await Promise.all([1, 2].map(async (id) => (await exports.load(id)).snapshot));
 assert.deepEqual(snapshots.map((s) => s.audioEnd), [17, 27]);

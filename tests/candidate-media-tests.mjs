@@ -90,6 +90,24 @@ syncFields();
 requests.length = 0;
 await media.updateNote(123, timed);
 assert.equal(requests[0][1].imageSubtitleMode, "timed");
+
+document.getElementById("subtitleAnnotationsVisible").checked = false;
+const annotated = {
+    ...timed,
+    combinedText: "（猫） 猫です。【物音】",
+    imageSubtitleCues: [
+        { start: 11, end: 12, text: "（猫） 猫です。" },
+        { start: 13, end: 14, text: "【物音】" }
+    ]
+};
+requests.length = 0;
+await media.updateNote(123, annotated);
+assert.equal(requests[0][1].text, "猫です。");
+assert.deepEqual(requests[0][1].imageSubtitleCues, [
+    { start: 11, end: 12, text: "猫です。" }
+]);
+assert.equal(requests[2][1].params.note.fields.Sentence, "猫です。");
+
 fields.pictureField = "";
 syncFields();
 fields.ankiUrl = "";

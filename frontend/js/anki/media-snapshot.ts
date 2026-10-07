@@ -3,6 +3,7 @@ import { CandidateContext,CandidateCue } from "../player/candidate-context-model
 import { CurrentVideoPayload } from "../types/runtime-types.js";
 
 import { t } from "../core/translate.js";
+import { getSubtitleDisplayText } from "../subtitles/display-text.js";
 
 export interface AnkiMediaSnapshot {
     candidateId?: number;
@@ -42,12 +43,16 @@ export function buildImageSubtitleExport(snapshot: AnkiMediaSnapshot) {
             start: cue.start + delay, end: cue.end + delay, text: cue.text
         }));
     }
-    if (enabled && mode === "timed" && !cues.length) {
+    const hasTimedCueSource = cues.length > 0;
+    cues = cues
+        .map((cue) => ({ ...cue, text: getSubtitleDisplayText(cue.text) }))
+        .filter((cue) => Boolean(cue.text));
+    if (enabled && mode === "timed" && !hasTimedCueSource) {
         throw new Error(t("candidateSubtitleTimingMissing"));
     }
     return {
         imageSubtitleMode: mode,
-        text: enabled ? snapshot.combinedText : "",
+        text: enabled ? getSubtitleDisplayText(snapshot.combinedText) : "",
         imageSubtitleCues: enabled ? cues : []
     };
 }
