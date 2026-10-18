@@ -161,6 +161,10 @@
 
       <div class="settings-page" data-settings-page="anki">
         <h2 data-i18n="ankiIntegration">Anki Integration</h2>
+        <div class="settings-checkbox-row">
+          <label for="manualCardUpdateEnabled" data-i18n="manualCardUpdateEnabled">Show manual card update button</label>
+          <input type="checkbox" id="manualCardUpdateEnabled" checked>
+        </div>
 
         <label data-i18n="ankiURL">AnkiConnect URL:</label>
         <input type="text" id="ankiUrl" value="http://localhost:8765">
@@ -282,6 +286,7 @@
     </div>
 
 	<div class="control-cluster player-action-controls">
+      <button id="updateLastCardBtn" type="button" data-i18n="updateLastCard">Update last card</button>
 	<div id="subtitleVisibilityControl" class="subtitle-visibility-control" role="group" aria-labelledby="subtitleVisibilityLabel">
 	  <span id="subtitleVisibilityLabel" class="subtitle-visibility-label" data-i18n="subtitleDisplay">Subtitles</span>
 	  <div class="subtitle-visibility-options">

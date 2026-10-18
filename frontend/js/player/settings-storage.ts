@@ -51,6 +51,7 @@ export interface PlayerSettings {
 	showComprehensionI3?: boolean;
 	showComprehensionI4?: boolean;
 	showComprehensionI5Plus?: boolean;
+    manualCardUpdateEnabled?: boolean;
     autoAttachNextCardEnabled?: boolean;
     removeCandidateAfterAddEnabled?: boolean;
 }
@@ -101,6 +102,7 @@ export function collectSettings(): PlayerSettings {
 		ankiHighlightAutoRefreshInterval: getSettingsSelect("ankiHighlightAutoRefreshInterval")?.value || "off",
 		subtitlesVisible: getSettingsInput("subtitlesVisible")?.checked ?? true,
 		subtitleComprehensionMinimum: getSettingsInput("subtitleComprehensionMinimum")?.value as SubtitleComprehensionLevel,
+        manualCardUpdateEnabled: getSettingsInput("manualCardUpdateEnabled")?.checked ?? true,
         autoAttachNextCardEnabled: getSettingsInput("autoAttachNextCardEnabled")?.checked ?? false,
         removeCandidateAfterAddEnabled: getSettingsInput("removeCandidateAfterAddEnabled")?.checked ?? false
 

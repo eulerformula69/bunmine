@@ -1,3 +1,4 @@
+import { updateManualCardButton } from "./manual-card-update.js";
 import { logger } from "../core/logger.js";
 import { PlayerSettings,collectSettings,getSettingsInput,getSettingsSelect,saveSettings } from "./settings-storage.js";
 
@@ -64,6 +65,7 @@ export function saveSettingsLocal({ silent = false }: { silent?: boolean } = {})
 export function loadSettings(): void {
     const saved = localStorage.getItem("subtitlePlayerSettings");
     if (!saved) {
+        updateManualCardButton();
         initLangSelector();
         applyLanguage(state.currentLang);
         updateSubtitleDisplayControls();
@@ -188,6 +190,9 @@ export function loadSettings(): void {
     if (imageSubtitleMode) imageSubtitleMode.value = settings.imageSubtitleMode === "timed" ? "timed" : "all";
     updateImageSubtitleModeButton();
 
+    getSettingsInput("manualCardUpdateEnabled").checked = settings.manualCardUpdateEnabled ?? true;
+    updateManualCardButton();
+
     const autoAttachNextCardEnabled = getSettingsInput("autoAttachNextCardEnabled");
     if (autoAttachNextCardEnabled) {
         autoAttachNextCardEnabled.checked = settings.autoAttachNextCardEnabled === true;
@@ -294,6 +299,7 @@ export function initSettingsAutosave(): void {
         "ankiHighlightAutoRefreshInterval",
         "subtitlesVisible",
         "subtitleComprehensionMinimum",
+        "manualCardUpdateEnabled",
         "autoAttachNextCardEnabled",
         "removeCandidateAfterAddEnabled",
         "interfaceLangSelect"

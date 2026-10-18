@@ -1,6 +1,10 @@
 export default {
     "name": "English",
     "dict": {
+        "manualCardUpdateEnabled": "Show manual card update button",
+        "updateLastCard": "Update last card",
+        "manualCardDeckEmpty": "The selected Anki deck has no cards.",
+        "manualCardUpdated": "Last card updated",
         "chooseFolderCancelled": "Folder selection was cancelled.",
         "openFolderDialogFailed": "Could not open the folder selection dialog",
         "subtitleSearchTitle": "Title for subtitle search (query)",

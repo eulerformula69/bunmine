@@ -1,3 +1,7 @@
+import { bindManualCardUpdate } from "./manual-card-update.js";
+import { ankiMediaController } from "./controllers.js";
+import { t } from "../core/translate.js";
+import { showToast } from "./ui.js";
 import { bindPlayerShell } from "./shell-bindings.js";
 
 import { closeSettingsBtn,controls,dropzone,multiInput,playPause,progress,settingsModal,toggleBtn,video,videoContainer,videoPickerCancelBtn,videoPickerModal,volume } from "../core/dom.js";
@@ -54,6 +58,8 @@ video.addEventListener("timeupdate", createTimeupdateLoop());
 installLocalMediaRecovery({ media: video });
 
 document.getElementById("refreshAnkiHighlighterBtn")?.addEventListener("click", refreshHighlightWords);
+
+bindManualCardUpdate(ankiMediaController, t, showToast);
 
 bindPlayerEvents();
 
