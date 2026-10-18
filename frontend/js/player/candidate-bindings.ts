@@ -54,9 +54,9 @@ export async function verifyCandidateAnkiNote(noteId: number, snapshot: AnkiMedi
 export const candidateExports = createCandidateExportService({
     source: candidateApi.source,
     configure: (snapshot) => {
-        for (const key of ["ankiUrl", "deckName", "pictureField", "audioField"] as const) {
+        for (const key of ["ankiUrl", "deckName", "pictureField", "audioField", "wordAudioField", "sentenceField", "sentenceFuriganaField"] as const) {
             if (!snapshot[key]) snapshot[key] = (document.getElementById(key) as HTMLInputElement).value.trim();
-            if (!snapshot[key]) throw new Error(t("candidateSettings"));
+            if (!snapshot[key] && (key === "ankiUrl" || key === "deckName")) throw new Error(t("candidateSettings"));
         }
     },
 });

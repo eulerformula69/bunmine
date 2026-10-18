@@ -165,7 +165,8 @@ export function loadSettings(): void {
 		sentenceField: settings.sentenceField,
 		sentenceFuriganaField: settings.sentenceFuriganaField,
 		pictureField: settings.pictureField,
-		audioField: settings.audioField
+		audioField: settings.audioField,
+        wordAudioField: settings.wordAudioField
     };
 
     for (const [id, value] of Object.entries(mapping)) {
@@ -277,6 +278,7 @@ export function initSettingsAutosave(): void {
         "sentenceFuriganaField",
         "pictureField",
         "audioField",
+        "wordAudioField",
         "includeImageSubtitle",
         "subtitleHighlightEnabled",
         "subtitleAnnotationsVisible",

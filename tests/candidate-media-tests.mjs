@@ -24,7 +24,9 @@ globalThis.fetch = async (url, options) => {
 syncFields();
 const media = context.createAnkiMediaController({
     translate: String,
-    fetchNotesInfo: async () => [{ noteId: 123, fields: { Expression: { value: "猫" } } }],
+    fetchNotesInfo: async () => [{ noteId: 123, fields: {
+        Expression: { value: "猫" }, Picture: { value: "" }, Audio: { value: "" }, Sentence: { value: "" }
+    } }],
     getVideoPayload: () => ({ filename: "original.mp4" }),
     getVideoCurrentTime: () => 12,
     getValidatedVolume: () => 0.5,
@@ -109,7 +111,11 @@ assert.deepEqual(requests[0][1].imageSubtitleCues, [
 assert.equal(requests[2][1].params.note.fields.Sentence, "猫です。");
 
 document.getElementById("highlightWordField").value = "Expression";
-const noteFields = { Expression: { value: "猫" }, WordAudio: { value: "<br>" } };
+const noteFields = {
+    Expression: { value: "猫" }, WordAudio: { value: "<br>" },
+    Picture: { value: "" }, SentenceAudio: { value: "" }, Sentence: { value: "" },
+    CustomSound: { value: "" }
+};
 const wordMedia = context.createAnkiMediaController({
     translate: String,
     fetchNotesInfo: async () => [{ fields: noteFields }],
@@ -143,9 +149,28 @@ requests.length = 0;
 await assert.rejects(wordMedia.updateNote(123, { ...timed, audioField: "SentenceAudio" }), /offline/);
 assert.equal(requests.some(([, payload]) => payload.action === "updateNoteFields"), false);
 globalThis.fetch = successfulFetch;
+requests.length = 0;
+await wordMedia.updateNote(123, { ...timed, audioField: "SentenceAudio", wordAudioField: "CustomSound" });
+assert.equal(requests[3][1].params.note.fields.CustomSound, "[sound:audio.mp3]");
+assert.equal(requests[3][1].params.note.fields.WordAudio, undefined);
+requests.length = 0;
+await assert.rejects(wordMedia.updateNote(123, { ...timed, wordAudioField: "MissingSound" }), /does not exist/);
+assert.equal(requests.length, 0);
+requests.length = 0;
+await wordMedia.updateNote(123, {
+    ...timed, pictureField: "", audioField: "", sentenceField: "", sentenceFuriganaField: ""
+});
+assert.equal(requests[3][1].params.note.fields.Picture, '<img src="audio.mp3">');
+assert.equal(requests[3][1].params.note.fields.SentenceAudio, "[sound:audio.mp3]");
+assert.equal(requests[3][1].params.note.fields.WordAudio, "[sound:audio.mp3]");
+
+fields.wordAudioField = "CustomSound";
+syncFields();
+assert.equal(media.buildSnapshot().wordAudioField, "CustomSound");
 
 fields.pictureField = "";
 syncFields();
+assert.doesNotThrow(() => media.buildSnapshot());
 fields.ankiUrl = "";
 syncFields();
 assert.throws(() => media.buildSnapshot());

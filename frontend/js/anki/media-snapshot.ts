@@ -17,6 +17,7 @@ export interface AnkiMediaSnapshot {
     sentenceField: string;
     pictureField: string;
     audioField: string;
+    wordAudioField?: string;
     sentenceFuriganaField?: string;
     currentIdx: number;
     targetTime: number;

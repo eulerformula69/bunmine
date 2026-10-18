@@ -36,6 +36,8 @@ export default {
         "sentenceFuriganaField": "ふりがな付き例文フィールド:",
         "pictureField": "画像フィールド:",
         "audioField": "音声文フィールド:",
+        "wordAudioField": "単語音声フィールド:",
+        "ankiFieldFallbackHelp": "フィールド名を空にすると、カード内の一般的な名前から選択します。",
         "ssWebp": "アニメーションWebP",
         "closeSettings": "閉じる",
         "subtitleHighlightEnabled": "字幕の単語をハイライト",

@@ -16,6 +16,7 @@ import { buildSentenceFurigana } from "../anki/furigana.js";
 import { getSubtitleDisplayText } from "../subtitles/display-text.js";
 
 import { ankiRequest } from "../anki/anki-connect-client.js";
+import { resolveExportFields } from "../anki/export-fields.js";
 
 export interface AnkiMediaControllerOptions {
     fetchNotesInfo?: typeof fetchNotesInfo;
@@ -56,11 +57,9 @@ export function createAnkiMediaController(options: AnkiMediaControllerOptions): 
         const sentenceField = inputValue("sentenceField").trim();
         const pictureField = inputValue("pictureField").trim();
         const audioField = inputValue("audioField").trim();
+        const wordAudioField = inputValue("wordAudioField").trim();
         const sentenceFuriganaField = inputValue("sentenceFuriganaField").trim();
 
-        if (validateAnki && (!pictureField || !audioField)) {
-            throw new Error(options.translate("toastRequiredFields"));
-        }
         if (validateAnki && (!ankiUrl || !deckName)) {
             throw new Error(options.translate("toastAnkiSettingsRequired"));
         }
@@ -88,6 +87,7 @@ export function createAnkiMediaController(options: AnkiMediaControllerOptions): 
             sentenceField,
             pictureField,
             audioField,
+            wordAudioField,
             sentenceFuriganaField,
             currentIdx,
             targetTime,
@@ -109,6 +109,8 @@ export function createAnkiMediaController(options: AnkiMediaControllerOptions): 
         snapshot: AnkiMediaSnapshot
     ): Promise<{ targetWord: string }> {
         await options.validateExportSnapshot?.(snapshot);
+        const [targetNoteInfo] = await (options.fetchNotesInfo || fetchNotesInfo)(snapshot.ankiUrl, [targetNoteId]);
+        const resolved = resolveExportFields(targetNoteInfo, snapshot);
         const imageSubtitles = buildImageSubtitleExport(snapshot);
         const pictureEndpoint = snapshot.screenshotMode === "webp"
             ? "/animated-webp"
@@ -153,7 +155,6 @@ export function createAnkiMediaController(options: AnkiMediaControllerOptions): 
             throw new Error(getApiErrorMessage(pictureData, getApiErrorMessage(audioData, "Media server error")));
         }
 
-        const [targetNoteInfo] = await (options.fetchNotesInfo || fetchNotesInfo)(snapshot.ankiUrl, [targetNoteId]);
         const targetWord = getNoteWord(targetNoteInfo);
         const exportText = getSubtitleDisplayText(snapshot.combinedText);
         const sentence = targetWord
@@ -161,7 +162,7 @@ export function createAnkiMediaController(options: AnkiMediaControllerOptions): 
             : exportText;
         let furiganaSentence = "";
 
-        if (snapshot.sentenceFuriganaField) {
+        if (resolved.sentenceFuriganaField) {
             try {
                 furiganaSentence = boldWordInText(
                     await Promise.race([
@@ -179,15 +180,10 @@ export function createAnkiMediaController(options: AnkiMediaControllerOptions): 
         }
 
         const fields: Record<string, string> = {
-            [snapshot.pictureField]: `<img src="${pictureData.filename}">`,
-            [snapshot.audioField]: `[sound:${audioData.filename}]`
+            [resolved.pictureField]: `<img src="${pictureData.filename}">`,
+            [resolved.audioField]: `[sound:${audioData.filename}]`
         };
-        const wordAudioField = Object.keys(targetNoteInfo?.fields || {}).find((name) =>
-            name !== snapshot.audioField &&
-            /^(wordaudio|audioword|expressionaudio|vocabularyaudio|audio|音声|単語音声)$/.test(
-                name.toLowerCase().replace(/[\s_-]/g, "")
-            )
-        );
+        const wordAudioField = resolved.wordAudioField;
         const existingWordAudio = wordAudioField ? targetNoteInfo?.fields?.[wordAudioField]?.value : "";
         if (wordAudioField && targetWord && !/\[sound:[^\]]+\]|<audio\b/i.test(String(existingWordAudio || ""))) {
             const response = await fetch(buildApiUrl("/word-audio"), {
@@ -199,9 +195,9 @@ export function createAnkiMediaController(options: AnkiMediaControllerOptions): 
             if (!response.ok) throw new Error(getApiErrorMessage(data, "Word audio generation failed"));
             fields[wordAudioField] = `[sound:${data.filename}]`;
         }
-        if (snapshot.sentenceField) fields[snapshot.sentenceField] = sentence;
-        if (snapshot.sentenceFuriganaField) {
-            fields[snapshot.sentenceFuriganaField] = furiganaSentence;
+        if (resolved.sentenceField) fields[resolved.sentenceField] = sentence;
+        if (resolved.sentenceFuriganaField) {
+            fields[resolved.sentenceFuriganaField] = furiganaSentence;
         }
 
         await ankiRequest(snapshot.ankiUrl, "updateNoteFields", {

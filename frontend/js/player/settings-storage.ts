@@ -26,6 +26,7 @@ export interface PlayerSettings {
 	sentenceFuriganaField?: string;
 	pictureField?: string;
 	audioField?: string;
+    wordAudioField?: string;
 	includeImageSubtitle?: boolean;
     imageSubtitleMode?: "all" | "timed";
 	subtitleHighlightEnabled?: boolean;
@@ -83,6 +84,7 @@ export function collectSettings(): PlayerSettings {
 		sentenceFuriganaField: getSettingsInput("sentenceFuriganaField").value,
 		pictureField: getSettingsInput("pictureField").value,
 		audioField: getSettingsInput("audioField").value,
+        wordAudioField: getSettingsInput("wordAudioField").value,
 		includeImageSubtitle: getSettingsInput("includeImageSubtitle").checked,
         imageSubtitleMode: getSettingsInput("imageSubtitleMode")?.value === "timed" ? "timed" : "all",
 		subtitleHighlightEnabled: getSettingsInput("subtitleHighlightEnabled")?.checked ?? true,

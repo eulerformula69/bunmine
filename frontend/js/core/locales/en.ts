@@ -39,6 +39,8 @@ export default {
         "sentenceFuriganaField": "Sentence Furigana Field:",
         "pictureField": "Picture Field:",
         "audioField": "Audio sentence Field:",
+        "wordAudioField": "Word Audio Field:",
+        "ankiFieldFallbackHelp": "Leave a field name empty to use a common name from the card.",
         "ssWebp": "Animated WebP",
         "closeSettings": "Close",
         "subtitleHighlightEnabled": "Highlight subtitle words",

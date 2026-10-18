@@ -27,7 +27,9 @@ const exports = ctx.createCandidateExportService({
     source: async (id) => structuredClone(stored.get(id)),
     configure() {},
 });
-ctx.fetchNotesInfo = async () => [{ fields: {} }];
+ctx.fetchNotesInfo = async () => [{ fields: {
+    Picture: { value: "" }, Audio: { value: "" }, Sentence: { value: "" }
+} }];
 const media = ctx.createAnkiMediaController({
     translate: String,
     fetchNotesInfo: ctx.fetchNotesInfo,
