@@ -203,6 +203,10 @@ body.subtitles-hidden #comprehensionLevelBadge {
   justify-content: center;
 }
 
+#controls button[hidden] {
+  display: none;
+}
+
 #controls select {
   padding: 0 8px;
 }
