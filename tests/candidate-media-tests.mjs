@@ -108,6 +108,42 @@ assert.deepEqual(requests[0][1].imageSubtitleCues, [
 ]);
 assert.equal(requests[2][1].params.note.fields.Sentence, "猫です。");
 
+document.getElementById("highlightWordField").value = "Expression";
+const noteFields = { Expression: { value: "猫" }, WordAudio: { value: "<br>" } };
+const wordMedia = context.createAnkiMediaController({
+    translate: String,
+    fetchNotesInfo: async () => [{ fields: noteFields }],
+    resetRuntimeHighlightPrefetch() {},
+    refreshKnownWord: async () => {},
+    getHighlightWordFields: () => [],
+    ensureSubtitleStatuses: async () => {},
+    prefetchSubtitleStatuses() {},
+});
+requests.length = 0;
+await wordMedia.updateNote(123, { ...timed, audioField: "SentenceAudio" });
+assert.equal(requests[2][0], "/word-audio");
+assert.equal(requests[2][1].text, "猫");
+assert.equal(requests[3][1].params.note.fields.WordAudio, "[sound:audio.mp3]");
+for (const value of ["[sound:native.mp3]", '<audio src="native.mp3"></audio>']) {
+    noteFields.WordAudio.value = value;
+    requests.length = 0;
+    await wordMedia.updateNote(123, { ...timed, audioField: "SentenceAudio" });
+    assert.equal(requests.some(([path]) => path === "/word-audio"), false);
+    assert.equal(requests[2][1].params.note.fields.WordAudio, undefined);
+}
+noteFields.WordAudio.value = "";
+const successfulFetch = globalThis.fetch;
+globalThis.fetch = async (url, options) => {
+    if (new URL(url).pathname === "/word-audio") {
+        return new Response(JSON.stringify({ error: "Speech service offline" }), { status: 500 });
+    }
+    return successfulFetch(url, options);
+};
+requests.length = 0;
+await assert.rejects(wordMedia.updateNote(123, { ...timed, audioField: "SentenceAudio" }), /offline/);
+assert.equal(requests.some(([, payload]) => payload.action === "updateNoteFields"), false);
+globalThis.fetch = successfulFetch;
+
 fields.pictureField = "";
 syncFields();
 fields.ankiUrl = "";

@@ -182,6 +182,23 @@ export function createAnkiMediaController(options: AnkiMediaControllerOptions): 
             [snapshot.pictureField]: `<img src="${pictureData.filename}">`,
             [snapshot.audioField]: `[sound:${audioData.filename}]`
         };
+        const wordAudioField = Object.keys(targetNoteInfo?.fields || {}).find((name) =>
+            name !== snapshot.audioField &&
+            /^(wordaudio|audioword|expressionaudio|vocabularyaudio|audio|音声|単語音声)$/.test(
+                name.toLowerCase().replace(/[\s_-]/g, "")
+            )
+        );
+        const existingWordAudio = wordAudioField ? targetNoteInfo?.fields?.[wordAudioField]?.value : "";
+        if (wordAudioField && targetWord && !/\[sound:[^\]]+\]|<audio\b/i.test(String(existingWordAudio || ""))) {
+            const response = await fetch(buildApiUrl("/word-audio"), {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ text: targetWord })
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(getApiErrorMessage(data, "Word audio generation failed"));
+            fields[wordAudioField] = `[sound:${data.filename}]`;
+        }
         if (snapshot.sentenceField) fields[snapshot.sentenceField] = sentence;
         if (snapshot.sentenceFuriganaField) {
             fields[snapshot.sentenceFuriganaField] = furiganaSentence;

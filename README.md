@@ -42,6 +42,8 @@ On Linux or macOS, use `python3` instead of `py`. The npm test commands select P
 
 ## Optional settings
 
+Card updates keep existing word audio. If a word audio field is empty, Bunmine creates an MP3 with the Japanese Nanami voice through `edge-tts`. Supported field names include `WordAudio`, `AudioWord`, `ExpressionAudio`, `VocabularyAudio`, `Audio`, `音声`, and `単語音声` (spaces, hyphens, and underscores are ignored). The sentence audio field is excluded. The note must contain a supported word audio field. Synthesis needs internet access and sends the word text to Microsoft. Generated audio is cached in the Anki media directory. If synthesis fails, the card update reports an error and can be retried.
+
 The application reads `.env` from the project directory. Existing environment variables take precedence. Do not commit `.env` or API tokens.
 
 | Variable | Default | Purpose |

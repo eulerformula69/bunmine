@@ -12,6 +12,7 @@ from backend.services.media_export_service import (
     create_screenshot,
 )
 from backend.settings import Settings
+from backend.services.word_audio_service import create_word_audio
 from backend.utils_validation import is_within, safe_media_name, safe_uploaded_filename
 
 logger = logging.getLogger(__name__)
@@ -185,6 +186,16 @@ def audio():
         return _json_error(err, 400, "INVALID_REQUEST")
     except RuntimeError as err:
         return _json_error(err, 500, "FFMPEG_AUDIO_FAILED")
+
+
+@media_bp.route("/word-audio", methods=["POST"])
+def word_audio():
+    try:
+        return ok_response(create_word_audio(_settings(), request.get_json(silent=True) or {}))[0]
+    except ValueError as err:
+        return _json_error(err, 400, "INVALID_REQUEST")
+    except RuntimeError as err:
+        return _json_error(err, 500, "WORD_AUDIO_FAILED")
 
 
 @media_bp.route("/get-temp-audio")

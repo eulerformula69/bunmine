@@ -65,3 +65,20 @@ def test_video_rejects_resolved_path_outside_root(tmp_path, monkeypatch):
     (video_dir / 'link.mkv').write_bytes(b'video')
     monkeypatch.setattr('backend.routes.media_routes.is_within', lambda *_: False)
     assert client.get('/video/link.mkv').status_code == 404
+
+
+def test_word_audio_route(tmp_path, monkeypatch):
+    client, _ = make_client(tmp_path)
+    monkeypatch.setattr(
+        'backend.routes.media_routes.create_word_audio',
+        lambda settings, data: {"filename": "word.mp3"} if data["text"] == "猫" else {},
+    )
+    response = client.post('/word-audio', json={"text": "猫"})
+    assert response.status_code == 200
+    assert response.get_json()["filename"] == "word.mp3"
+
+    def fail(settings, data):
+        raise RuntimeError("Speech service offline")
+
+    monkeypatch.setattr('backend.routes.media_routes.create_word_audio', fail)
+    assert client.post('/word-audio', json={"text": "猫"}).status_code == 500
