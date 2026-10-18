@@ -205,15 +205,13 @@ export function createAnkiMediaController(options: AnkiMediaControllerOptions): 
         }, { retries: 0, timeoutMs: 5000 });
 
         options.resetRuntimeHighlightPrefetch();
-        try {
-            await options.refreshKnownWord({
+        void Promise.resolve().then(() => options.refreshKnownWord({
                 noteId: targetNoteId,
                 word: targetWord,
                 wordFields: options.getHighlightWordFields()
-            });
-        } catch (error) {
+            })).catch((error) => {
             logger.warn("Could not refresh known-anki-words.json for updated card:", error);
-        }
+        });
 
         options.ensureSubtitleStatuses(exportText)
             .then(options.prefetchSubtitleStatuses)

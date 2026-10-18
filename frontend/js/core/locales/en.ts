@@ -1,6 +1,7 @@
 export default {
     "name": "English",
     "dict": {
+        "manualCardUpdating": "Updating card…",
         "manualCardUpdateEnabled": "Show manual card update button",
         "updateLastCard": "Update last card",
         "manualCardDeckEmpty": "The selected Anki deck has no cards.",

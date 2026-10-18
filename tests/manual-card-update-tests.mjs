@@ -3,6 +3,7 @@ import { installDom } from "./dom-environment.mjs";
 const dom = installDom();
 const { bindManualCardUpdate, updateManualCardButton } = await import("../dist/esm/player/manual-card-update.js");
 const settings = await import("../dist/esm/player/settings.js");
+const { showToast } = await import("../dist/esm/core/notifications.js");
 const button = document.getElementById("updateLastCardBtn");
 const enabled = document.getElementById("manualCardUpdateEnabled");
 const updates = [], messages = [], queries = [];
@@ -10,23 +11,31 @@ let ids = [12, 89, 33];
 bindManualCardUpdate({
     buildSnapshot: () => ({ ankiUrl: "anki", deckName: 'My "Deck"' }),
     updateNote: async (id, snapshot) => updates.push([id, snapshot])
-}, key => key, (...args) => messages.push(args), async (...args) => {
+}, key => key, (message, type, timeout) => {
+    messages.push([message, type, timeout]);
+    return showToast(message, type, 0);
+}, async (...args) => {
     queries.push(args);
     return ids;
 });
 const settle = () => new Promise(resolve => setTimeout(resolve, 0));
 button.click();
+assert.equal(document.querySelector(".mp-toast-info").textContent, "manualCardUpdating");
 button.click();
 await settle();
 assert.equal(updates.length, 1);
 assert.equal(updates[0][0], 89);
 assert.equal(queries[0][1], 'deck:"My \\"Deck\\""');
 assert.equal(button.disabled, false);
+assert.equal(document.querySelector(".mp-toast-info"), null);
+assert.equal(document.querySelector(".mp-toast-success").textContent, "manualCardUpdated");
+assert.deepEqual(messages.at(-1), ["manualCardUpdated", "success", 5000]);
 ids = [];
 button.click();
 await settle();
 assert.equal(updates.length, 1);
-assert.deepEqual(messages.at(-1), ["manualCardDeckEmpty", "error"]);
+assert.deepEqual(messages.at(-1), ["manualCardDeckEmpty", "error", undefined]);
+assert.equal(document.querySelector(".mp-toast-info"), null);
 enabled.checked = false;
 enabled.dispatchEvent(new Event("change"));
 assert.equal(button.hidden, true);

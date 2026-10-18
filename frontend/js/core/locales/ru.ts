@@ -1,6 +1,7 @@
 export default {
     "name": "Русский",
     "dict": {
+        "manualCardUpdating": "Обновление карточки…",
         "manualCardUpdateEnabled": "Показывать кнопку ручного обновления карточки",
         "updateLastCard": "Обновить последнюю карточку",
         "manualCardDeckEmpty": "В выбранной колоде Anki нет карточек.",

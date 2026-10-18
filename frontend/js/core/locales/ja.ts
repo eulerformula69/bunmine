@@ -1,6 +1,7 @@
 export default {
     "name": "日本語",
     "dict": {
+        "manualCardUpdating": "カードを更新中…",
         "manualCardUpdateEnabled": "手動カード更新ボタンを表示",
         "updateLastCard": "最新カードを更新",
         "manualCardDeckEmpty": "選択したAnkiデッキにカードがありません。",
