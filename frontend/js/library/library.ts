@@ -137,6 +137,7 @@ export function renderSeriesCard(item: LibrarySeriesView) {
     const completed = Number(item.completedEpisodes || 0);
     const progress = total ? Math.round(completed / total * 100) : 0;
     const status = LibraryPresentation.seriesStatus(item);
+    card.dataset.status = status;
     const cover = el("div", "series-cover");
     cover.append(coverImage(safeWebUrl(item.coverUrl || ""), String(item.title || "?").slice(0, 1)),
         el("span", "card-action", lt(status === "not-started" ? "startWatching" : status === "watching" ? "continueWatching" : "open")));

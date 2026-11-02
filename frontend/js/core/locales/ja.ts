@@ -141,7 +141,7 @@ export default {
         "candidateEpisodeMissing": "ライブラリにエピソードがありません。",
         "candidateVideoFailed": "元の動画を開けませんでした。",
         "ankiAcquireBusy": "別のAnkiノートを待機中、または更新中です。先にその操作を完了してください。",
-        "libraryTitle": "Bunmine ライブラリ",
+        "libraryTitle": "ライブラリ",
         "loading": "読み込み中...",
         "scanLibrary": "ライブラリをスキャン",
         "scanning": "スキャン中...",

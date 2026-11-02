@@ -141,7 +141,7 @@ export default {
         "candidateEpisodeMissing": "Серия больше недоступна в библиотеке.",
         "candidateVideoFailed": "Не удалось открыть исходное видео.",
         "ankiAcquireBusy": "Уже идёт ожидание или добавление записи Anki. Завершите его сначала.",
-        "libraryTitle": "Библиотека Bunmine",
+        "libraryTitle": "Библиотека",
         "loading": "Загрузка...",
         "scanLibrary": "Сканировать библиотеку",
         "scanning": "Сканирование...",

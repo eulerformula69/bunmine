@@ -144,7 +144,7 @@ export default {
         "candidateEpisodeMissing": "The episode is no longer available in the library.",
         "candidateVideoFailed": "Could not open the source video.",
         "ankiAcquireBusy": "An Anki note is already being awaited or updated. Finish that action first.",
-        "libraryTitle": "Bunmine Library",
+        "libraryTitle": "Library",
         "loading": "Loading...",
         "scanLibrary": "Scan library",
         "scanning": "Scanning...",
