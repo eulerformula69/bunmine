@@ -99,3 +99,5 @@ export const bulkSubtitleList = requireElement("#bulkSubtitleList", window.HTMLE
 export const confirmBulkSubtitleDownloadBtn = requireElement("#confirmBulkSubtitleDownloadBtn", window.HTMLButtonElement);
 
 export const cancelBulkSubtitleDownloadBtn = requireElement("#cancelBulkSubtitleDownloadBtn", window.HTMLButtonElement);
+
+export const librarySortSelect = requireElement("#librarySortSelect", window.HTMLSelectElement);

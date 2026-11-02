@@ -1,7 +1,7 @@
 import { coverController, subtitleController } from "./library.js";
 import { LibraryBulkModel } from "./library-bulk-model.js";
 import { logger } from "../core/logger.js";
-import { addAnimeBtn,bulkSubtitleList,bulkSubtitleModal,bulkSubtitleSearchBtn,bulkSubtitleSearchInput,bulkSubtitleSets,cancelBulkSubtitleDownloadBtn,changeSeriesCoverBtn,closeBulkSubtitleModalBtn,closeCoverModalBtn,closeSeriesPanelBtn,closeSubtitleModalBtn,confirmBulkSubtitleDownloadBtn,coverModal,coverSearchBtn,coverSearchInput,deleteSeriesBtn,downloadMissingSubtitlesBtn,libraryFilters,librarySearchInput,librarySummary,relinkSeriesFilesBtn,scanLibraryBtn,seriesTabs,subtitleModal,subtitleSearchBtn,subtitleSearchInput } from "./library-dom.js";
+import { addAnimeBtn,bulkSubtitleList,bulkSubtitleModal,bulkSubtitleSearchBtn,bulkSubtitleSearchInput,bulkSubtitleSets,cancelBulkSubtitleDownloadBtn,changeSeriesCoverBtn,closeBulkSubtitleModalBtn,closeCoverModalBtn,closeSeriesPanelBtn,closeSubtitleModalBtn,confirmBulkSubtitleDownloadBtn,coverModal,coverSearchBtn,coverSearchInput,deleteSeriesBtn,downloadMissingSubtitlesBtn,libraryFilters,librarySortSelect,librarySearchInput,librarySummary,relinkSeriesFilesBtn,scanLibraryBtn,seriesTabs,subtitleModal,subtitleSearchBtn,subtitleSearchInput } from "./library-dom.js";
 
 import { lt } from "./library-i18n.js";
 
@@ -37,7 +37,12 @@ libraryFilters.addEventListener("click", (event) => {
     const button = (event.target as HTMLElement).closest<HTMLButtonElement>("button");
     if (!button) return;
     if (button.dataset.filter) filterState.filter = button.dataset.filter as LibrarySeriesFilter;
-    if (button.dataset.sort) filterState.sort = button.dataset.sort as LibrarySeriesSort;
+    saveLibraryViewState();
+    renderCatalog();
+});
+
+librarySortSelect.addEventListener("change", () => {
+    filterState.sort = librarySortSelect.value as LibrarySeriesSort;
     saveLibraryViewState();
     renderCatalog();
 });

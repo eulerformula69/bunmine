@@ -35,7 +35,13 @@
         <div>
           <p id="catalogResultSummary" class="muted"></p>
         </div>
-        <button id="addAnimeBtn" class="button ghost" type="button" data-i18n="addAnime">Add anime</button>
+        <div class="catalog-controls">
+          <label class="catalog-sort">
+            <span data-i18n="sorting">Sorting</span>
+            <select id="librarySortSelect"></select>
+          </label>
+          <button id="addAnimeBtn" class="button ghost" type="button" data-i18n="addAnime">Add anime</button>
+        </div>
       </div>
       <section id="seriesGrid" class="series-grid"></section>
       <div id="catalogEmpty" class="empty-state hidden" data-i18n="noMatchingSeries">No series match these filters.</div>

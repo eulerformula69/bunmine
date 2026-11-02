@@ -11,7 +11,7 @@ import { LibraryPresentation } from "./library-presentation.js";
 
 import { currentOpenedEpisodesState,currentOpenedSeriesState,librarySeriesState } from "./library-state.js";
 
-import { catalogEmpty,catalogResultSummary,catalogView,coverModal,coverModalSubtitle,coverModalTitle,coverResults,coverSearchBtn,coverSearchInput,episodeList,fileList,libraryFilters,libraryHeader,librarySummary,seriesCurrentEpisode,seriesDetailCover,seriesGrid,seriesPrimaryAction,seriesStats,seriesStatus,seriesTitle,seriesView,subtitleModal,subtitleModalSubtitle,subtitleModalTitle,subtitleResults,subtitleSearchBtn,subtitleSearchInput } from "./library-dom.js";
+import { catalogEmpty,catalogResultSummary,catalogView,coverModal,coverModalSubtitle,coverModalTitle,coverResults,coverSearchBtn,coverSearchInput,episodeList,fileList,libraryFilters,librarySortSelect,libraryHeader,librarySummary,seriesCurrentEpisode,seriesDetailCover,seriesGrid,seriesPrimaryAction,seriesStats,seriesStatus,seriesTitle,seriesView,subtitleModal,subtitleModalSubtitle,subtitleModalTitle,subtitleResults,subtitleSearchBtn,subtitleSearchInput } from "./library-dom.js";
 
 import { libraryChooseFolder,libraryDeleteMissingEpisode,libraryDeleteSeries,libraryGetJobStatus,libraryGetSeries,libraryListSeries,libraryRelinkSeries,librarySearchEpisodeSubtitles,librarySearchSeriesCover,librarySelectEpisodeSubtitle,librarySelectSeriesCover,librarySetEpisodeCompleted,libraryStartJob } from "./library-api.js";
 
@@ -101,23 +101,19 @@ export function renderFilters() {
             button.type = "button";
             button.className = filterState.filter === filter ? "active" : "";
             button.dataset.filter = filter;
+            button.setAttribute("aria-pressed", String(filterState.filter === filter));
             button.append(el("span", "", lt(label)), el("span", "", filterCount(filter)));
             section.appendChild(button);
         }
         libraryFilters.appendChild(section);
     }
-    const sort = document.createElement("section");
-    sort.className = "filter-group";
-    sort.append(el("h3", "", lt("sorting")));
-    for (const [value, label] of SORT_ITEMS) {
-        const button = document.createElement("button");
-        button.type = "button";
-        button.className = filterState.sort === value ? "active" : "";
-        button.dataset.sort = value;
-        button.textContent = lt(label);
-        sort.appendChild(button);
-    }
-    libraryFilters.appendChild(sort);
+    librarySortSelect.replaceChildren(...SORT_ITEMS.map(([value, label]) => {
+        const option = document.createElement("option");
+        option.value = value;
+        option.textContent = lt(label);
+        return option;
+    }));
+    librarySortSelect.value = filterState.sort;
 }
 
 export function renderCatalog() {

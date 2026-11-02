@@ -31,4 +31,29 @@ assert.equal(scans.length, 1);
 assert.equal(scans[0].options.method, 'POST');
 assert.ok(calls.some(call => call.url.endsWith('/library/jobs/scan-1')));
 assert.ok(calls.filter(call => call.url.endsWith('/library/series')).length >= 2);
+const state = await import('../dist/esm/library/library-state.js');
+state.librarySeriesState.value = [
+    {id: 1, title: 'Zebra', episodesCount: 10, completedEpisodes: 2},
+    {id: 2, title: 'Alpha', episodesCount: 10, completedEpisodes: 8},
+];
+const sortSelect = document.getElementById('librarySortSelect');
+sortSelect.value = 'title';
+sortSelect.dispatchEvent(new Event('change', {bubbles: true}));
+assert.deepEqual([...document.querySelectorAll('.series-card h3')].map(el => el.textContent), ['Alpha', 'Zebra']);
+assert.equal(JSON.parse(localStorage.getItem('bunmineLibraryViewState')).sort, 'title');
+document.querySelector('[data-filter="watching"]').click();
+assert.equal(sortSelect.value, 'title', 'Filtering preserves the selected sort');
+assert.equal(document.querySelector('[data-filter="watching"]').getAttribute('aria-pressed'), 'true');
+sortSelect.value = 'progress';
+sortSelect.dispatchEvent(new Event('change', {bubbles: true}));
+assert.equal(JSON.parse(localStorage.getItem('bunmineLibraryViewState')).sort, 'progress');
+
+for (const language of ['ru', 'ja', 'en']) {
+    localStorage.setItem('subtitlePlayerSettings', JSON.stringify({language}));
+    const library = await import('../dist/esm/library/library.js');
+    library.applyLibraryLanguage();
+    library.renderCatalog();
+    assert.equal(sortSelect.options.length, 4);
+    assert.equal(sortSelect.value, 'progress');
+}
 dom.window.close();
