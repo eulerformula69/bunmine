@@ -128,6 +128,8 @@ export function renderSeriesCard(item: LibrarySeriesView) {
     const card = document.createElement("article");
     card.className = "series-card";
     card.tabIndex = 0;
+    card.setAttribute("role", "link");
+    card.setAttribute("aria-label", String(item.title));
     card.dataset.seriesId = String(item.id);
     const total = Number(item.episodesCount || 0);
     const completed = Number(item.completedEpisodes || 0);
@@ -155,7 +157,11 @@ export function renderSeriesCard(item: LibrarySeriesView) {
     card.append(cover, body);
     const open = () => openSeries(item.id);
     card.addEventListener("click", open);
-    card.addEventListener("keydown", (event) => { if (event.key === "Enter" || event.key === " ") open(); });
+    card.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        open();
+    });
     return card;
 }
 

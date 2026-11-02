@@ -63,13 +63,13 @@
       </aside>
       <section class="series-content">
         <div id="seriesTabs" class="series-tabs" role="tablist">
-          <button type="button" class="active" data-tab="episodes" data-i18n="episodes">Episodes</button>
-          <button type="button" data-tab="files" data-i18n="files">Files</button>
-          <button type="button" data-tab="tools" data-i18n="tools">Tools</button>
+          <button type="button" class="active" id="episodesTabButton" role="tab" aria-selected="true" aria-controls="episodesTab" tabindex="0" data-tab="episodes" data-i18n="episodes">Episodes</button>
+          <button type="button" id="filesTabButton" role="tab" aria-selected="false" aria-controls="filesTab" tabindex="-1" data-tab="files" data-i18n="files">Files</button>
+          <button type="button" id="toolsTabButton" role="tab" aria-selected="false" aria-controls="toolsTab" tabindex="-1" data-tab="tools" data-i18n="tools">Tools</button>
         </div>
-        <div id="episodesTab" class="tab-panel"><div id="episodeList" class="episode-list"></div></div>
-        <div id="filesTab" class="tab-panel hidden"><div id="fileList" class="file-list"></div></div>
-        <div id="toolsTab" class="tab-panel hidden">
+        <div id="episodesTab" role="tabpanel" aria-labelledby="episodesTabButton" class="tab-panel"><div id="episodeList" class="episode-list"></div></div>
+        <div id="filesTab" role="tabpanel" aria-labelledby="filesTabButton" class="tab-panel hidden"><div id="fileList" class="file-list"></div></div>
+        <div id="toolsTab" role="tabpanel" aria-labelledby="toolsTabButton" class="tab-panel hidden">
           <div class="tool-groups">
             <section class="tool-group"><h3 data-i18n="languageStudy">Language study</h3><button id="exportVocabularyBtn" class="button secondary" type="button" data-i18n="exportVocabulary">Export vocabulary report</button></section>
             <section class="tool-group"><h3 data-i18n="subtitlesGroup">Subtitles</h3><button id="downloadMissingSubtitlesBtn" class="button secondary" type="button" data-i18n="downloadMissingJpSubs">Download missing JP subs</button></section>

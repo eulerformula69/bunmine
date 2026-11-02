@@ -56,4 +56,21 @@ for (const language of ['ru', 'ja', 'en']) {
     assert.equal(sortSelect.options.length, 4);
     assert.equal(sortSelect.value, 'progress');
 }
+const episodesTab = document.getElementById('episodesTabButton');
+const filesTab = document.getElementById('filesTabButton');
+const toolsTab = document.getElementById('toolsTabButton');
+episodesTab.focus();
+episodesTab.dispatchEvent(new window.KeyboardEvent('keydown', {key:'ArrowRight', bubbles:true}));
+assert.equal(document.activeElement, filesTab);
+assert.equal(filesTab.getAttribute('aria-selected'), 'true');
+assert.equal(document.getElementById('filesTab').classList.contains('hidden'), false);
+assert.equal(document.getElementById('episodesTab').classList.contains('hidden'), true);
+filesTab.dispatchEvent(new window.KeyboardEvent('keydown', {key:'End', bubbles:true}));
+assert.equal(document.activeElement, toolsTab);
+toolsTab.dispatchEvent(new window.KeyboardEvent('keydown', {key:'ArrowRight', bubbles:true}));
+assert.equal(document.activeElement, episodesTab, 'Arrow navigation wraps');
+filesTab.click();
+assert.equal(filesTab.tabIndex, 0);
+assert.equal(episodesTab.tabIndex, -1);
+assert.equal(filesTab.getAttribute('aria-selected'), 'true');
 dom.window.close();

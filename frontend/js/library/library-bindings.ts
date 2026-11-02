@@ -47,12 +47,34 @@ librarySortSelect.addEventListener("change", () => {
     renderCatalog();
 });
 
+function selectSeriesTab(button: HTMLButtonElement) {
+    seriesTabs.querySelectorAll("button").forEach((item) => {
+        const selected = item === button;
+        item.classList.toggle("active", selected);
+        item.setAttribute("aria-selected", String(selected));
+        item.tabIndex = selected ? 0 : -1;
+    });
+    document.querySelectorAll(".tab-panel").forEach((panel) => {
+        panel.classList.toggle("hidden", panel.id !== `${button.dataset.tab}Tab`);
+    });
+}
+
 seriesTabs.addEventListener("click", (event) => {
     const button = (event.target as HTMLElement).closest<HTMLButtonElement>("button[data-tab]");
-    if (!button) return;
-    seriesTabs.querySelectorAll("button").forEach((item) => item.classList.toggle("active", item === button));
-    document.querySelectorAll(".tab-panel").forEach((panel) => panel.classList.add("hidden"));
-    document.getElementById(`${button.dataset.tab}Tab`)?.classList.remove("hidden");
+    if (button) selectSeriesTab(button);
+});
+
+seriesTabs.addEventListener("keydown", (event) => {
+    const keys = ["ArrowLeft", "ArrowRight", "Home", "End"];
+    if (!keys.includes(event.key)) return;
+    const buttons = Array.from(seriesTabs.querySelectorAll<HTMLButtonElement>("button[data-tab]"));
+    const current = buttons.indexOf(event.target as HTMLButtonElement);
+    if (current < 0) return;
+    event.preventDefault();
+    const next = event.key === "Home" ? 0 : event.key === "End" ? buttons.length - 1
+        : (current + (event.key === "ArrowRight" ? 1 : -1) + buttons.length) % buttons.length;
+    selectSeriesTab(buttons[next]);
+    buttons[next].focus();
 });
 
 changeSeriesCoverBtn.addEventListener("click", () => { if (currentOpenedSeriesState.value) coverController.open(currentOpenedSeriesState.value); });
