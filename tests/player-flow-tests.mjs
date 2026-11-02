@@ -60,4 +60,18 @@ const delay=document.getElementById('globalSubDelay');
 delay.value='1.5';delay.dispatchEvent(new Event('input'));
 assert.equal(state.globalSubDelay,1.5);
 clearTimeout(settings.settingsAutosaveTimerState.value);
+const ui = await import('../dist/esm/player/ui.js');
+const playButton = document.getElementById('playPause');
+const originalLanguage = state.currentLang;
+for (const [language, play, pause] of [['en', 'Play', 'Pause'], ['ru', 'Воспроизвести', 'Пауза'], ['ja', '再生', '一時停止']]) {
+    state.currentLang = language;
+    Object.defineProperty(video, 'paused', {configurable:true, value:true});
+    ui.updateIconButtons();
+    assert.equal(playButton.getAttribute('aria-label'), play);
+    Object.defineProperty(video, 'paused', {configurable:true, value:false});
+    ui.updatePlayButton();
+    assert.equal(playButton.getAttribute('aria-label'), pause);
+}
+state.currentLang = originalLanguage;
+delete video.paused;
 dom.window.close();

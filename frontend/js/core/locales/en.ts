@@ -1,6 +1,8 @@
 export default {
     "name": "English",
     "dict": {
+        "play": "Play",
+        "pause": "Pause",
         "manualCardUpdating": "Updating card…",
         "manualCardUpdateEnabled": "Show manual card update button",
         "updateLastCard": "Update last card",

@@ -1,6 +1,8 @@
 export default {
     "name": "日本語",
     "dict": {
+        "play": "再生",
+        "pause": "一時停止",
         "manualCardUpdating": "カードを更新中…",
         "manualCardUpdateEnabled": "手動カード更新ボタンを表示",
         "updateLastCard": "最新カードを更新",

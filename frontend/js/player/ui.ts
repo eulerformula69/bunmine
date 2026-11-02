@@ -1,3 +1,4 @@
+import { setControlIcon } from "./control-icons.js";
 import { logger } from "../core/logger.js";
 
 
@@ -10,7 +11,10 @@ import { addCardToDeck,addKnownBasicBtn,fullscreenBtn,playPause,settingsBtn,vide
 export { showToast, showActionToast } from "../core/notifications.js";
 
 export function updatePlayButton(): void {
-    playPause.textContent = video.paused ? "▶" : "⏸";
+    setControlIcon(playPause, video.paused ? "play" : "pause");
+    const label = i18n[state.currentLang].dict[video.paused ? "play" : "pause"];
+    playPause.setAttribute("aria-label", label);
+    playPause.title = label;
 }
 
 export function updateFullscreenButtonText(): void {
@@ -20,7 +24,7 @@ export function updateFullscreenButtonText(): void {
     const key = isFullscreen ? "exitFullscreen" : "fullscreen";
     const label = i18n[state.currentLang].dict[key] || (isFullscreen ? "Exit Fullscreen" : "Fullscreen");
 
-    fullscreenBtn.textContent = "⛶";
+    setControlIcon(fullscreenBtn, "fullscreen");
     fullscreenBtn.title = label;
     fullscreenBtn.setAttribute("aria-label", label);
 }
@@ -28,11 +32,12 @@ export function updateFullscreenButtonText(): void {
 export function updateIconButtons(): void {
     if (settingsBtn) {
         const settingsLabel = i18n[state.currentLang].dict.settings || "Settings";
-        settingsBtn.textContent = "⚙";
+        setControlIcon(settingsBtn, "settings");
         settingsBtn.title = settingsLabel;
         settingsBtn.setAttribute("aria-label", settingsLabel);
     }
 
+    updatePlayButton();
     updateFullscreenButtonText();
 }
 

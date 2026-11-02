@@ -146,7 +146,7 @@ body.subtitles-hidden #comprehensionLevelBadge {
 
 /* Bottom controls */
 #controls {
-  --control-height: 30px;
+  --control-height: 32px;
   --control-surface: rgba(20, 16, 23, 0.76);
   --control-surface-hover: rgba(55, 45, 62, 0.9);
   --control-border: rgba(255, 255, 255, 0.14);
@@ -161,7 +161,7 @@ body.subtitles-hidden #comprehensionLevelBadge {
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
-  gap: 6px;
+  gap: 8px;
 }
 
 .controls-row {
@@ -178,7 +178,7 @@ body.subtitles-hidden #comprehensionLevelBadge {
 .control-cluster {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
 }
 
 #controls button,
@@ -263,7 +263,7 @@ body.subtitles-hidden #comprehensionLevelBadge {
 .subtitle-visibility-control {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
   height: var(--control-height);
   padding: 0 3px 0 9px;
   box-sizing: border-box;
@@ -339,10 +339,10 @@ body.subtitles-hidden #comprehensionLevelBadge {
   height: 16px;
   width: 16px;
   border-radius: 50%;
-  background: #9b51e0;
+  background: #b49ade;
   cursor: pointer;
   margin-top: -5px;
-  border: 2px solid #a97ce6;
+  border: 2px solid #b49ade;
 }
 
 /* Sidebar */
@@ -392,7 +392,7 @@ body.subtitles-hidden #comprehensionLevelBadge {
 
 .subtitle {
   position: relative;
-  padding: 10px 14px 11px 18px;
+  padding: 12px 16px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.07);
   cursor: pointer;
   transition: background-color 100ms ease-out;
@@ -445,13 +445,13 @@ body.subtitles-hidden #comprehensionLevelBadge {
 .subtitle-sidebar-header h2 {
   margin: 0;
   font-size: 15px;
-  font-weight: 650;
+  font-weight: 500;
   letter-spacing: -0.01em;
 }
 
 .subtitle-sidebar-close {
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   border: 0;
   border-radius: 9px;
   background: transparent;
@@ -509,14 +509,14 @@ body.subtitles-hidden #comprehensionLevelBadge {
   height: 8px;
   border: 0;
   border-radius: 999px;
-  background: #a544c0;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35), 0 2px 8px rgba(165, 68, 192, 0.35);
+  background: #b49ade;
+  box-shadow: none;
   cursor: ns-resize;
   touch-action: none;
 }
 
 .subtitle-depth-handle:hover {
-  background: #bc58d8;
+  background: #d9c9ef;
 }
 
 body.subtitle-depth-dragging,
@@ -534,7 +534,7 @@ body.subtitle-depth-dragging * {
   margin: 0;
   pointer-events: none;
   will-change: transform;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35), 0 4px 14px rgba(165, 68, 192, 0.55);
+  box-shadow: none;
 }
 
 .subtitle-depth-handle-ghost.settling {
@@ -808,7 +808,7 @@ body[data-subtitle-depth-drag-kind="forward"]
   color: #b3a8c2;
   font: inherit;
   font-size: 12px;
-  font-weight: 650;
+  font-weight: 500;
   transition: background-color 120ms ease-out, color 120ms ease-out, transform 80ms ease-out;
 }
 
@@ -838,7 +838,7 @@ body[data-subtitle-depth-drag-kind="forward"]
 .highlight-color-item {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 8px;
 }
 
 .highlight-color-item input[type="color"] {
@@ -1029,7 +1029,7 @@ body[data-subtitle-depth-drag-kind="forward"]
   flex: 0 0 auto;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 30px 30px minmax(0, 1fr) 34px;
-  gap: 6px;
+  gap: 8px;
   padding: 8px;
   border-top: 1px solid #333;
   background: #100d17;
@@ -1195,3 +1195,14 @@ body[data-subtitle-depth-drag-kind="forward"]
   #controls { max-width:100%; box-sizing:border-box; overflow-x:auto; }
   #dropzone { width:calc(100% - 32px); padding:32px 20px; }
 }
+
+/* Desktop playback: quiet controls, precise timing, one current cue. */
+#time { font-variant-numeric:tabular-nums; white-space:nowrap; color:#d9d0e3; }
+#controls button { box-shadow:none; backdrop-filter:none; border-radius:8px; }
+#controls button:focus-visible { outline:2px solid #b49ade; outline-offset:2px; }
+#controls svg { width:18px; height:18px; flex-shrink:0; }
+.subtitle-visibility-control { box-shadow:none; backdrop-filter:none; }
+.subtitle .time-container { display:flex; justify-content:space-between; gap:16px; margin-bottom:8px; font-size:12px; line-height:16px; font-variant-numeric:tabular-nums; color:#b3a8c2; }
+.subtitle.active { background:#332644; }
+.subtitle.active::before { background:#b49ade; }
+.subtitle-depth-handle:focus-visible { outline:2px solid #f1edf7; outline-offset:3px; }

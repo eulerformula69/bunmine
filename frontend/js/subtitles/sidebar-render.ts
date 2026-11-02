@@ -46,11 +46,6 @@ export function applySubtitleRowState(
 export function createSubtitleTimeContainer(startSeconds: number, endSeconds: number): HTMLElement {
     const timeContainer = document.createElement("div");
     timeContainer.className = "time-container";
-    timeContainer.style.display = "flex";
-    timeContainer.style.justifyContent = "space-between";
-    timeContainer.style.fontSize = "14px";
-    timeContainer.style.color = "#888";
-    timeContainer.style.marginBottom = "10px";
 
     const startTime = document.createElement("span");
     startTime.textContent = formatTime(startSeconds);

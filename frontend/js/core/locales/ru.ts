@@ -1,6 +1,8 @@
 export default {
     "name": "Русский",
     "dict": {
+        "play": "Воспроизвести",
+        "pause": "Пауза",
         "manualCardUpdating": "Обновление карточки…",
         "manualCardUpdateEnabled": "Показывать кнопку ручного обновления карточки",
         "updateLastCard": "Обновить последнюю карточку",
