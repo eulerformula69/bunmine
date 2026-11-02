@@ -203,7 +203,7 @@ export function renderEpisodeRow(episode: LibraryEpisodeView) {
     checkbox.type = "checkbox";
     checkbox.checked = Boolean(episode.completed);
     label.append(checkbox, el("span", "", lt("watched")));
-    const link = el("a", `button small ${episode.hasVideo ? "primary" : "disabled"}`, action);
+    const link = el("a", `button small ${episode.hasVideo ? (canResume ? "primary" : "secondary") : "disabled"}`, action);
     link.href = `/?episodeId=${encodeURIComponent(episode.id)}`;
     actions.append(label, link);
     row.append(el("div", "episode-number", episodeNumber(episode)), main, actions);

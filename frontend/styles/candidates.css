@@ -42,7 +42,7 @@
 }
 .candidate-tabs button[aria-selected="true"],
 .candidate-tabs button[aria-selected="true"]:hover {
-    background: #7430a8;
+    background: #332644;
     border-color: transparent;
     box-shadow: 0 1px 6px rgba(0, 0, 0, 0.3);
 }
@@ -75,7 +75,7 @@
 .candidate-cue.selected { background: #a544c030; }
 .candidate-cue.anchor { box-shadow: inset 3px 0 #a544c0; }
 #candidatePanel .candidate-boundary { position: absolute; left: calc(50% - 22px); width: 44px; height: 22px; padding: 0; border: 0; background: transparent; cursor: row-resize; touch-action: none; z-index: 1; }
-#candidatePanel .candidate-boundary::after { content: ""; position: absolute; width: 28px; height: 8px; border-radius: 8px; background: #a544c0; top: 7px; left: 8px; box-shadow: 0 0 6px #a544c040; }
+#candidatePanel .candidate-boundary::after { content: ""; position: absolute; width: 28px; height: 8px; border-radius: 8px; background: #a544c0; top: 7px; left: 8px; box-shadow: none; }
 #candidatePanel .candidate-boundary:focus-visible { outline: 2px solid #dfa5f2; outline-offset: 1px; }
 .candidate-cues.dragging { user-select: none; cursor: row-resize; }
 .candidate-context-summary { display: flex; justify-content: space-between; gap: 8px; padding-top: 12px; font-size: 12px; color: #b9b0bf; }
