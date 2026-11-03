@@ -49,7 +49,7 @@ export function createCandidateContextEditor(options: {
     function paint(): void {
         if (!candidate) return;
         const snapshot = context ? candidateContextSnapshot(candidate.snapshot, context, start, end) : candidate.snapshot;
-        timing.textContent = `${formatTime(snapshot.audioStart)} — ${formatTime(snapshot.audioEnd)} · ${(snapshot.audioEnd - snapshot.audioStart).toFixed(2)} ${t("candidateSeconds")}`;
+        timing.textContent = `${formatTime(snapshot.audioStart)} – ${formatTime(snapshot.audioEnd)} · ${(snapshot.audioEnd - snapshot.audioStart).toFixed(2)} ${t("candidateSeconds")}`;
         saved.textContent = saving ? t("candidateSaving") : drag ? t("candidateEditing") : t("candidateSavedShort");
         if (start !== paintedStart || end !== paintedEnd) {
             const from = paintedStart < 0 ? start : Math.min(start, paintedStart);

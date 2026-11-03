@@ -55,7 +55,10 @@ export function createCandidatePanel(options: {
         },
     });
     const manual = document.createElement("button");
+    manual.type = "button";
+    manual.className = "candidate-primary";
     const skip = document.createElement("button");
+    skip.type = "button";
     skip.textContent = t("candidateSkip");
     const actions = document.createElement("div");
     actions.className = "candidate-actions";
@@ -104,11 +107,13 @@ export function createCandidatePanel(options: {
         panel.setAttribute("aria-label", t("candidateTitle"));
         counter.title = t("candidateOpen");
         manual.textContent = t("candidateManualAdd");
+        actions.setAttribute("aria-busy", String(adding || skipping));
         skip.textContent = t("candidateSkip");
         candidateTab.textContent = `${t("candidateTitle")} · ${candidates.length}`;
         counter.textContent = `${t("candidateTitle")}: ${candidates.length}`;
         const listScroll = list.scrollTop;
         list.replaceChildren();
+        list.dataset.empty = String(!candidates.length);
         if (!candidates.length) list.textContent = t("candidateEmpty");
         for (const candidate of candidates) {
             const button = document.createElement("button");
@@ -116,7 +121,21 @@ export function createCandidatePanel(options: {
             button.type = "button";
             const source = candidate.episode_id ? t("candidateEpisode", { id: candidate.episode_id })
                 : (candidate.snapshot.videoPayload as VideoFilePayload).filename;
-            button.textContent = `${candidate.snapshot.selectedWord} · ${source} · ${formatTime(candidate.snapshot.targetTime)}`;
+            const word = document.createElement("span");
+            word.className = "candidate-word";
+            word.textContent = candidate.snapshot.selectedWord || "";
+            const metadata = document.createElement("span");
+            metadata.className = "candidate-metadata";
+            const sourceLabel = document.createElement("span");
+            sourceLabel.className = "candidate-source";
+            sourceLabel.textContent = source;
+            sourceLabel.title = source;
+            const time = document.createElement("span");
+            time.className = "candidate-time";
+            time.textContent = formatTime(candidate.snapshot.targetTime);
+            metadata.append(sourceLabel, time);
+            button.append(word, metadata);
+            button.setAttribute("aria-label", `${candidate.snapshot.selectedWord} · ${source} · ${time.textContent}`);
             button.setAttribute("aria-pressed", String(active?.id === candidate.id));
             button.disabled = options.busy() || selecting || editing || adding || skipping;
             button.onclick = () => { void select(candidate); };
