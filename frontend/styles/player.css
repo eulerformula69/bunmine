@@ -1028,7 +1028,7 @@ body[data-subtitle-depth-drag-kind="forward"]
 #subtitleSearchPanel {
   flex: 0 0 auto;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 30px 30px minmax(0, 1fr) 34px;
+  grid-template-columns: minmax(0, 1fr) 32px 32px minmax(0, 1fr) 32px;
   gap: 8px;
   padding: 8px;
   border-top: 1px solid #333;
@@ -1042,7 +1042,7 @@ body[data-subtitle-depth-drag-kind="forward"]
 #subtitleSearchPanel button {
   min-width: 0;
   width: 100%;
-  height: 30px;
+  height: 32px;
   box-sizing: border-box;
   border: 1px solid #352b43;
   border-radius: 4px;
@@ -1050,7 +1050,7 @@ body[data-subtitle-depth-drag-kind="forward"]
   color: white;
   font-size: 12px;
   margin: 0;
-  line-height: 30px;
+  line-height: 32px;
 }
 
 #subtitleSearchPanel input {
@@ -1206,3 +1206,5 @@ body[data-subtitle-depth-drag-kind="forward"]
 .subtitle.active { background:#332644; }
 .subtitle.active::before { background:#b49ade; }
 .subtitle-depth-handle:focus-visible { outline:2px solid #f1edf7; outline-offset:3px; }
+
+#subtitleSearchPanel input:focus-visible,#subtitleSearchPanel button:focus-visible,.subtitle-sidebar-close:focus-visible { outline:2px solid #b49ade; outline-offset:2px; }

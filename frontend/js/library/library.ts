@@ -195,7 +195,10 @@ export function renderEpisodeRow(episode: LibraryEpisodeView) {
     const main = el("div", "episode-main");
     const details = el("p");
     details.append(el("span", "episode-state", episodeState(episode)));
-    if (canResume) details.append(` · ${formatTime(episode.currentTimeSeconds, "duration")} / ${formatTime(episode.durationSeconds, "duration")}`);
+    if (canResume) {
+        details.append(` · ${formatTime(episode.currentTimeSeconds, "duration")}`);
+        if (Number(episode.durationSeconds) > 0) details.append(` / ${formatTime(episode.durationSeconds, "duration")}`);
+    }
     if (!episode.hasSubtitle) details.append(` · ${lt("noJp")}`);
     if (!episode.hasVideo) details.append(` · ${lt("missingVideo")}`);
     main.append(el("h3", "", episode.title || lt("episodeLabel", { number: episodeNumber(episode) })), details);

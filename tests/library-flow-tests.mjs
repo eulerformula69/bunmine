@@ -73,4 +73,9 @@ filesTab.click();
 assert.equal(filesTab.tabIndex, 0);
 assert.equal(episodesTab.tabIndex, -1);
 assert.equal(filesTab.getAttribute('aria-selected'), 'true');
+const libraryView = await import('../dist/esm/library/library.js');
+const episode = {id: 1, title: 'Episode 1', hasVideo: true, currentTimeSeconds: 120, durationSeconds: 0};
+assert.equal(libraryView.renderEpisodeRow(episode).querySelector('.episode-main p').textContent.includes('/ 0m'), false,
+    'Unknown duration must not look like a zero-minute episode');
+assert.ok(libraryView.renderEpisodeRow({...episode, durationSeconds: 600}).querySelector('.episode-main p').textContent.includes('2m / 10m'));
 dom.window.close();

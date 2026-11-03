@@ -1,5 +1,5 @@
 .mp-toast-container {
-  position: absolute;
+  position: fixed;
   top: 24px;
   left: 50%;
   right: auto;
@@ -8,7 +8,7 @@
   z-index: 999999;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
   pointer-events: none;
   align-items: center;
 }
@@ -19,13 +19,14 @@
   box-sizing: border-box;
   padding: 12px 16px;
   border-radius: 10px;
-  color: #ffffff;
+  color: #f1edf7;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1.35;
   text-align: center;
-  background: var(--toast-background, #333333);
-  box-shadow: var(--toast-shadow, 0 8px 28px rgba(0, 0, 0, 0.45));
+  border: 1px solid #51415f;
+  background: var(--toast-background, #241d30);
+  box-shadow: var(--toast-shadow, 0 8px 24px rgba(0, 0, 0, 0.3));
   opacity: 0;
   transform: translateY(12px);
   animation: mpToastIn 180ms ease-out forwards;
@@ -33,15 +34,19 @@
 }
 
 .mp-toast-success {
-  background: var(--toast-success, #2e7d32);
+  background: var(--toast-success, #182a24);
+  border-color: #365f4d;
+  color: #c2e5d3;
 }
 
 .mp-toast-error {
-  background: var(--toast-error, #c62828);
+  background: var(--toast-error, #2a161b);
+  border-color: #663139;
+  color: #ffb9c1;
 }
 
 .mp-toast-info {
-  background: var(--toast-info, #6f2dbd);
+  background: var(--toast-info, #241d30);
 }
 
 .mp-toast-action {
@@ -56,17 +61,17 @@
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-  margin-top: 10px;
+  margin-top: 12px;
 }
 
 .mp-toast-action-button {
   border: 1px solid var(--toast-button-border, rgba(255, 255, 255, 0.25));
   border-radius: 8px;
-  padding: 6px 12px;
+  padding: 8px 12px;
   background: var(--toast-button-background, rgba(255, 255, 255, 0.1));
   color: #fff;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 500;
   cursor: pointer;
 }
 
@@ -81,7 +86,7 @@
 .candidate-waiting-toast {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
   max-width: min(760px, calc(100vw - 32px));
   text-align: left;
 }
@@ -99,7 +104,7 @@
   .candidate-waiting-toast {
     align-items: stretch;
     flex-direction: column;
-    gap: 10px;
+    gap: 12px;
   }
 }
 
@@ -129,3 +134,5 @@
     transform: translateY(0);
   }
 }
+
+.mp-toast-action-button:focus-visible { outline:2px solid #b49ade; outline-offset:2px; }
