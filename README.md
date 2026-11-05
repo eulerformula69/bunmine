@@ -38,6 +38,8 @@ A local video player and media library for Japanese sentence mining. Bunmine fin
 
 5. Open `http://127.0.0.1:5000/library-page` in your browser. Use the port from `.env` if you changed it.
 
+For another device on the same local network, replace `127.0.0.1` with the server computer's LAN IPv4 address. Allow Python through Windows Firewall on private networks if prompted. The server accepts connections on all network interfaces. Use a trusted network because the app has no login.
+
 On Linux or macOS, use `python3` instead of `py`. The npm test commands select Python for the current platform.
 
 ## Optional settings
