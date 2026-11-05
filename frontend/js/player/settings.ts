@@ -1,3 +1,4 @@
+import { readMachineSettings, writeMachineSettings } from "../core/machine-settings.js";
 import { updateManualCardButton } from "./manual-card-update.js";
 import { logger } from "../core/logger.js";
 import { PlayerSettings,collectSettings,getSettingsInput,getSettingsSelect,saveSettings } from "./settings-storage.js";
@@ -57,13 +58,13 @@ export function enableWheelOnSettings(): void {
 
 export function saveSettingsLocal({ silent = false }: { silent?: boolean } = {}): PlayerSettings {
     const settings = collectSettings();
-    localStorage.setItem("subtitlePlayerSettings", JSON.stringify(settings));
+    writeMachineSettings(settings);
     if (!silent) showToast("Settings saved", "success");
     return settings;
 }
 
 export function loadSettings(): void {
-    const saved = localStorage.getItem("subtitlePlayerSettings");
+    const saved = JSON.stringify(readMachineSettings());
     if (!saved) {
         updateManualCardButton();
         initLangSelector();

@@ -1,3 +1,4 @@
+import { readMachineSettings, writeMachineSettings } from "../core/machine-settings.js";
 import { resizer,sidebar,toggleBtn } from "../core/dom.js";
 
 import { state } from "../core/state.js";
@@ -24,7 +25,7 @@ export function initSubtitleSidebarToggle() {
             sidebar.classList.remove("hidden");
             resizer.classList.remove("hidden");
 
-            const saved = JSON.parse(localStorage.getItem("subtitlePlayerSettings") || "{}").sidebarWidth;
+            const saved = readMachineSettings().sidebarWidth;
             sidebar.style.width = state.lastSidebarWidth || saved || "320px";
         }
 
@@ -90,8 +91,8 @@ export function initSubtitleSidebarResizer() {
         document.body.style.cursor = "default";
         document.body.style.userSelect = "auto";
 
-        const settings = JSON.parse(localStorage.getItem("subtitlePlayerSettings") || "{}");
+        const settings = readMachineSettings();
         settings.sidebarWidth = sidebar.style.width;
-        localStorage.setItem("subtitlePlayerSettings", JSON.stringify(settings));
+        writeMachineSettings(settings);
     });
 }

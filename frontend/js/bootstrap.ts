@@ -1,3 +1,4 @@
+import { initializeMachineSettings } from "./core/machine-settings.js";
 import { logger } from "./core/logger.js";
 import { LibraryPlaybackPayload } from "./types/runtime-types.js";
 
@@ -32,7 +33,7 @@ import { LibraryPlaybackPayload } from "./types/runtime-types.js";
 
     window.BunmineEarlyLibraryPlayback = startEarlyLibraryPlayback();
 
-    import("./player/entry.js").then(() => {
+    initializeMachineSettings().then(() => import("./player/entry.js")).then(() => {
         if (document.readyState === "complete") window.dispatchEvent(new Event("load"));
     }).catch(logger.error);
 }

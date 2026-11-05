@@ -1,3 +1,4 @@
+from backend.routes.player_settings_routes import player_settings_bp
 import json
 import logging
 
@@ -45,6 +46,7 @@ def create_app(settings: Settings | None = None, initialize: bool = True) -> Fla
     app.register_blueprint(vocabulary_report_bp)
     app.register_blueprint(media_bp)
     app.register_blueprint(misc_bp)
+    app.register_blueprint(player_settings_bp)
     app.register_blueprint(static_bp)
 
     @app.after_request
