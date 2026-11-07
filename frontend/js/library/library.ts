@@ -155,12 +155,23 @@ export function renderSeriesCard(item: LibrarySeriesView) {
         body.append(el("p", "continue-note", lt("continueAt", { time: formatTime(item.currentTimeSeconds, "duration") })));
     }
     card.append(cover, body);
-    const open = () => openSeries(item.id);
-    card.addEventListener("click", open);
+    const open = async () => {
+        if (status === "watching") {
+            const { response, data } = await libraryGetSeries(item.id);
+            if (!response.ok || data.error || !data.series) throw new Error(String(data.error || lt("couldNotLoadSeries")));
+            const primary = LibraryPresentation.primaryAction(data.series as LibrarySeriesView, (data.episodes || []) as LibraryEpisodeView[]);
+            if (primary.kind === "continue" && primary.episodeId) {
+                location.href = `/?episodeId=${encodeURIComponent(primary.episodeId)}`;
+                return;
+            }
+        }
+        await openSeries(item.id);
+    };
+    card.addEventListener("click", () => { open().catch(showError); });
     card.addEventListener("keydown", (event) => {
         if (event.key !== "Enter" && event.key !== " ") return;
         event.preventDefault();
-        open();
+        open().catch(showError);
     });
     return card;
 }
