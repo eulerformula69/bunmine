@@ -36,7 +36,7 @@ A local video player and media library for Japanese sentence mining. Bunmine fin
 
    On Windows, `bunmine.bat` runs the same command from its own directory. Keep the server window open.
 
-5. Open `http://127.0.0.1:5000/library-page` in your browser. Use the port from `.env` if you changed it.
+5. Open `http://127.0.0.1:5000/` in your browser. Use the port from `.env` if you changed it.
 
 For another device on the same local network, replace `127.0.0.1` with the server computer's LAN IPv4 address. Allow Python through Windows Firewall on private networks if prompted. The server accepts connections on all network interfaces. Use a trusted network because the app has no login.
 

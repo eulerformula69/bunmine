@@ -11,7 +11,7 @@ const context = await import("../dist/esm/player/episode-navigation.js");
 globalThis.fetch = async (...args) => { const result = await request(...args); return new Response(JSON.stringify(result.data)); };
 const playback = { seriesId: 8, episodeId: "4", seriesTitle: "Series" };
 await context.updateEpisodeNavigation(playback);
-assert.equal(elements.nextEpisodeLink.getAttribute("href"), "/?episodeId=2");
+assert.equal(elements.nextEpisodeLink.getAttribute("href"), "/player?episodeId=2");
 assert.equal(elements.nextEpisodeLink.hidden, false);
 assert.equal(elements.allEpisodesLink.getAttribute("href"), "/library-page#series=8");
 

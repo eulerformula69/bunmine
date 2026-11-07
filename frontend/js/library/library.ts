@@ -161,7 +161,7 @@ export function renderSeriesCard(item: LibrarySeriesView) {
             if (!response.ok || data.error || !data.series) throw new Error(String(data.error || lt("couldNotLoadSeries")));
             const primary = LibraryPresentation.primaryAction(data.series as LibrarySeriesView, (data.episodes || []) as LibraryEpisodeView[]);
             if (primary.kind === "continue" && primary.episodeId) {
-                location.href = `/?episodeId=${encodeURIComponent(primary.episodeId)}`;
+                location.href = `/player?episodeId=${encodeURIComponent(primary.episodeId)}`;
                 return;
             }
         }
@@ -220,12 +220,12 @@ export function renderEpisodeRow(episode: LibraryEpisodeView) {
     checkbox.checked = Boolean(episode.completed);
     label.append(checkbox, el("span", "", lt("watched")));
     const link = el("a", `button small ${episode.hasVideo ? (canResume ? "primary" : "secondary") : "disabled"}`, action);
-    link.href = `/?episodeId=${encodeURIComponent(episode.id)}`;
+    link.href = `/player?episodeId=${encodeURIComponent(episode.id)}`;
     actions.append(label, link);
     row.append(el("div", "episode-number", episodeNumber(episode)), main, actions);
     checkbox.addEventListener("click", (event) => event.stopPropagation());
     checkbox.addEventListener("change", () => toggleEpisodeCompleted(episode, checkbox));
-    if (episode.hasVideo) row.addEventListener("click", (event) => { if (!(event.target as HTMLElement).closest("a,label,button")) location.href = `/?episodeId=${encodeURIComponent(episode.id)}`; });
+    if (episode.hasVideo) row.addEventListener("click", (event) => { if (!(event.target as HTMLElement).closest("a,label,button")) location.href = `/player?episodeId=${encodeURIComponent(episode.id)}`; });
     return row;
 }
 
@@ -281,7 +281,7 @@ export async function openSeries(seriesId: string | number, updateHash = true) {
     seriesStats.textContent = lt("detailProgress", { watched: series.completedEpisodes, total: series.episodesCount || 0 });
     seriesCurrentEpisode.textContent = current ? lt("currentEpisode", { number: episodeNumber(current) }) : lt("allEpisodesCompleted");
     seriesPrimaryAction.textContent = lt(primary.kind === "start" ? "startWatching" : primary.kind === "continue" ? "continueWatching" : "openEpisodes");
-    seriesPrimaryAction.href = primary.episodeId ? `/?episodeId=${encodeURIComponent(primary.episodeId)}` : "#episodes";
+    seriesPrimaryAction.href = primary.episodeId ? `/player?episodeId=${encodeURIComponent(primary.episodeId)}` : "#episodes";
     seriesDetailCover.replaceChildren(coverImage(safeWebUrl(series.coverUrl || ""), series.title.slice(0, 1)));
     episodeList.replaceChildren(...currentOpenedEpisodesState.value.map(renderEpisodeRow));
     fileList.replaceChildren(...currentOpenedEpisodesState.value.map(renderFileRow));

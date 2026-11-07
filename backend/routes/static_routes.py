@@ -5,12 +5,13 @@ from backend.utils_validation import is_within
 static_bp = Blueprint("static", __name__)
 
 
-@static_bp.route("/")
+@static_bp.route("/player")
 def index():
     frontend_dir = current_app.config["SETTINGS"].frontend_dir
     return send_from_directory(str(frontend_dir), "player.html")
 
 
+@static_bp.route("/")
 @static_bp.route("/library-page")
 def library_page():
     frontend_dir = current_app.config["SETTINGS"].frontend_dir

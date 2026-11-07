@@ -36,7 +36,7 @@ export async function updateEpisodeNavigation(playback: LibraryPlaybackPayload):
         const next = index >= 0 ? episodes[index + 1] : undefined;
         // Keep the library order and never skip an episode with a missing video.
         if (!next?.hasVideo) return;
-        nextEpisode.href = `/?episodeId=${encodeURIComponent(next.id)}`;
+        nextEpisode.href = `/player?episodeId=${encodeURIComponent(next.id)}`;
         nextEpisode.title = next.title || "";
         nextEpisode.hidden = false;
     } catch (error) {
