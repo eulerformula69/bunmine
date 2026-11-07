@@ -72,12 +72,34 @@ export function bindPlayerShell(options: PlayerShellBindingsOptions): void {
     progress.oninput = () => {
         video.currentTime = (Number(progress.value) / 100) * video.duration;
     };
+    let cursorTimer: ReturnType<typeof setTimeout> | undefined;
+    let pointerOverVideo = false;
+    const showCursor = () => {
+        clearTimeout(cursorTimer);
+        videoContainer.classList.remove("cursor-idle");
+    };
+    const scheduleCursorHide = () => {
+        showCursor();
+        if (!pointerOverVideo || video.paused || video.ended) return;
+        cursorTimer = setTimeout(() => videoContainer.classList.add("cursor-idle"), 2000);
+    };
     videoContainer.addEventListener("mousemove", (event) => {
+        const target = event.target;
+        pointerOverVideo = !(target instanceof Element && target.closest("#controls, #episodeNavigation, .subtitle-overlay-line"));
+        scheduleCursorHide();
         const rect = videoContainer.getBoundingClientRect();
         const isBottom = event.clientY - rect.top >= rect.height - Math.max(120, controls.offsetHeight + 12);
         controls.style.opacity = isBottom ? "1" : "0";
         controls.style.pointerEvents = isBottom ? "auto" : "none";
     });
+    videoContainer.addEventListener("mouseleave", () => {
+        pointerOverVideo = false;
+        showCursor();
+    });
+    videoContainer.addEventListener("mousedown", showCursor);
+    video.addEventListener("play", scheduleCursorHide);
+    video.addEventListener("pause", showCursor);
+    video.addEventListener("ended", showCursor);
 
     controls.addEventListener("focusin", () => {
         controls.style.opacity = "1";
