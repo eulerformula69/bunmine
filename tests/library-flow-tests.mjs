@@ -78,4 +78,23 @@ const episode = {id: 1, title: 'Episode 1', hasVideo: true, currentTimeSeconds: 
 assert.equal(libraryView.renderEpisodeRow(episode).querySelector('.episode-main p').textContent.includes('/ 0m'), false,
     'Unknown duration must not look like a zero-minute episode');
 assert.ok(libraryView.renderEpisodeRow({...episode, durationSeconds: 600}).querySelector('.episode-main p').textContent.includes('2m / 10m'));
+const navigation = {href: ''};
+Object.defineProperty(globalThis, 'location', {configurable: true, value: navigation});
+globalThis.fetch = async () => new Response(JSON.stringify({
+    series: {id: 24, title: 'Between episodes', episodesCount: 3},
+    episodes: [
+        {id: 1, hasVideo: true, completed: true},
+        {id: 2, hasVideo: true, completed: false, currentTimeSeconds: 0},
+    ],
+}));
+for (const activation of ['click', 'Enter', ' ']) {
+    navigation.href = '';
+    const card = libraryView.renderSeriesCard({id: 24, title: 'Between episodes', episodesCount: 3, completedEpisodes: 1});
+    if (activation === 'click') card.click();
+    else card.dispatchEvent(new window.KeyboardEvent('keydown', {key: activation}));
+    for (let attempt = 0; attempt < 20 && !navigation.href; attempt += 1) {
+        await new Promise(resolve => setTimeout(resolve, 5));
+    }
+    assert.equal(navigation.href, '/player?episodeId=2', 'Continue opens the next episode when its saved time is zero');
+}
 dom.window.close();

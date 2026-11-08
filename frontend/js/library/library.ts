@@ -159,7 +159,9 @@ export function renderSeriesCard(item: LibrarySeriesView) {
         if (status === "watching") {
             const { response, data } = await libraryGetSeries(item.id);
             if (!response.ok || data.error || !data.series) throw new Error(String(data.error || lt("couldNotLoadSeries")));
-            const primary = LibraryPresentation.primaryAction(data.series as LibrarySeriesView, (data.episodes || []) as LibraryEpisodeView[]);
+            const episodes = (data.episodes || []) as LibraryEpisodeView[];
+            const series = { ...item, ...data.series, completedEpisodes: episodes.filter((episode) => episode.completed).length } as LibrarySeriesView;
+            const primary = LibraryPresentation.primaryAction(series, episodes);
             if (primary.kind === "continue" && primary.episodeId) {
                 location.href = `/player?episodeId=${encodeURIComponent(primary.episodeId)}`;
                 return;
