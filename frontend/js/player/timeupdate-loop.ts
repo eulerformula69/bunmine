@@ -1,5 +1,5 @@
 import { logger } from "../core/logger.js";
-import { overlay,progress,sidebar,timeLabel,video } from "../core/dom.js";
+import { overlay,sidebar,timeLabel,video } from "../core/dom.js";
 
 import { getActiveSubtitleEntries,getActiveSubtitles,getCurrentSubtitle } from "../subtitles/timing.js";
 
@@ -86,7 +86,6 @@ export function createTimeupdateLoop(options: { getCurrentSubtitle?: typeof getC
         });
     }
 
-    progress.value = String((video.currentTime / video.duration) * 100 || 0);
     timeLabel.textContent = `${formatTime(video.currentTime)} / ${formatTime(video.duration)}`;
 
     if (!video.paused && sub && !isSelectingSubtitleText) {

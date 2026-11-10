@@ -1,4 +1,5 @@
 import { playMedia } from "../video/media-playback.js";
+import { bindProgressSlider } from "./progress-slider.js";
 
 export interface PlayerShellBindingsOptions {
     video: HTMLVideoElement;
@@ -69,9 +70,7 @@ export function bindPlayerShell(options: PlayerShellBindingsOptions): void {
         });
     });
 
-    progress.oninput = () => {
-        video.currentTime = (Number(progress.value) / 100) * video.duration;
-    };
+    bindProgressSlider(video, progress);
     let cursorTimer: ReturnType<typeof setTimeout> | undefined;
     let pointerOverVideo = false;
     const showCursor = () => {
