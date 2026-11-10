@@ -205,6 +205,10 @@ export function renderSubtitles() {
         div.onclick = (event) => {
             if ((event.target as Element).closest(".subtitle-context-controls")) return;
 
+            const selection = window.getSelection();
+            if (selection && !selection.isCollapsed &&
+                (textContent.contains(selection.anchorNode) || textContent.contains(selection.focusNode))) return;
+
             clearSearchMatches();
             state.lastClickedSubtitleIdx = idx;
 
