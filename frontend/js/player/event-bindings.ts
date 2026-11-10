@@ -3,7 +3,7 @@ import { deleteVideoBtn,fontSizeRange,fullscreenBtn,overlay,settingsBtn,settings
 
 import { prefetchRuntimeStatusesForAllSubtitles } from "./controllers.js";
 
-import { toggleFullscreenMode,updateFullscreenButtonText } from "./ui.js";
+import { toggleFullscreenMode,updateFullscreenButtonText,updatePlayButton } from "./ui.js";
 
 import { buildApiUrl } from "../core/api.js";
 
@@ -20,6 +20,11 @@ import { renderSubtitles } from "../subtitles/sidebar-render.js";
 import { clearRuntimeWordStatuses } from "../highlighter/word-status-store.js";
 
 export function bindPlayerEvents() {
+for (const event of ["play", "pause", "ended", "emptied"]) {
+    video.addEventListener(event, updatePlayButton);
+}
+updatePlayButton();
+
 deleteVideoBtn.onclick = async () => {
     if (!state.currentVideoFile) return;
     await fetch(buildApiUrl(`/delete-video?filename=${encodeURIComponent(state.currentVideoFile)}`), {

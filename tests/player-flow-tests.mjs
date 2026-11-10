@@ -68,9 +68,21 @@ for (const [language, play, pause] of [['en', 'Play', 'Pause'], ['ru', 'Восп
     Object.defineProperty(video, 'paused', {configurable:true, value:true});
     ui.updateIconButtons();
     assert.equal(playButton.getAttribute('aria-label'), play);
-    Object.defineProperty(video, 'paused', {configurable:true, value:false});
-    ui.updatePlayButton();
-    assert.equal(playButton.getAttribute('aria-label'), pause);
+    const playIcon = playButton.innerHTML;
+    for (let repeat = 0; repeat < 2; repeat++) {
+        Object.defineProperty(video, 'paused', {configurable:true, value:false});
+        video.dispatchEvent(new Event('play'));
+        assert.equal(playButton.getAttribute('aria-label'), pause);
+        assert.equal(playButton.title, pause);
+        assert.ok(playButton.querySelector('svg'));
+        assert.notEqual(playButton.innerHTML, playIcon);
+        for (const event of ['pause', 'ended', 'emptied']) {
+            Object.defineProperty(video, 'paused', {configurable:true, value:true});
+            video.dispatchEvent(new Event(event));
+            assert.equal(playButton.getAttribute('aria-label'), play);
+            assert.equal(playButton.innerHTML, playIcon);
+        }
+    }
 }
 state.currentLang = originalLanguage;
 delete video.paused;

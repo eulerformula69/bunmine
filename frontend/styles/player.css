@@ -256,7 +256,8 @@ body.subtitles-hidden #comprehensionLevelBadge {
 }
 
 #volume {
-  width: 60px;
+  width: 120px;
+  flex-shrink: 0;
 }
 
 #time {
