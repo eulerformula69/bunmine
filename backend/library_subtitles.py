@@ -213,7 +213,9 @@ def _candidate_from_jimaku_file(
     }
 
 
-def get_missing_subtitle_episode_contexts(db_path: Path, series_id: int, limit: int | None = None) -> dict:
+def get_missing_subtitle_episode_contexts(
+    db_path: Path, series_id: int, limit: int | None = None, *, include_existing: bool = False
+) -> dict:
     with get_db(db_path) as conn:
         series = conn.execute("SELECT id, title FROM series WHERE id = ?", (series_id,)).fetchone()
         if not series:
@@ -235,7 +237,7 @@ def get_missing_subtitle_episode_contexts(db_path: Path, series_id: int, limit: 
             LEFT JOIN library_files sf ON sf.id = (
                 {primary_file_id_sql("subtitle")}
             )
-            WHERE e.series_id = ? AND e.is_ignored = 0 AND sf.id IS NULL
+            WHERE e.series_id = ? AND e.is_ignored = 0 {'' if include_existing else 'AND sf.id IS NULL'}
             ORDER BY COALESCE(e.season_number, 1), e.episode_number IS NULL, e.episode_number, e.title
             """,
             (series_id,),
@@ -324,6 +326,10 @@ def download_and_save_jimaku_subtitle(db_path: Path, episode_id: int, payload: d
     relative_path = str(target_path.relative_to(media_library_dir))
 
     with get_db(db_path) as conn:
+        conn.execute(
+            "UPDATE library_files SET is_primary = 0 WHERE episode_id = ? AND file_type = 'subtitle'",
+            (episode_id,),
+        )
         row = conn.execute("SELECT id FROM library_files WHERE path = ?", (str(target_path),)).fetchone()
         if row:
             subtitle_file_id = int(row["id"])
@@ -385,11 +391,6 @@ def build_episode_jimaku_subtitle_plan(db_path: Path, episode_id: int, query: st
         item["message"] = "Video file is missing"
         return {"found": True, "item": item}
 
-    if context.get("subtitle_file_id"):
-        item["status"] = "skipped"
-        item["message"] = "Subtitle already exists"
-        return {"found": True, "item": item}
-
     search_query = str(query or context.get("series_title") or "").strip()
     results = search_jimaku_subtitles(search_query, context.get("episode_number"))
     item["alternativesCount"] = len(results)
@@ -408,13 +409,13 @@ def build_episode_jimaku_subtitle_plan(db_path: Path, episode_id: int, query: st
 def build_series_jimaku_subtitle_analysis(
     db_path: Path, series_id: int, query: str | None = None, limit: int | None = None
 ) -> dict:
-    """Analyze missing subtitles for a whole series with fewer Jimaku requests.
+    """Analyze Japanese subtitles for a whole series, including replacements.
 
     Instead of searching Jimaku once per episode, this does one series search,
     fetches file lists for the top matching entries, and distributes files to
     local episodes by inferred episode number. Responses are cached in SQLite.
     """
-    missing = get_missing_subtitle_episode_contexts(db_path, series_id, limit=limit)
+    missing = get_missing_subtitle_episode_contexts(db_path, series_id, limit=limit, include_existing=True)
     if not missing.get("found"):
         return {"found": False}
 

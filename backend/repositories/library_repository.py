@@ -206,7 +206,7 @@ def get_library_series_detail(db_path: Path, series_id: int) -> dict:
                 video_file.id AS video_file_id,
                 subtitle_file.id AS subtitle_file_id,
                 video_name.relative_path AS video_filename,
-                subtitle_name.relative_path AS subtitle_filename,
+                COALESCE(subtitle_file.relative_path, subtitle_name.relative_path) AS subtitle_filename,
                 COALESCE(wp.current_time_seconds, 0) AS current_time_seconds,
                 COALESCE(wp.watched_seconds, 0) AS watched_seconds,
                 COALESCE(wp.completed, 0) AS completed,

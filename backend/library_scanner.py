@@ -155,11 +155,11 @@ def upsert_library_file(
         conn.execute(
             """
             UPDATE library_files
-            SET series_id = ?, episode_id = ?, file_type = ?, relative_path = ?, file_exists = 1, is_primary = ?,
+            SET series_id = ?, episode_id = ?, file_type = ?, relative_path = ?, file_exists = 1,
                 missing_since = NULL, updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
             """,
-            (series_id, episode_id, file_type, relative_path, 1 if is_primary else 0, row["id"]),
+            (series_id, episode_id, file_type, relative_path, row["id"]),
         )
         return int(row["id"])
     cur = conn.execute(
