@@ -57,6 +57,14 @@ export function librarySetEpisodeCompleted(
     });
 }
 
+export function librarySetEpisodeIgnored(episodeId: string | number, ignored: boolean): Promise<ApiResult<LibraryMutationResponse>> {
+    return apiJson<LibraryMutationResponse>(`/library/episodes/${encodeURIComponent(episodeId)}/ignored`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ignored })
+    });
+}
+
 export function libraryDeleteSeries(seriesId: string | number): Promise<ApiResult<LibraryMutationResponse>> {
     return apiJson<LibraryMutationResponse>(`/library/series/${encodeURIComponent(seriesId)}`, {
         method: "DELETE"

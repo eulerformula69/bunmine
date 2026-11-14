@@ -33,7 +33,7 @@ export async function updateEpisodeNavigation(playback: LibraryPlaybackPayload):
         if (!response.ok || data.error) throw new Error("Could not load episode navigation");
         const episodes = data.episodes || [];
         const index = episodes.findIndex((episode) => String(episode.id) === String(playback.episodeId));
-        const next = index >= 0 ? episodes[index + 1] : undefined;
+        const next = index >= 0 ? episodes.slice(index + 1).find((episode) => !episode.isIgnored) : undefined;
         // Keep the library order and never skip an episode with a missing video.
         if (!next?.hasVideo) return;
         nextEpisode.href = `/player?episodeId=${encodeURIComponent(next.id)}`;

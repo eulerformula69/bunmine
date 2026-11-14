@@ -99,6 +99,83 @@ def seed_playable_episode(db_path, media_root):
     return series_id, episode_id, file_id, video_path
 
 
+def test_episode_exclusion_survives_retries_scans_and_can_be_undone(tmp_path, temporary_settings):
+    from backend.library_scanner import scan_library
+    from backend.library_subtitles import get_missing_subtitle_episode_contexts
+
+    client, db_path, media_root = make_client(tmp_path, temporary_settings)
+    show = media_root / "Show"
+    show.mkdir()
+    video = show / "Show - 01.mkv"
+    video.write_bytes(b"video")
+    video.with_suffix(".srt").write_text("subtitle")
+    bonus = show / "creditless OP.mkv"
+    bonus.write_bytes(b"bonus")
+
+    def scan():
+        assert scan_library(db_path, media_root, {".mkv"}, {".srt"})["ok"]
+
+    scan()
+    series_id = client.get("/library/series").json["series"][0]["id"]
+    detail_url = f"/library/series/{series_id}"
+    episodes = client.get(detail_url).json["episodes"]
+    episode_id = next(item["id"] for item in episodes if item["episodeNumber"] is None)
+    url = f"/library/episodes/{episode_id}/ignored"
+    assert len(get_missing_subtitle_episode_contexts(db_path, series_id)["episodes"]) == 1
+    client.post(f"/library/episodes/{episode_id}/progress", json={
+        "currentTimeSeconds": 30, "watchedDeltaSeconds": 30, "completed": True,
+    })
+    for _ in range(2):
+        assert client.post(url, json={"ignored": True}).status_code == 200
+        scan()
+        summary = client.get("/library/series").json["series"][0]
+        assert summary["episodesCount"] == 1
+        assert summary["episodesWithVideo"] == summary["episodesWithSubtitle"] == 1
+        assert summary["completedEpisodes"] == summary["watchedSeconds"] == 0
+        assert summary["linkStatus"] == "linked"
+        detail = client.get(detail_url).json
+        assert detail["series"]["episodesCount"] == 1
+        assert len(detail["episodes"]) == 2
+        ignored = next(item for item in detail["episodes"] if item["id"] == episode_id)
+        assert ignored["isIgnored"] is True
+        assert ignored["completed"] is True
+        assert get_missing_subtitle_episode_contexts(db_path, series_id)["episodes"] == []
+        assert bonus.exists()
+
+    assert client.post(url, json={"ignored": False}).status_code == 200
+    summary = client.get("/library/series").json["series"][0]
+    assert summary["episodesCount"] == 2
+    assert summary["completedEpisodes"] == 1
+    assert summary["watchedSeconds"] == 30
+    assert len(get_missing_subtitle_episode_contexts(db_path, series_id)["episodes"]) == 1
+
+
+@pytest.mark.parametrize("payload", [{}, {"ignored": "false"}, {"ignored": 1}, [], None])
+def test_episode_exclusion_rejects_invalid_input(tmp_path, temporary_settings, payload):
+    client, db_path, media_root = make_client(tmp_path, temporary_settings)
+    _, episode_id, _, _ = seed_playable_episode(db_path, media_root)
+    assert client.post(f"/library/episodes/{episode_id}/ignored", json=payload).status_code == 400
+    assert client.get(f"/library/episodes/{episode_id}/playback").status_code == 200
+    assert client.post("/library/episodes/999/ignored", json={"ignored": True}).status_code == 404
+
+
+def test_episode_exclusion_can_retry_after_failed_write(tmp_path, temporary_settings, monkeypatch):
+    client, db_path, media_root = make_client(tmp_path, temporary_settings)
+    series_id, episode_id, _, _ = seed_playable_episode(db_path, media_root)
+    url = f"/library/episodes/{episode_id}/ignored"
+    real_set = episode_routes.set_episode_ignored
+
+    def fail(*_args):
+        raise RuntimeError("write failed")
+
+    monkeypatch.setattr(episode_routes, "set_episode_ignored", fail)
+    assert client.post(url, json={"ignored": True}).status_code == 500
+    assert client.get(f"/library/series/{series_id}").json["series"]["episodesCount"] == 1
+    monkeypatch.setattr(episode_routes, "set_episode_ignored", real_set)
+    assert client.post(url, json={"ignored": True}).status_code == 200
+    assert client.get(f"/library/series/{series_id}").json["series"]["episodesCount"] == 0
+
+
 def test_jimaku_download_returns_filename_and_preserves_path(tmp_path, temporary_settings, monkeypatch):
     from backend import library_subtitles
     client, db_path, media_root = make_client(tmp_path, temporary_settings)

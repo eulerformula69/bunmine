@@ -21,6 +21,7 @@ import { createLibrarySubtitleController } from "./library-subtitle-controller.j
 import { pollLibraryJob } from "./job-polling.js";
 
 import { createLibraryCoverController } from "./library-cover-controller.js";
+import { librarySetEpisodeIgnored } from "./library-api.js";
 
 export function applyLibraryLanguage() {
     libraryCurrentLangState.value = loadLibraryLanguage();
@@ -159,7 +160,7 @@ export function renderSeriesCard(item: LibrarySeriesView) {
         if (status === "watching") {
             const { response, data } = await libraryGetSeries(item.id);
             if (!response.ok || data.error || !data.series) throw new Error(String(data.error || lt("couldNotLoadSeries")));
-            const episodes = (data.episodes || []) as LibraryEpisodeView[];
+            const episodes = (data.episodes || []).filter((episode) => !episode.isIgnored) as LibraryEpisodeView[];
             const series = { ...item, ...data.series, completedEpisodes: episodes.filter((episode) => episode.completed).length } as LibrarySeriesView;
             const primary = LibraryPresentation.primaryAction(series, episodes);
             if (primary.kind === "continue" && primary.episodeId) {
@@ -235,7 +236,7 @@ export function renderFileRow(episode: LibraryEpisodeView) {
     const row = document.createElement("article");
     row.className = "file-row";
     const details = el("div");
-    details.append(el("h3", "", lt("episodeLabel", { number: episodeNumber(episode) })),
+    details.append(el("h3", "", episode.isIgnored ? lt("notAnEpisode") : lt("episodeLabel", { number: episodeNumber(episode) })),
         el("p", "", episode.videoFilename || lt("missingVideo")),
         el("p", "subtitle-filename", episode.subtitleFilename || lt("missingSubtitles")));
     const actions = el("div", "file-actions");
@@ -243,7 +244,13 @@ export function renderFileRow(episode: LibraryEpisodeView) {
     subtitleButton.type = "button";
     subtitleButton.disabled = !episode.hasVideo;
     subtitleButton.addEventListener("click", () => subtitleController.open(episode, row));
-    actions.append(subtitleButton);
+    const ignoreButton = el("button", "button small ignore-episode-btn", lt(episode.isIgnored ? "countAsEpisode" : "notAnEpisode"));
+    ignoreButton.type = "button";
+    ignoreButton.setAttribute("aria-pressed", String(Boolean(episode.isIgnored)));
+    ignoreButton.title = lt("notAnEpisodeHint");
+    ignoreButton.addEventListener("click", () => toggleEpisodeIgnored(episode, ignoreButton));
+    if (!episode.isIgnored) actions.append(subtitleButton);
+    actions.append(ignoreButton);
     if (!episode.hasVideo && !episode.hasSubtitle) {
         const deleteButton = el("button", "button small danger delete-missing-episode-btn", lt("deleteMissingEpisode"));
         deleteButton.type = "button";
@@ -265,11 +272,12 @@ export async function openSeries(seriesId: string | number, updateHash = true) {
     const { response, data } = await libraryGetSeries(seriesId);
     if (!response.ok || data.error || !data.series) throw new Error(String(data.error || lt("couldNotLoadSeries")));
     currentOpenedEpisodesState.value = (data.episodes || []) as LibraryEpisodeView[];
-    currentOpenedSeriesState.value = { ...(data.series as LibrarySeriesView), completedEpisodes: currentOpenedEpisodesState.value.filter((item) => item.completed).length };
+    const episodes = currentOpenedEpisodesState.value.filter((item) => !item.isIgnored);
+    currentOpenedSeriesState.value = { ...(data.series as LibrarySeriesView), completedEpisodes: episodes.filter((item) => item.completed).length };
     const series = currentOpenedSeriesState.value;
     const status = LibraryPresentation.seriesStatus(series);
     const primary = LibraryPresentation.primaryAction(series, currentOpenedEpisodesState.value);
-    const current = currentOpenedEpisodesState.value.find((item) => !item.completed && Number(item.currentTimeSeconds || 0) > 5) || currentOpenedEpisodesState.value.find((item) => !item.completed);
+    const current = episodes.find((item) => !item.completed && Number(item.currentTimeSeconds || 0) > 5) || episodes.find((item) => !item.completed);
     seriesTitle.replaceChildren();
     const titleIcon = document.createElement("img");
     titleIcon.className = "series-link-status-icon";
@@ -285,7 +293,7 @@ export async function openSeries(seriesId: string | number, updateHash = true) {
     seriesPrimaryAction.textContent = lt(primary.kind === "start" ? "startWatching" : primary.kind === "continue" ? "continueWatching" : "openEpisodes");
     seriesPrimaryAction.href = primary.episodeId ? `/player?episodeId=${encodeURIComponent(primary.episodeId)}` : "#episodes";
     seriesDetailCover.replaceChildren(coverImage(safeWebUrl(series.coverUrl || ""), series.title.slice(0, 1)));
-    episodeList.replaceChildren(...currentOpenedEpisodesState.value.map(renderEpisodeRow));
+    episodeList.replaceChildren(...episodes.map(renderEpisodeRow));
     fileList.replaceChildren(...currentOpenedEpisodesState.value.map(renderFileRow));
     if (updateHash) history.pushState({ seriesId: series.id }, "", `#series=${encodeURIComponent(series.id)}`);
     window.scrollTo({ top: 0 });
@@ -317,6 +325,18 @@ export async function toggleEpisodeCompleted(episode: LibraryEpisodeView, checkb
         await loadLibrarySeries();
     } catch (error) { checkbox.checked = !checkbox.checked; showError(error); }
     finally { checkbox.disabled = false; }
+}
+
+export async function toggleEpisodeIgnored(episode: LibraryEpisodeView, button: HTMLButtonElement) {
+    button.disabled = true;
+    try {
+        const { response, data } = await librarySetEpisodeIgnored(episode.id, !episode.isIgnored);
+        if (!response.ok || data.error) throw new Error(String(data.error || lt("couldNotUpdateEpisodeStatus")));
+        episode.isIgnored = !episode.isIgnored;
+        if (currentOpenedSeriesState.value) await openSeries(currentOpenedSeriesState.value.id, false);
+        await loadLibrarySeries();
+    } catch (error) { showError(error); }
+    finally { button.disabled = false; }
 }
 
 export async function deleteMissingEpisode(episode: LibraryEpisodeView) {

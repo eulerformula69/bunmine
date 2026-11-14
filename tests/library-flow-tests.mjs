@@ -74,6 +74,57 @@ assert.equal(filesTab.tabIndex, 0);
 assert.equal(episodesTab.tabIndex, -1);
 assert.equal(filesTab.getAttribute('aria-selected'), 'true');
 const libraryView = await import('../dist/esm/library/library.js');
+let ignored = false;
+let rejectIgnore = false;
+let ignoreRequests = 0;
+let finishIgnore;
+globalThis.fetch = async (url, options = {}) => {
+    const path = String(url);
+    if (path.endsWith('/ignored')) {
+        ignoreRequests += 1;
+        if (rejectIgnore) return new Response(JSON.stringify({error: 'Save failed'}), {status: 500});
+        await new Promise(resolve => { finishIgnore = resolve; });
+        ignored = JSON.parse(options.body).ignored;
+        return new Response(JSON.stringify({ok: true}));
+    }
+    const series = {id: 24, title: 'Show', episodesCount: ignored ? 0 : 1};
+    if (path.endsWith('/library/series')) return new Response(JSON.stringify({series: [series]}));
+    return new Response(JSON.stringify({series, episodes: [
+        {id: 1, hasVideo: true, videoFilename: 'creditless OP.mkv', isIgnored: ignored},
+    ]}));
+};
+window.scrollTo = () => {};
+Object.defineProperty(globalThis, 'history', {configurable: true, value: window.history});
+await libraryView.openSeries(24);
+filesTab.click();
+let ignoreButton = document.querySelector('.ignore-episode-btn');
+ignoreButton.click();
+ignoreButton.click();
+assert.equal(ignoreButton.disabled, true);
+assert.equal(ignoreRequests, 1, 'Repeated clicks do not submit a second request');
+finishIgnore();
+for (let attempt = 0; attempt < 30 && document.querySelector('.ignore-episode-btn') === ignoreButton; attempt += 1) {
+    await new Promise(resolve => setTimeout(resolve, 5));
+}
+assert.equal(document.querySelectorAll('#episodeList .episode-row').length, 0);
+assert.equal(document.querySelectorAll('#fileList .file-row').length, 1);
+assert.equal(document.querySelector('.ignore-episode-btn').getAttribute('aria-pressed'), 'true');
+assert.equal(document.querySelector('.subtitle-file-action'), null);
+assert.equal(document.getElementById('filesTab').classList.contains('hidden'), false);
+rejectIgnore = true;
+ignoreButton = document.querySelector('.ignore-episode-btn');
+ignoreButton.click();
+for (let attempt = 0; attempt < 30 && ignoreButton.disabled; attempt += 1) await new Promise(resolve => setTimeout(resolve, 5));
+assert.equal(ignored, true, 'A failed save keeps the previous classification');
+assert.equal(ignoreButton.disabled, false);
+rejectIgnore = false;
+ignoreButton.click();
+finishIgnore();
+for (let attempt = 0; attempt < 30 && document.querySelector('.ignore-episode-btn') === ignoreButton; attempt += 1) {
+    await new Promise(resolve => setTimeout(resolve, 5));
+}
+assert.equal(document.querySelectorAll('#episodeList .episode-row').length, 1);
+assert.equal(document.querySelector('.ignore-episode-btn').getAttribute('aria-pressed'), 'false');
 const episode = {id: 1, title: 'Episode 1', hasVideo: true, currentTimeSeconds: 120, durationSeconds: 0};
 assert.equal(libraryView.renderEpisodeRow(episode).querySelector('.episode-main p').textContent.includes('/ 0m'), false,
     'Unknown duration must not look like a zero-minute episode');

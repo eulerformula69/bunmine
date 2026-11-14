@@ -72,6 +72,7 @@ export interface LibrarySeries {
 }
 
 export interface LibraryEpisode {
+    isIgnored?: boolean;
     id: number;
     title?: string;
     episodeNumber?: number | null;

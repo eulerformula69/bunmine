@@ -117,6 +117,7 @@ def get_library_series_list(db_path: Path) -> list[dict]:
                 FROM episodes e
                 LEFT JOIN episode_file_stats efs ON efs.episode_id = e.id
                 LEFT JOIN watch_progress wp ON wp.episode_id = e.id
+                WHERE e.is_ignored = 0
                 GROUP BY e.series_id
             ),
             series_card_stats AS (
@@ -199,6 +200,7 @@ def get_library_series_detail(db_path: Path, series_id: int) -> dict:
                 e.episode_number,
                 e.season_number,
                 e.duration_seconds,
+                e.is_ignored,
                 video_file.id IS NOT NULL AS has_video,
                 subtitle_file.id IS NOT NULL AS has_subtitle,
                 video_file.id AS video_file_id,
@@ -232,16 +234,18 @@ def get_library_series_detail(db_path: Path, series_id: int) -> dict:
         for row in episode_rows:
             has_video = bool(row["has_video"])
             has_subtitle = bool(row["has_subtitle"])
-            episodes_count += 1
-            if has_video:
-                episodes_with_video += 1
-            if has_subtitle:
-                episodes_with_subtitle += 1
+            if not row["is_ignored"]:
+                episodes_count += 1
+                if has_video:
+                    episodes_with_video += 1
+                if has_subtitle:
+                    episodes_with_subtitle += 1
             episodes.append(
                 {
                     "id": row["id"],
                     "title": row["title"],
                     "episodeNumber": row["episode_number"],
+                    "isIgnored": bool(row["is_ignored"]),
                     "seasonNumber": row["season_number"],
                     "durationSeconds": row["duration_seconds"],
                     "hasVideo": has_video,

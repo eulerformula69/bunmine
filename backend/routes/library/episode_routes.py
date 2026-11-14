@@ -12,8 +12,23 @@ from backend.repositories.playback_repository import (
 from backend.library_deletion import delete_missing_library_episode
 from backend.utils_validation import to_float
 from backend.settings import current_settings
+from backend.repositories.episode_repository import set_episode_ignored
 
 library_episode_bp = Blueprint("library_episode", __name__)
+
+
+@library_episode_bp.route("/library/episodes/<int:episode_id>/ignored", methods=["POST"])
+def library_episode_ignored(episode_id):
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict) or type(data.get("ignored")) is not bool:
+        return jsonify({"error": "ignored must be a boolean"}), 400
+    try:
+        found = set_episode_ignored(current_settings().library_db_path, episode_id, data["ignored"])
+    except Exception as err:
+        return exception_response(err)
+    if not found:
+        return jsonify({"error": "Episode not found"}), 404
+    return jsonify({"ok": True, "episodeId": episode_id, "isIgnored": data["ignored"]})
 
 
 @library_episode_bp.route("/library/episodes/<int:episode_id>/playback", methods=["GET"])

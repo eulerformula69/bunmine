@@ -27,3 +27,6 @@ assert.equal(presentation.primaryAction({ ...base, currentTimeSeconds: 20 }, [{ 
 assert.equal(presentation.primaryAction({ ...base, completedEpisodes: 2 }, [{ id: 10, hasVideo: true, completed: true }]).kind, "open");
 
 console.log("Library presentation tests passed");
+const ignored = {id: 11, isIgnored: true, hasVideo: true, currentTimeSeconds: 30};
+assert.equal(presentation.primaryAction(base, [ignored, {id: 12, hasVideo: true}]).episodeId, 12);
+assert.equal(presentation.linkStatus([ignored, {hasVideo: true, hasSubtitle: true}]), 'linked');

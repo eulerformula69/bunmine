@@ -4,6 +4,7 @@ from pathlib import Path
 
 from backend.migrations.migration_001_initial import migrate as migrate_001
 from backend.migrations.migration_005_episode_file_index import migrate as migrate_005
+from backend.migrations.migration_006_episode_exclusion import migrate as migrate_006
 from backend.repositories.candidate_repository import migrate_candidates, migrate_candidate_revisions
 from backend.repositories.connection import get_db
 
@@ -14,6 +15,7 @@ MIGRATIONS = [
     (3, "mining candidates", migrate_candidates),
     (4, "candidate revisions", migrate_candidate_revisions),
     (5, "episode file index", migrate_005),
+    (6, "episode exclusion", migrate_006),
 ]
 
 

@@ -14,6 +14,9 @@ await context.updateEpisodeNavigation(playback);
 assert.equal(elements.nextEpisodeLink.getAttribute("href"), "/player?episodeId=2");
 assert.equal(elements.nextEpisodeLink.hidden, false);
 assert.equal(elements.allEpisodesLink.getAttribute("href"), "/library-page#series=8");
+episodes = [{id: 4}, {id: 7, hasVideo: true, isIgnored: true}, {id: 2, hasVideo: true}];
+await context.updateEpisodeNavigation(playback);
+assert.equal(elements.nextEpisodeLink.getAttribute("href"), "/player?episodeId=2");
 
 await context.updateEpisodeNavigation({ ...playback, episodeId: 2 });
 assert.equal(elements.nextEpisodeLink.hidden, true);

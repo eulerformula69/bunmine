@@ -23,7 +23,7 @@ export const LibraryPresentation = {
 
     primaryAction(series: LibrarySeriesView, episodes: LibraryEpisodeView[] = []): LibraryPrimaryAction {
         const status = this.seriesStatus(series);
-        const playable = episodes.filter((episode) => episode.hasVideo);
+        const playable = episodes.filter((episode) => !episode.isIgnored && episode.hasVideo);
         const current = playable.find((episode) => this.episodeCanResume(episode));
         const next = playable.find((episode) => !episode.completed);
         if (current) return { kind: "continue", episodeId: current.id };
@@ -60,7 +60,7 @@ export const LibraryPresentation = {
     escapeHtml,
 
     linkStatus(episodes: LibraryEpisodeView[]): string {
-        const items = Array.isArray(episodes) ? episodes : [];
+        const items = Array.isArray(episodes) ? episodes.filter((episode) => !episode.isIgnored) : [];
         if (!items.length) return "missing";
 
         const videos = items.filter((episode) => episode.hasVideo).length;

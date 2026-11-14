@@ -235,7 +235,7 @@ def get_missing_subtitle_episode_contexts(db_path: Path, series_id: int, limit: 
             LEFT JOIN library_files sf ON sf.id = (
                 {primary_file_id_sql("subtitle")}
             )
-            WHERE e.series_id = ? AND sf.id IS NULL
+            WHERE e.series_id = ? AND e.is_ignored = 0 AND sf.id IS NULL
             ORDER BY COALESCE(e.season_number, 1), e.episode_number IS NULL, e.episode_number, e.title
             """,
             (series_id,),

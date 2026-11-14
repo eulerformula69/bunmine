@@ -29,11 +29,11 @@ def test_failed_migration_rolls_back_schema_and_version(tmp_path, monkeypatch):
     def failing(conn):
         conn.execute("CREATE TABLE should_rollback(id INTEGER)")
         raise RuntimeError("migration failed")
-    monkeypatch.setattr(runner, "MIGRATIONS", [(6, "failure", failing)])
+    monkeypatch.setattr(runner, "MIGRATIONS", [(7, "failure", failing)])
     with pytest.raises(RuntimeError, match="migration failed"):
         init_library_db(path)
     with get_db(path) as conn:
-        assert conn.execute("SELECT value FROM schema_meta WHERE key='schema_version'").fetchone()[0] == "5"
+        assert conn.execute("SELECT value FROM schema_meta WHERE key='schema_version'").fetchone()[0] == "6"
         assert not conn.execute("SELECT 1 FROM sqlite_master WHERE name='should_rollback'").fetchone()
 
 
@@ -60,3 +60,20 @@ def test_existing_delete_journal_database_switches_to_wal(tmp_path):
     init_library_db(path)
     with get_db(path) as conn:
         assert conn.execute('PRAGMA journal_mode').fetchone()[0] == 'wal'
+
+
+def test_episode_exclusion_upgrades_existing_library(tmp_path):
+    path = tmp_path / "old.db"
+    init_library_db(path)
+    with get_db(path) as conn:
+        conn.execute("ALTER TABLE episodes DROP COLUMN is_ignored")
+        conn.execute("UPDATE schema_meta SET value = '5' WHERE key = 'schema_version'")
+        series_id = conn.execute("INSERT INTO series(title, normalized_title) VALUES('Show', 'show')").lastrowid
+        conn.execute("INSERT INTO episodes(series_id, normalized_key) VALUES(?, 'show|e1')", (series_id,))
+    init_library_db(path)
+    with get_db(path) as conn:
+        assert conn.execute("SELECT is_ignored FROM episodes").fetchone()[0] == 0
+        conn.execute("UPDATE episodes SET is_ignored = 1")
+    init_library_db(path)
+    with get_db(path) as conn:
+        assert conn.execute("SELECT is_ignored FROM episodes").fetchone()[0] == 1
