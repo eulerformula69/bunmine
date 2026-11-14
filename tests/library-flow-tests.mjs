@@ -129,6 +129,28 @@ const episode = {id: 1, title: 'Episode 1', hasVideo: true, currentTimeSeconds: 
 assert.equal(libraryView.renderEpisodeRow(episode).querySelector('.episode-main p').textContent.includes('/ 0m'), false,
     'Unknown duration must not look like a zero-minute episode');
 assert.ok(libraryView.renderEpisodeRow({...episode, durationSeconds: 600}).querySelector('.episode-main p').textContent.includes('2m / 10m'));
+let hasSubtitle = true;
+globalThis.fetch = async (url) => {
+    const path = String(url);
+    if (path.endsWith('/library/scan')) {
+        hasSubtitle = false;
+        return new Response(JSON.stringify({job: {id: 'scan-1'}}));
+    }
+    if (path.endsWith('/library/jobs/scan-1')) return new Response(JSON.stringify({job: {status: 'completed', result: {}}}));
+    const series = {id: 24, title: 'Show', episodesCount: 1};
+    return new Response(JSON.stringify(path.endsWith('/library/series') ? {series: [series]} : {
+        series, episodes: [{id: 1, hasVideo: true, hasSubtitle, subtitleFilename: 'Subs/Japanese/Show.srt'}],
+    }));
+};
+await libraryView.openSeries(24);
+assert.ok(document.querySelector('.subtitle-filename').textContent.includes('Show.srt'));
+for (let run = 0; run < 2; run += 1) {
+    scan.click();
+    for (let attempt = 0; attempt < 30 && scan.disabled; attempt += 1) await new Promise(resolve => setTimeout(resolve, 5));
+    assert.equal(scan.disabled, false);
+    assert.equal(state.currentOpenedEpisodesState.value[0].hasSubtitle, false);
+    assert.equal(document.querySelector('.subtitle-filename').textContent.includes('Show.srt'), false);
+}
 const navigation = {href: ''};
 Object.defineProperty(globalThis, 'location', {configurable: true, value: navigation});
 globalThis.fetch = async () => new Response(JSON.stringify({

@@ -97,3 +97,41 @@ def test_scanning_one_folder_preserves_other_existing_files(tmp_path):
     scan_library(db_path, media_root / "Alpha", {".mkv"}, {".srt"})
     with sqlite3.connect(db_path) as conn:
         assert conn.execute("SELECT COUNT(*) FROM library_files WHERE file_exists = 1").fetchone()[0] == 2
+
+
+def test_rescan_detects_removed_subtitles_and_restores_without_duplicates(tmp_path):
+    from backend.repositories.library_repository import get_library_series_detail, get_library_series_list
+
+    db_path = tmp_path / 'library.sqlite3'
+    media_root = tmp_path / 'media'
+    folder = media_root / 'Example Show'
+    nested = folder / 'Subs' / 'Japanese'
+    nested.mkdir(parents=True)
+    (folder / 'Example Show - 01.mkv').write_bytes(b'video')
+    subtitles = [folder / 'Example Show - 01.srt', nested / 'Example Show - 01.srt']
+    for subtitle in subtitles:
+        subtitle.write_text('sub', encoding='utf-8')
+    init_library_db(db_path)
+    scan_library(db_path, media_root, {'.mkv'}, {'.srt'})
+    series_id = get_library_series_list(db_path)[0]['id']
+    assert get_library_series_detail(db_path, series_id)['episodes'][0]['hasSubtitle'] is True
+
+    for subtitle in subtitles:
+        subtitle.unlink()
+    for _ in range(2):
+        result = scan_library(db_path, media_root, {'.mkv'}, {'.srt'})
+        assert result['missingFilesMarked'] == 2
+        episode = get_library_series_detail(db_path, series_id)['episodes'][0]
+        assert episode['hasSubtitle'] is False
+        assert episode['subtitleFileId'] is None
+        assert episode['hasVideo'] is True
+        assert get_library_series_list(db_path)[0]['episodesWithSubtitle'] == 0
+
+    nested.rmdir()
+    nested.mkdir()
+    subtitles[1].write_text('restored', encoding='utf-8')
+    for _ in range(2):
+        scan_library(db_path, media_root, {'.mkv'}, {'.srt'})
+        assert get_library_series_detail(db_path, series_id)['episodes'][0]['hasSubtitle'] is True
+    with sqlite3.connect(db_path) as conn:
+        assert conn.execute('SELECT COUNT(*) FROM library_files').fetchone()[0] == 3

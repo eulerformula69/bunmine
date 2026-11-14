@@ -238,7 +238,7 @@ export function renderFileRow(episode: LibraryEpisodeView) {
     const details = el("div");
     details.append(el("h3", "", episode.isIgnored ? lt("notAnEpisode") : lt("episodeLabel", { number: episodeNumber(episode) })),
         el("p", "", episode.videoFilename || lt("missingVideo")),
-        el("p", "subtitle-filename", episode.subtitleFilename || lt("missingSubtitles")));
+        el("p", "subtitle-filename", episode.hasSubtitle ? (episode.subtitleFilename || lt("subtitlesYes")) : lt("missingSubtitles")));
     const actions = el("div", "file-actions");
     const subtitleButton = el("button", "button small subtitle-file-action", episode.hasSubtitle ? lt("changeJpSubs") : lt("findJpSubs"));
     subtitleButton.type = "button";
