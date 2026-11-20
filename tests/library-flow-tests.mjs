@@ -98,9 +98,21 @@ globalThis.fetch = async () => new Response(JSON.stringify({series: [
 await libraryView.loadLibrarySeries();
 assert.deepEqual([...document.querySelectorAll('.series-card h3')].map(el => el.textContent), ['Zebra', 'Alpha', 'New show']);
 assert.deepEqual(libraryView.loadLibraryViewState().fixedOrder, [1, 2, 3]);
+const moveEarlier = document.querySelector('[data-series-id="3"] + div [data-order-step="-1"]');
+moveEarlier.click();
+assert.deepEqual([...document.querySelectorAll('.series-card h3')].map(el => el.textContent), ['Zebra', 'New show', 'Alpha']);
+assert.deepEqual(libraryView.loadLibraryViewState().fixedOrder, [1, 3, 2]);
+assert.equal(document.activeElement, document.querySelector('[data-series-id="3"] + div [data-order-step="-1"]'));
 sortSelect.value = 'last-watched';
 sortSelect.dispatchEvent(new Event('change', {bubbles: true}));
 assert.deepEqual([...document.querySelectorAll('.series-card h3')].map(el => el.textContent), ['New show', 'Alpha', 'Zebra']);
+assert.equal(document.querySelector('[data-order-step]'), null);
+sortSelect.value = 'fixed';
+sortSelect.dispatchEvent(new Event('change', {bubbles: true}));
+await libraryView.loadLibrarySeries();
+assert.deepEqual([...document.querySelectorAll('.series-card h3')].map(el => el.textContent), ['Zebra', 'New show', 'Alpha']);
+sortSelect.value = 'last-watched';
+sortSelect.dispatchEvent(new Event('change', {bubbles: true}));
 
 let ignored = false;
 let rejectIgnore = false;

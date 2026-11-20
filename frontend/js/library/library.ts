@@ -64,12 +64,14 @@ export function saveLibraryViewState() {
 
 export const filterState: LibraryFilterState = loadLibraryViewState();
 
+function orderedSeriesIds() {
+    return LibraryPresentation.filterAndSort(
+        librarySeriesState.value, { ...filterState, filter: "all", query: "" },
+    ).map((item) => item.id);
+}
+
 export function setLibrarySort(sort: LibrarySeriesSort) {
-    if (sort === "fixed" && filterState.sort !== "fixed") {
-        filterState.fixedOrder = LibraryPresentation.filterAndSort(
-            librarySeriesState.value, { ...filterState, filter: "all", query: "" },
-        ).map((item) => item.id);
-    }
+    if (sort === "fixed") filterState.fixedOrder ??= orderedSeriesIds();
     filterState.sort = sort;
     saveLibraryViewState();
     renderCatalog();
@@ -95,7 +97,7 @@ export const FILTER_GROUPS: Array<{ label: TranslationKey; items: Array<[Library
     { label: "files", items: [["missing-video", "missingVideo"], ["missing-subtitles", "missingSubtitles"], ["file-problems", "fileProblems"]] },
 ];
 
-export const SORT_ITEMS: Array<[LibrarySeriesSort, TranslationKey]> = [["last-watched", "recentlyWatched"], ["progress", "byProgress"], ["title", "byTitle"], ["recently-added", "recentlyAdded"], ["fixed", "keepCurrentOrder"]];
+export const SORT_ITEMS: Array<[LibrarySeriesSort, TranslationKey]> = [["last-watched", "recentlyWatched"], ["progress", "byProgress"], ["title", "byTitle"], ["recently-added", "recentlyAdded"], ["fixed", "manualOrder"]];
 
 export function filterCount(filter: LibrarySeriesFilter) {
     return librarySeriesState.value.filter((series) => LibraryPresentation.matchesFilter(series, filter)).length;
@@ -131,7 +133,38 @@ export function renderFilters() {
 
 export function renderCatalog() {
     const visible = LibraryPresentation.filterAndSort([...librarySeriesState.value], filterState);
-    seriesGrid.replaceChildren(...visible.map(renderSeriesCard));
+    seriesGrid.replaceChildren(...visible.map((item, index) => {
+        const card = renderSeriesCard(item);
+        if (filterState.sort !== "fixed" || visible.length < 2) return card;
+        const controls = el("div", "series-order-controls");
+        for (const [step, arrow, key] of [[-1, "↑", "moveSeriesEarlier"], [1, "↓", "moveSeriesLater"]] as const) {
+            const neighbor = visible[index + step];
+            const button = el("button", "button small", arrow);
+            button.type = "button";
+            button.dataset.orderStep = String(step);
+            button.disabled = !neighbor;
+            button.title = lt(key, { title: item.title });
+            button.setAttribute("aria-label", button.title);
+            if (neighbor) button.addEventListener("click", () => {
+                const order = orderedSeriesIds();
+                const from = order.indexOf(item.id);
+                const to = order.indexOf(neighbor.id);
+                [order[from], order[to]] = [order[to], order[from]];
+                filterState.fixedOrder = order;
+                saveLibraryViewState();
+                renderCatalog();
+                const movedCard = seriesGrid.querySelector<HTMLElement>(`[data-series-id="${item.id}"]`);
+                const movedButton = movedCard?.nextElementSibling?.querySelector<HTMLButtonElement>(
+                    `[data-order-step="${step}"]:enabled`,
+                );
+                (movedButton ?? movedCard)?.focus();
+            });
+            controls.appendChild(button);
+        }
+        const slot = el("div", "series-order-slot");
+        slot.append(card, controls);
+        return slot;
+    }));
     catalogEmpty.classList.toggle("hidden", visible.length > 0);
     catalogResultSummary.textContent = lt("showingSeries", { count: visible.length, total: librarySeriesState.value.length });
     renderFilters();
@@ -197,9 +230,7 @@ export async function loadLibrarySeries() {
     if (!response.ok || data.error) throw new Error(String(data.error || lt("couldNotLoadLibrary")));
     librarySeriesState.value = (Array.isArray(data.series) ? data.series : []) as LibrarySeriesView[];
     if (filterState.sort === "fixed") {
-        filterState.fixedOrder = LibraryPresentation.filterAndSort(
-            librarySeriesState.value, { ...filterState, filter: "all", query: "" },
-        ).map((item) => item.id);
+        filterState.fixedOrder = orderedSeriesIds();
         saveLibraryViewState();
     }
     const total = librarySeriesState.value.reduce((sum, item) => sum + Number(item.episodesCount || 0), 0);
