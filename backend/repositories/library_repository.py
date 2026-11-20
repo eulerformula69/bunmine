@@ -88,6 +88,16 @@ def refresh_library_file_existence(
     return {"checked": checked, "markedMissing": marked_missing}
 
 
+def get_series_media_paths(db_path: Path):
+    with get_db(db_path) as conn:
+        return conn.execute(
+            """
+            SELECT series_id, file_type, path FROM library_files
+            WHERE series_id IS NOT NULL AND file_type IN ('video', 'subtitle')
+            """
+        ).fetchall()
+
+
 def get_library_series_list(db_path: Path) -> list[dict]:
     """Get list of all series with aggregated statistics."""
     with get_db(db_path) as conn:

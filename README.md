@@ -52,7 +52,9 @@ Hidamari Sketch
 Series/Bonus Episodes
 ```
 
-Bunmine skips each listed folder and its subfolders. Use exact paths. Lines that start with `#` are comments. A `.bunmineignore` file inside a subfolder also skips that whole subfolder. Records already in the library stay there.
+Bunmine skips each listed folder and its subfolders. Use exact paths. Lines that start with `#` are comments. A `.bunmineignore` file inside a subfolder also skips that whole subfolder.
+
+The catalog hides a show when all its video paths are in excluded folders. If a show has only subtitles, Bunmine checks those paths. To show it again, remove the exclusion and reload the catalog. Bunmine keeps your progress.
 
 Set the word audio field in the player settings to use a custom name. Leave any export field name empty to select a common name from the card. This applies to pictures, sentence audio, word audio, sentences, and sentences with furigana. An explicit name takes priority. If that field is absent, the update reports an error before it creates media. Each export field must use a different card field.
 

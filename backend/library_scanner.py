@@ -2,6 +2,7 @@ import re
 from os import walk
 from pathlib import Path
 
+from backend.library_ignore import library_folder_is_ignored
 from backend.repositories.connection import get_db
 from backend.repositories.library_repository import refresh_library_file_existence
 
@@ -175,31 +176,12 @@ def upsert_library_file(
     return int(cur.lastrowid)
 
 
-IGNORE_FILENAME = ".bunmineignore"
-
-
 def find_library_files(media_root: Path, library_root: Path, allowed_extensions: set[str]) -> list[Path]:
-    ignore_file = library_root / IGNORE_FILENAME
-    excluded = set()
-    if ignore_file.is_file():
-        for line in ignore_file.read_text(encoding="utf-8-sig").splitlines():
-            rule = line.strip()
-            if not rule or rule.startswith("#"):
-                continue
-            relative = Path(rule.replace("\\", "/").removeprefix("/").rstrip("/"))
-            if relative.parts and not relative.anchor and ".." not in relative.parts:
-                excluded.add(library_root / relative)
-
-    folder = media_root
-    while folder != library_root and folder.is_relative_to(library_root):
-        if folder in excluded or (folder / IGNORE_FILENAME).is_file():
-            return []
-        folder = folder.parent
-
+    is_ignored = library_folder_is_ignored(library_root)
     found_files = []
     for folder, subfolders, filenames in walk(media_root):
         directory = Path(folder)
-        if directory in excluded or (directory != library_root and IGNORE_FILENAME in filenames):
+        if is_ignored(directory):
             subfolders.clear()
             continue
         for filename in filenames:

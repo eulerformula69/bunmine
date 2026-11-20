@@ -9,10 +9,9 @@ from backend.repositories.library_repository import (
     get_library_series_debug,
     get_library_series_detail,
     get_library_series_files_debug,
-    get_library_series_list,
 )
 from backend.library_deletion import delete_library_series
-from backend.services.library_service import relink_library_series_files
+from backend.services.library_service import list_visible_library_series, relink_library_series_files
 from backend.settings import current_settings
 from backend.utils_validation import is_within
 
@@ -33,7 +32,8 @@ def library_debug_series_files(series_id):
 
 @library_series_bp.route("/library/series", methods=["GET"])
 def library_series_list():
-    return jsonify({"series": get_library_series_list(current_settings().library_db_path)})
+    settings = current_settings()
+    return jsonify({"series": list_visible_library_series(settings.library_db_path, settings.media_library_dir)})
 
 
 @library_series_bp.route("/library/series/<int:series_id>", methods=["GET"])

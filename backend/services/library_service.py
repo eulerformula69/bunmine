@@ -6,10 +6,25 @@ This module contains business logic that operates on data from the repository la
 from pathlib import Path
 import logging
 
+from backend.library_ignore import library_folder_is_ignored
 from backend.repositories.connection import get_db
+from backend.repositories.library_repository import get_library_series_list, get_series_media_paths
 
 
 logger = logging.getLogger(__name__)
+
+
+def list_visible_library_series(db_path: Path, media_root: Path) -> list[dict]:
+    is_ignored = library_folder_is_ignored(media_root.resolve())
+    visible_media: dict[tuple[int, str], bool] = {}
+    for file in get_series_media_paths(db_path):
+        key = (file["series_id"], file["file_type"])
+        visible_media[key] = visible_media.get(key, False) or not is_ignored(Path(file["path"]).parent)
+
+    return [
+        series for series in get_library_series_list(db_path)
+        if visible_media.get((series["id"], "video"), visible_media.get((series["id"], "subtitle"), True))
+    ]
 
 
 def relink_library_series_files(db_path: Path, series_id: int, new_base: Path, media_root: Path) -> dict:

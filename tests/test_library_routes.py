@@ -48,6 +48,26 @@ def test_get_does_not_refresh_missing_files(tmp_path, temporary_settings):
     assert client.get("/library/series").json["series"][0]["episodesWithVideo"] == 0
 
 
+def test_catalog_hides_previously_scanned_series_until_folder_is_unignored(tmp_path, temporary_settings):
+    client, db_path, media_root = make_client(tmp_path, temporary_settings)
+    series_id, episode_id, _, video = seed_playable_episode(db_path, media_root)
+    with get_db(db_path) as conn:
+        conn.execute("INSERT INTO watch_progress(episode_id, completed) VALUES(?, 1)", (episode_id,))
+    original = client.get("/library/series").json["series"]
+    assert original[0]["completedEpisodes"] == 1
+    marker = media_root / ".bunmineignore"
+    marker.write_text("Show\n", encoding="utf-8")
+    for _ in range(2):
+        assert client.get("/library/series").json["series"] == []
+    assert video.exists()
+    assert client.get(f"/library/series/{series_id}").status_code == 200
+
+    marker.unlink()
+    assert client.get("/library/series").json["series"] == original
+    (video.parent / ".bunmineignore").touch()
+    assert client.get("/library/series").json["series"] == []
+
+
 def test_refresh_handles_more_than_one_batch(tmp_path, temporary_settings):
     _, db_path, _ = make_client(tmp_path, temporary_settings)
     with get_db(db_path) as conn:

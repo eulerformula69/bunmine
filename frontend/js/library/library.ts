@@ -65,9 +65,10 @@ export function saveLibraryViewState() {
 export const filterState: LibraryFilterState = loadLibraryViewState();
 
 function orderedSeriesIds() {
-    return LibraryPresentation.filterAndSort(
+    const visibleIds = LibraryPresentation.filterAndSort(
         librarySeriesState.value, { ...filterState, filter: "all", query: "" },
     ).map((item) => item.id);
+    return [...new Set([...(filterState.fixedOrder ?? []), ...visibleIds])];
 }
 
 export function setLibrarySort(sort: LibrarySeriesSort) {
