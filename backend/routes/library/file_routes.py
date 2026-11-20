@@ -124,6 +124,7 @@ def library_scan_path():
         lambda: scan_library(
             db_path=settings.library_db_path,
             media_root=target_path,
+            library_root=settings.media_library_dir,
             video_extensions=settings.allowed_video_extensions,
             subtitle_extensions=settings.allowed_subtitle_extensions,
         ),

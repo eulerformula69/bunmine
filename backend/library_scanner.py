@@ -175,7 +175,48 @@ def upsert_library_file(
     return int(cur.lastrowid)
 
 
-def scan_library(db_path: Path, media_root: Path, video_extensions: set[str], subtitle_extensions: set[str]) -> dict:
+IGNORE_FILENAME = ".bunmineignore"
+
+
+def find_library_files(media_root: Path, library_root: Path, allowed_extensions: set[str]) -> list[Path]:
+    ignore_file = library_root / IGNORE_FILENAME
+    excluded = set()
+    if ignore_file.is_file():
+        for line in ignore_file.read_text(encoding="utf-8-sig").splitlines():
+            rule = line.strip()
+            if not rule or rule.startswith("#"):
+                continue
+            relative = Path(rule.replace("\\", "/").removeprefix("/").rstrip("/"))
+            if relative.parts and not relative.anchor and ".." not in relative.parts:
+                excluded.add(library_root / relative)
+
+    folder = media_root
+    while folder != library_root and folder.is_relative_to(library_root):
+        if folder in excluded or (folder / IGNORE_FILENAME).is_file():
+            return []
+        folder = folder.parent
+
+    found_files = []
+    for folder, subfolders, filenames in walk(media_root):
+        directory = Path(folder)
+        if directory in excluded or (directory != library_root and IGNORE_FILENAME in filenames):
+            subfolders.clear()
+            continue
+        for filename in filenames:
+            path = directory / filename
+            if path.suffix.lower() in allowed_extensions and path.is_file():
+                found_files.append(path.resolve())
+    return sorted(found_files, key=lambda item: str(item).lower())
+
+
+def scan_library(
+    db_path: Path,
+    media_root: Path,
+    video_extensions: set[str],
+    subtitle_extensions: set[str],
+    *,
+    library_root: Path | None = None,
+) -> dict:
     media_root = media_root.resolve()
     if not media_root.exists():
         return {"ok": False, "error": f"MEDIA_LIBRARY_DIR does not exist: {media_root}"}
@@ -183,16 +224,8 @@ def scan_library(db_path: Path, media_root: Path, video_extensions: set[str], su
         return {"ok": False, "error": f"MEDIA_LIBRARY_DIR is not a directory: {media_root}"}
 
     allowed_extensions = {ext.lower() for ext in video_extensions | subtitle_extensions}
-    found_files = []
-    for folder, subfolders, filenames in walk(media_root):
-        if ".bunmineignore" in filenames:
-            subfolders.clear()
-            continue
-        for filename in filenames:
-            path = Path(folder) / filename
-            if path.suffix.lower() in allowed_extensions and path.is_file():
-                found_files.append(path.resolve())
-    found_files.sort(key=lambda item: str(item).lower())
+    library_root = library_root.resolve() if library_root else media_root
+    found_files = find_library_files(media_root, library_root, allowed_extensions)
 
     summary = {
         "ok": True,

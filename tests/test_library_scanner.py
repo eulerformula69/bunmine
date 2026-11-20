@@ -1,4 +1,5 @@
 import sqlite3
+from pathlib import Path
 
 from backend.repositories.library_repository import init_library_db
 from backend.library_scanner import detect_episode, infer_series_title, scan_library
@@ -68,7 +69,7 @@ def test_scan_library_skips_folders_with_ignore_marker(tmp_path):
     init_library_db(db_path)
     for _ in range(2):
         assert scan_library(db_path, media_root, {".mkv"}, {".srt"})["filesFound"] == 1
-    assert scan_library(db_path, archive, {".mkv"}, {".srt"})["filesFound"] == 0
+    assert scan_library(db_path, archive, {".mkv"}, {".srt"}, library_root=media_root)["filesFound"] == 0
     assert [series["title"] for series in get_library_series_list(db_path)] == ["Visible Show"]
 
     marker.unlink()
@@ -76,6 +77,31 @@ def test_scan_library_skips_folders_with_ignore_marker(tmp_path):
     marker.touch()
     assert scan_library(db_path, media_root, {".mkv"}, {".srt"})["filesFound"] == 1
     assert {series["title"] for series in get_library_series_list(db_path)} == {"Visible Show", "Archive Show"}
+
+
+def test_scan_uses_root_ignore_list_for_full_and_selected_folder_scans(tmp_path):
+    db_path = tmp_path / "library.sqlite3"
+    media_root = tmp_path / "media"
+    archive = media_root / "Archive Show" / "Season 1"
+    extras = media_root / "Visible Show" / "Bonus Episodes"
+    archive.mkdir(parents=True)
+    extras.mkdir(parents=True)
+    (archive / "Archive Show - 01.mkv").touch()
+    (extras / "Visible Show - 02.mkv").touch()
+    (extras.parent / "Visible Show - 01.mkv").touch()
+    rules = media_root / ".bunmineignore"
+    rules.write_text("# Archive folders\n\n/Archive Show/\nVisible Show\\Bonus Episodes\n", encoding="utf-8-sig")
+
+    init_library_db(db_path)
+    for _ in range(2):
+        result = scan_library(db_path, media_root, {".mkv"}, {".srt"})
+        expected = str(Path("Visible Show") / "Visible Show - 01.mkv")
+        assert [file["relativePath"] for file in result["sample"]] == [expected]
+    assert scan_library(db_path, archive, {".mkv"}, {".srt"}, library_root=media_root)["filesFound"] == 0
+    assert scan_library(db_path, extras, {".mkv"}, {".srt"}, library_root=media_root)["filesFound"] == 0
+
+    rules.write_text("", encoding="utf-8")
+    assert scan_library(db_path, media_root, {".mkv"}, {".srt"})["filesFound"] == 3
 
 
 def test_scan_library_is_idempotent(tmp_path):
