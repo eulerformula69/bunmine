@@ -45,6 +45,13 @@ export const LibraryPresentation = {
         const result = series.filter((item) => (
             this.matchesFilter(item, state.filter) && (!query || String(item.title || "").toLocaleLowerCase().includes(query))
         ));
+        if (state.sort === "fixed") {
+            const positions = new Map(state.fixedOrder?.map((id, index) => [id, index]));
+            return result.sort((left, right) => (
+                (positions.get(left.id) ?? positions.size) - (positions.get(right.id) ?? positions.size)
+                || left.id - right.id
+            ));
+        }
         return result.sort((left, right) => {
             if (state.sort === "title") return String(left.title).localeCompare(String(right.title));
             if (state.sort === "progress") {

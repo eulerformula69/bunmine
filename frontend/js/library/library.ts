@@ -41,7 +41,7 @@ export const LIBRARY_VIEW_STATE_KEY = "bunmineLibraryViewState";
 
 export const VALID_FILTERS: LibrarySeriesFilter[] = ["all", "watching", "not-started", "completed", "missing-video", "missing-subtitles", "file-problems"];
 
-export const VALID_SORTS: LibrarySeriesSort[] = ["last-watched", "progress", "title", "recently-added"];
+export const VALID_SORTS: LibrarySeriesSort[] = ["last-watched", "progress", "title", "recently-added", "fixed"];
 
 export function loadLibraryViewState(): LibraryFilterState {
     try {
@@ -50,6 +50,7 @@ export function loadLibraryViewState(): LibraryFilterState {
             filter: VALID_FILTERS.includes(stored.filter) ? stored.filter : "all",
             sort: VALID_SORTS.includes(stored.sort) ? stored.sort : "last-watched",
             query: "",
+            fixedOrder: Array.isArray(stored.fixedOrder) ? stored.fixedOrder.filter(Number.isSafeInteger) : undefined,
         };
     } catch {
         return { filter: "all", sort: "last-watched", query: "" };
@@ -57,11 +58,22 @@ export function loadLibraryViewState(): LibraryFilterState {
 }
 
 export function saveLibraryViewState() {
-    localStorage.setItem(LIBRARY_VIEW_STATE_KEY, JSON.stringify({ filter: filterState.filter, sort: filterState.sort }));
+    const { filter, sort, fixedOrder } = filterState;
+    localStorage.setItem(LIBRARY_VIEW_STATE_KEY, JSON.stringify({ filter, sort, fixedOrder }));
 }
 
 export const filterState: LibraryFilterState = loadLibraryViewState();
 
+export function setLibrarySort(sort: LibrarySeriesSort) {
+    if (sort === "fixed" && filterState.sort !== "fixed") {
+        filterState.fixedOrder = LibraryPresentation.filterAndSort(
+            librarySeriesState.value, { ...filterState, filter: "all", query: "" },
+        ).map((item) => item.id);
+    }
+    filterState.sort = sort;
+    saveLibraryViewState();
+    renderCatalog();
+}
 
 
 
@@ -83,7 +95,7 @@ export const FILTER_GROUPS: Array<{ label: TranslationKey; items: Array<[Library
     { label: "files", items: [["missing-video", "missingVideo"], ["missing-subtitles", "missingSubtitles"], ["file-problems", "fileProblems"]] },
 ];
 
-export const SORT_ITEMS: Array<[LibrarySeriesSort, TranslationKey]> = [["last-watched", "recentlyWatched"], ["progress", "byProgress"], ["title", "byTitle"], ["recently-added", "recentlyAdded"]];
+export const SORT_ITEMS: Array<[LibrarySeriesSort, TranslationKey]> = [["last-watched", "recentlyWatched"], ["progress", "byProgress"], ["title", "byTitle"], ["recently-added", "recentlyAdded"], ["fixed", "keepCurrentOrder"]];
 
 export function filterCount(filter: LibrarySeriesFilter) {
     return librarySeriesState.value.filter((series) => LibraryPresentation.matchesFilter(series, filter)).length;
@@ -184,6 +196,12 @@ export async function loadLibrarySeries() {
     const { response, data } = await libraryListSeries();
     if (!response.ok || data.error) throw new Error(String(data.error || lt("couldNotLoadLibrary")));
     librarySeriesState.value = (Array.isArray(data.series) ? data.series : []) as LibrarySeriesView[];
+    if (filterState.sort === "fixed") {
+        filterState.fixedOrder = LibraryPresentation.filterAndSort(
+            librarySeriesState.value, { ...filterState, filter: "all", query: "" },
+        ).map((item) => item.id);
+        saveLibraryViewState();
+    }
     const total = librarySeriesState.value.reduce((sum, item) => sum + Number(item.episodesCount || 0), 0);
     const watched = librarySeriesState.value.reduce((sum, item) => sum + Number(item.completedEpisodes || 0), 0);
     librarySummary.textContent = lt("seriesSummary", { count: librarySeriesState.value.length, watched, total });

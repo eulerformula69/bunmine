@@ -11,12 +11,13 @@ export type LibrarySeriesStatus = "not-started" | "watching" | "completed";
 
 export type LibrarySeriesFilter = "all" | LibrarySeriesStatus | "missing-video" | "missing-subtitles" | "file-problems";
 
-export type LibrarySeriesSort = "last-watched" | "progress" | "title" | "recently-added";
+export type LibrarySeriesSort = "last-watched" | "progress" | "title" | "recently-added" | "fixed";
 
 export interface LibraryFilterState {
     filter: LibrarySeriesFilter;
     sort: LibrarySeriesSort;
     query: string;
+    fixedOrder?: number[];
 }
 
 export interface LibraryPrimaryAction {

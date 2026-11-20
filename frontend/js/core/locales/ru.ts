@@ -284,6 +284,7 @@ export default {
         "byProgress": "По прогрессу",
         "byTitle": "По названию",
         "recentlyAdded": "Недавно добавлено",
+        "keepCurrentOrder": "Зафиксировать порядок",
         "showingSeries": "Показано {count} из {total}",
         "noMatchingSeries": "По этим фильтрам ничего не найдено.",
         "startWatching": "Начать просмотр",

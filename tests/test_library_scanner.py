@@ -48,6 +48,36 @@ def test_scan_library_marks_missing_files_on_rescan(tmp_path):
         assert conn.execute("SELECT file_exists FROM library_files").fetchone()[0] == 0
 
 
+def test_scan_library_skips_folders_with_ignore_marker(tmp_path):
+    from backend.repositories.library_repository import get_library_series_list
+
+    db_path = tmp_path / "library.sqlite3"
+    media_root = tmp_path / "media"
+    archive = media_root / "Archive Show"
+    season = archive / "Season 1"
+    visible = media_root / "Visible Show"
+    season.mkdir(parents=True)
+    visible.mkdir()
+    marker = archive / ".bunmineignore"
+    marker.touch()
+    (archive / "Archive Show - 01.mkv").touch()
+    (season / "Archive Show - 02.mkv").touch()
+    (season / "Archive Show - 02.srt").touch()
+    (visible / "Visible Show - 01.mkv").touch()
+
+    init_library_db(db_path)
+    for _ in range(2):
+        assert scan_library(db_path, media_root, {".mkv"}, {".srt"})["filesFound"] == 1
+    assert scan_library(db_path, archive, {".mkv"}, {".srt"})["filesFound"] == 0
+    assert [series["title"] for series in get_library_series_list(db_path)] == ["Visible Show"]
+
+    marker.unlink()
+    assert scan_library(db_path, media_root, {".mkv"}, {".srt"})["filesFound"] == 4
+    marker.touch()
+    assert scan_library(db_path, media_root, {".mkv"}, {".srt"})["filesFound"] == 1
+    assert {series["title"] for series in get_library_series_list(db_path)} == {"Visible Show", "Archive Show"}
+
+
 def test_scan_library_is_idempotent(tmp_path):
     db_path = tmp_path / "library.sqlite3"
     media_root = tmp_path / "media"

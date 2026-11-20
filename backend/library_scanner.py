@@ -1,4 +1,5 @@
 import re
+from os import walk
 from pathlib import Path
 
 from backend.repositories.connection import get_db
@@ -182,9 +183,15 @@ def scan_library(db_path: Path, media_root: Path, video_extensions: set[str], su
         return {"ok": False, "error": f"MEDIA_LIBRARY_DIR is not a directory: {media_root}"}
 
     allowed_extensions = {ext.lower() for ext in video_extensions | subtitle_extensions}
-    found_files = [
-        path.resolve() for path in media_root.rglob("*") if path.is_file() and path.suffix.lower() in allowed_extensions
-    ]
+    found_files = []
+    for folder, subfolders, filenames in walk(media_root):
+        if ".bunmineignore" in filenames:
+            subfolders.clear()
+            continue
+        for filename in filenames:
+            path = Path(folder) / filename
+            if path.suffix.lower() in allowed_extensions and path.is_file():
+                found_files.append(path.resolve())
     found_files.sort(key=lambda item: str(item).lower())
 
     summary = {

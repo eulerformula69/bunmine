@@ -5,7 +5,7 @@ import { addAnimeBtn,bulkSubtitleList,bulkSubtitleModal,bulkSubtitleSearchBtn,bu
 
 import { lt } from "./library-i18n.js";
 
-import { addAnimeFromPath,applyLibraryLanguage,closeSeriesView,deleteSeriesFromLibrary,filterState,loadLibrarySeries,openSeries,openSeriesFromHash,relinkCurrentSeriesFiles,renderCatalog,saveLibraryViewState,showError,startAndPollLibraryJob } from "./library.js";
+import { addAnimeFromPath,applyLibraryLanguage,closeSeriesView,deleteSeriesFromLibrary,filterState,loadLibrarySeries,openSeries,openSeriesFromHash,relinkCurrentSeriesFiles,renderCatalog,saveLibraryViewState,setLibrarySort,showError,startAndPollLibraryJob } from "./library.js";
 
 import { LibrarySeriesFilter,LibrarySeriesSort } from "./library-types.js";
 
@@ -43,9 +43,7 @@ libraryFilters.addEventListener("click", (event) => {
 });
 
 librarySortSelect.addEventListener("change", () => {
-    filterState.sort = librarySortSelect.value as LibrarySeriesSort;
-    saveLibraryViewState();
-    renderCatalog();
+    setLibrarySort(librarySortSelect.value as LibrarySeriesSort);
 });
 
 function selectSeriesTab(button: HTMLButtonElement) {

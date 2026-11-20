@@ -284,6 +284,7 @@ export default {
         "byProgress": "By progress",
         "byTitle": "By title",
         "recentlyAdded": "Recently added",
+        "keepCurrentOrder": "Keep current order",
         "showingSeries": "Showing {count} of {total}",
         "noMatchingSeries": "No series match these filters.",
         "startWatching": "Start watching",

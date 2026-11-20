@@ -284,6 +284,7 @@ export default {
         "byProgress": "進捗順",
         "byTitle": "タイトル順",
         "recentlyAdded": "追加順",
+        "keepCurrentOrder": "現在の順序を固定",
         "showingSeries": "{total}件中{count}件",
         "noMatchingSeries": "該当するシリーズはありません。",
         "startWatching": "視聴開始",

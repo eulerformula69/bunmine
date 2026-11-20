@@ -53,7 +53,7 @@ for (const language of ['ru', 'ja', 'en']) {
     const library = await import('../dist/esm/library/library.js');
     library.applyLibraryLanguage();
     library.renderCatalog();
-    assert.equal(sortSelect.options.length, 4);
+    assert.equal(sortSelect.options.length, 5);
     assert.equal(sortSelect.value, 'progress');
 }
 const episodesTab = document.getElementById('episodesTabButton');
@@ -74,6 +74,34 @@ assert.equal(filesTab.tabIndex, 0);
 assert.equal(episodesTab.tabIndex, -1);
 assert.equal(filesTab.getAttribute('aria-selected'), 'true');
 const libraryView = await import('../dist/esm/library/library.js');
+document.querySelector('[data-filter="all"]').click();
+sortSelect.value = 'last-watched';
+sortSelect.dispatchEvent(new Event('change', {bubbles: true}));
+state.librarySeriesState.value[0].lastWatchedAt = '2026-01-02';
+const search = document.getElementById('librarySearchInput');
+search.value = 'Alpha';
+search.dispatchEvent(new Event('input', {bubbles: true}));
+sortSelect.value = 'fixed';
+sortSelect.dispatchEvent(new Event('change', {bubbles: true}));
+assert.deepEqual([...document.querySelectorAll('.series-card h3')].map(el => el.textContent), ['Alpha']);
+search.value = '';
+search.dispatchEvent(new Event('input', {bubbles: true}));
+const storedView = libraryView.loadLibraryViewState();
+assert.equal(storedView.sort, 'fixed');
+assert.deepEqual(storedView.fixedOrder, [1, 2]);
+Object.assign(libraryView.filterState, storedView);
+globalThis.fetch = async () => new Response(JSON.stringify({series: [
+    {id: 2, title: 'Alpha', lastWatchedAt: '2026-01-03'},
+    {id: 3, title: 'New show', lastWatchedAt: '2026-01-04'},
+    {id: 1, title: 'Zebra', lastWatchedAt: '2026-01-02'},
+]}));
+await libraryView.loadLibrarySeries();
+assert.deepEqual([...document.querySelectorAll('.series-card h3')].map(el => el.textContent), ['Zebra', 'Alpha', 'New show']);
+assert.deepEqual(libraryView.loadLibraryViewState().fixedOrder, [1, 2, 3]);
+sortSelect.value = 'last-watched';
+sortSelect.dispatchEvent(new Event('change', {bubbles: true}));
+assert.deepEqual([...document.querySelectorAll('.series-card h3')].map(el => el.textContent), ['New show', 'Alpha', 'Zebra']);
+
 let ignored = false;
 let rejectIgnore = false;
 let ignoreRequests = 0;
